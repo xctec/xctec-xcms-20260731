@@ -17,6 +17,7 @@ import com.df4j.xctec.xcms.identity.api.dto.RoleDTO;
 import com.df4j.xctec.xcms.kernel.exception.BusinessException;
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ public class PermissionServiceImpl implements PermissionService {
     private final CrossTenantAuthRepository crossTenantAuthRepository;
 
     @Override
+    @Cacheable(cacheNames = "userPermissions", key = "#userId")
     public Set<String> getUserPermissions(Long userId) {
         List<RoleDTO> roles = roleService.getUserRoles(userId);
         if (roles == null || roles.isEmpty()) {
