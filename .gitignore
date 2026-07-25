@@ -1,0 +1,107 @@
+# ============================================================
+# xctec-xcms .gitignore
+# 覆盖：Maven / Spring Boot 后端 + Vite + React 前端 + IDE(IDEA/VS Code) + 系统文件
+# ============================================================
+
+# ---------- Maven / Java / Spring Boot 后端 ----------
+# Maven 构建输出目录（含 *.class / *.jar / *.imports / *.lst 等）
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+# flatten-maven-plugin 生成的扁平化 pom
+.flattened-pom.xml
+
+# 编译产物
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+
+# 日志
+*.log
+logs/
+
+# ---------- IDE: IntelliJ IDEA ----------
+.idea/
+*.iws
+*.ipr
+*.iml
+# IDEA 非 Maven 编译输出
+out/
+
+# ---------- IDE: VS Code ----------
+.vscode/
+*.code-workspace
+
+# ---------- IDE: Eclipse / Spring Tool Suite ----------
+.project
+.classpath
+.settings/
+.sts4-cache/
+bin/
+
+# ---------- CodeBuddy ----------
+# 注意：.codebuddy 为项目数据目录，按规范不忽略、不删除
+
+# ---------- 前端：Node / Vite / React ----------
+node_modules/
+# 构建产物（Vite 默认 dist，部分脚手架用 build）
+dist/
+dist-ssr/
+build/
+# Vite 缓存与类型检查
+.vite/
+*.tsbuildinfo
+*.tsbuildinfo.*
+# 测试 / 覆盖率
+coverage/
+.nyc_output/
+# ESLint / Prettier 缓存
+.eslintcache
+.stylelintcache
+
+# ---------- 环境变量与密钥 ----------
+.env
+.env.*
+!.env.example
+!.env.sample
+# Spring Boot 本地配置（含敏感信息，按需保留 example）
+application-local.yml
+application-local.properties
+application-*.local.yml
+application-*.local.properties
+
+# ---------- H2 数据库文件（以 xcms 开头） ----------
+xcms*.mv.db
+xcms*.trace.db
+xcms*.lock.db
+xcms*.h2.db
+# 其他常见 H2 格式（兜底）
+*.mv.db
+*.trace.db
+*.h2.db
+*.lock.db
+
+# ---------- 系统 / 编辑器临时文件 ----------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+# 临时 / 备份
+*.tmp
+*.temp
+*~
+*.swp
+*.swo
