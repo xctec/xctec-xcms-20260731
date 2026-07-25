@@ -57,6 +57,8 @@ public class RoleServiceImpl implements RoleService {
                 .roleName(request.getRoleName())
                 .roleType(request.getRoleType() != null ? request.getRoleType() : RoleScope.TENANT.name())
                 .description(request.getDescription())
+                .parentId(request.getParentId())
+                .status(request.getStatus() != null ? request.getStatus() : "ACTIVE")
                 .build();
         return roleMapper.toDTO(roleRepository.save(role));
     }

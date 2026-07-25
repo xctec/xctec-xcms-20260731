@@ -162,12 +162,15 @@ CREATE TABLE identity_session (
     id              BIGINT          NOT NULL,
     tenant_id       BIGINT          NOT NULL,
     user_id         BIGINT          NOT NULL,
-    token           VARCHAR(512)    NOT NULL,
+    token           VARCHAR(1024)   NOT NULL,
+    refresh_token   VARCHAR(1024),
+    session_id      VARCHAR(64),
     device_type     VARCHAR(20)     NOT NULL DEFAULT 'PC', -- PC/MOBILE/MINI_PROGRAM
     device_info     VARCHAR(512),
     login_ip        VARCHAR(64),
     login_at        TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expire_at       TIMESTAMP       NOT NULL,
+    last_active_at  TIMESTAMP,
     status          VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE', -- ACTIVE/EXPIRED/REVOKED
     CONSTRAINT pk_identity_session PRIMARY KEY (id),
     CONSTRAINT uk_identity_session_token UNIQUE (token)
