@@ -1,7 +1,7 @@
 package com.df4j.xctec.xcms.org.mapper;
 
 import com.df4j.xctec.xcms.identity.api.UserService;
-import com.df4j.xctec.xcms.identity.api.dto.UserBriefDTO;
+import com.df4j.xctec.xcms.identity.api.dto.UserDTO;
 import com.df4j.xctec.xcms.org.api.dto.DepartmentDTO;
 import com.df4j.xctec.xcms.org.api.dto.DepartmentTreeDTO;
 import com.df4j.xctec.xcms.org.api.dto.DepartmentUpdateRequest;
@@ -35,7 +35,7 @@ public abstract class DepartmentMapper {
     void fillManagerName(Department department, @MappingTarget DepartmentDTO dto) {
         if (department.getManagerId() != null && dto.getManagerName() == null) {
             try {
-                UserBriefDTO user = userService.getUserById(department.getManagerId());
+                UserDTO user = userService.getUserById(department.getManagerId());
                 dto.setManagerName(user.getRealName());
             } catch (Exception ignored) {
             }

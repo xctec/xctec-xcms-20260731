@@ -10,6 +10,7 @@ import com.df4j.xctec.xcms.org.api.dto.DepartmentUpdateRequest;
 import com.df4j.xctec.xcms.org.api.event.DepartmentCreatedEvent;
 import com.df4j.xctec.xcms.org.api.event.DepartmentMovedEvent;
 import com.df4j.xctec.xcms.org.domain.Department;
+import com.df4j.xctec.xcms.org.domain.UserPosition;
 import com.df4j.xctec.xcms.org.mapper.DepartmentMapper;
 import com.df4j.xctec.xcms.org.repository.DepartmentRepository;
 import com.df4j.xctec.xcms.org.repository.UserPositionRepository;

@@ -41,7 +41,6 @@ public class TenantUserInitializer {
                     roleRepository.save(Role.builder()
                             .roleCode("tenant_admin")
                             .roleName("租户管理员")
-                            .roleScope(RoleScope.TENANT)
                             .roleType(RoleScope.TENANT.name())
                             .description("租户默认管理员角色")
                             .build()));
@@ -50,7 +49,6 @@ public class TenantUserInitializer {
                     roleRepository.save(Role.builder()
                             .roleCode("tenant_user")
                             .roleName("普通用户")
-                            .roleScope(RoleScope.TENANT)
                             .roleType(RoleScope.TENANT.name())
                             .description("租户默认用户角色")
                             .build()));

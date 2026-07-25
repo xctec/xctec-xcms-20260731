@@ -1,6 +1,8 @@
 package com.df4j.xctec.xcms.identity.domain;
 
 import com.df4j.xctec.xcms.kernel.entity.TenantEntity;
+
+import java.time.LocalDateTime;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
