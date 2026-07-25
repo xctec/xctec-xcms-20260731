@@ -52,7 +52,7 @@
 | 分页参数 | 在 body 中 | `{ "page": 1, "size": 20 }` |
 | 管理面前缀 | `/admin/**` | `/admin/tenant/list` |
 | 业务面前缀 | `/api/**` | `/api/workflow/task/my-list` |
-| 返回格式 | 统一 `ApiResponse<T>` | `{ "code": 0, "message": "success", "data": {...} }` |
+| 返回格式 | 统一 `ApiResponse<T>` | `{ "errorCode": "0", "errorMsg": "success", "data": {...} }` |
 
 ### URL 示例
 

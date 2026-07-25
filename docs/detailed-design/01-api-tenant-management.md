@@ -112,12 +112,13 @@ package com.xcms.kernel.common;
 
 // 统一API响应
 public class ApiResponse<T> {
-    private int code;       // 0=成功, 非0=错误码
-    private String message;
+    private String errorCode;  // "0"=成功, 其他为业务错误码（字符串数字，如 "1001"）
+    private String errorMsg;
     private T data;
 
     public static <T> ApiResponse<T> success(T data) { ... }
-    public static <T> ApiResponse<T> error(int code, String message) { ... }
+    public static <T> ApiResponse<T> success() { ... }
+    public static <T> ApiResponse<T> error(String errorCode, String errorMsg) { ... }
 }
 
 // 分页结果
@@ -128,6 +129,7 @@ public class PageResult<T> {
     private int size;
 
     public static <T> PageResult<T> of(List<T> list, long total, int page, int size) { ... }
+    public static <T> PageResult<T> of(List<T> list, long total) { ... }  // 不带分页信息的快捷构造
 }
 
 // 分页查询基类
@@ -145,18 +147,37 @@ public class PageQuery {
 package com.xcms.kernel.exception;
 
 public class BusinessException extends RuntimeException {
-    private int code;
-    public BusinessException(int code, String message) { ... }
+    private final String errorCode;
+    public BusinessException(String errorCode, String message) { ... }
+    public BusinessException(String message) { ... }  // 默认 INTERNAL_ERROR
 }
 
 public class PermissionException extends BusinessException {
-    public PermissionException(String message) { super(403, message); }
+    public PermissionException(String message) { super(ErrorCodes.PERMISSION_DENIED, message); }
 }
 
 public class NotFoundException extends BusinessException {
-    public NotFoundException(String resource, Long id) { super(404, resource + " not found: " + id); }
+    public NotFoundException(String resource, Long id) { super(ErrorCodes.NOT_FOUND, resource + " not found: " + id); }
+    public NotFoundException(String resource, String key) { super(ErrorCodes.NOT_FOUND, resource + " not found: " + key); }
 }
 ```
+
+### 1.5.1 错误码体系
+
+`ErrorCodes` 定义系统通用错误码（字符串数字，兼容更多系统）：
+
+| 范围 | 说明 | 示例 |
+|------|------|------|
+| `"0"` | 成功 | `ErrorCodes.SUCCESS` |
+| `"400"`~`"499"` | 客户端错误（参照 HTTP 语义） | `BAD_REQUEST`/`UNAUTHORIZED`/`PERMISSION_DENIED`/`NOT_FOUND`/`ALREADY_EXISTS`/`VALIDATION_ERROR` |
+| `"500"`~`"599"` | 服务端错误 | `INTERNAL_ERROR` |
+| `"10xx"` | 租户相关 | `TENANT_NOT_FOUND`/`TENANT_SUSPENDED`/`TENANT_LOCKED`/`QUOTA_EXCEEDED` |
+| `"11xx"` | 用户/组织相关 | `USER_NOT_FOUND`/`USER_ALREADY_EXISTS`/`ROLE_NOT_FOUND`/`DEPT_NOT_FOUND` 等 |
+| `"12xx"` | 认证/权限相关 | `AUTH_INVALID_CREDENTIALS`/`AUTH_TOKEN_INVALID`/`AUTH_TOKEN_EXPIRED`/`DATA_PERMISSION_DENIED` |
+| `"13xx"` | 流程相关 | （流程模块补充） |
+| `"14xx"` | 消息/文件/任务相关 | （共享服务模块补充） |
+| `"20xx"` | 跨租户相关 | `CROSS_TENANT_DENIED`/`BUSINESS_VISIBILITY_DENIED` |
+| `"4000"` | 通用业务错误 | `BUSINESS_ERROR` |
 
 ### 1.6 数据源路由
 
