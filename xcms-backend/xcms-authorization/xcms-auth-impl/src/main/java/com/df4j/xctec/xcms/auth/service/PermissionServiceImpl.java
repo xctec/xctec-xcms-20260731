@@ -8,6 +8,7 @@ import com.df4j.xctec.xcms.auth.api.dto.PermissionDTO;
 import com.df4j.xctec.xcms.auth.api.enums.MenuScope;
 import com.df4j.xctec.xcms.auth.domain.Menu;
 import com.df4j.xctec.xcms.auth.domain.Permission;
+import com.df4j.xctec.xcms.auth.domain.RolePermission;
 import com.df4j.xctec.xcms.auth.repository.CrossTenantAuthRepository;
 import com.df4j.xctec.xcms.auth.repository.MenuRepository;
 import com.df4j.xctec.xcms.auth.repository.PermissionRepository;
@@ -73,6 +74,7 @@ public class PermissionServiceImpl implements PermissionService {
                 .anyMatch(r -> "tenant_admin".equals(r.getRoleCode()));
         List<Menu> all = menuRepository.findAll();
         String scopeName = scope == null ? null : scope.name();
+        Set<Long> allowedMenuIds = getUserMenuIds(userId);
         List<Menu> visible = all.stream().filter(m -> {
             if (m.getVisible() != null && !m.getVisible()) {
                 return false;
@@ -85,8 +87,23 @@ public class PermissionServiceImpl implements PermissionService {
                 return true;
             }
             return scopeName != null && ms.equals(scopeName);
-        }).toList();
+        }).filter(m -> isAdmin || allowedMenuIds.contains(m.getId())).toList();
         return buildTree(visible);
+    }
+
+    /**
+     * 计算当前用户通过「MENU」类型角色权限可访问的菜单 id 集合。
+     */
+    private Set<Long> getUserMenuIds(Long userId) {
+        List<RoleDTO> roles = roleService.getUserRoles(userId);
+        if (roles == null || roles.isEmpty()) {
+            return Set.of();
+        }
+        List<Long> roleIds = roles.stream().map(RoleDTO::getId).toList();
+        return rolePermissionRepository.findByRoleIdIn(roleIds).stream()
+                .filter(rp -> "MENU".equals(rp.getPermType()))
+                .map(RolePermission::getPermissionId)
+                .collect(Collectors.toSet());
     }
 
     @Override
