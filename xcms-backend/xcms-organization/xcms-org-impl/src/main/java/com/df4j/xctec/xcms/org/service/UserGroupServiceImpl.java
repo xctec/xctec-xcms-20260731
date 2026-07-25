@@ -35,7 +35,7 @@ public class UserGroupServiceImpl implements UserGroupService {
     public UserGroupDTO createGroup(UserGroupCreateRequest request) {
         requireTenant();
         if (groupRepository.existsByGroupNameAndDeletedAtIsNull(request.getGroupName())) {
-            throw new BusinessException(ErrorCodes.GROUP_NOT_FOUND, request.getGroupName());
+            throw new BusinessException(ErrorCodes.ALREADY_EXISTS, request.getGroupName());
         }
         UserGroup group = new UserGroup();
         group.setGroupName(request.getGroupName());
