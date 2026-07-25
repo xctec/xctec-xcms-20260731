@@ -18,7 +18,7 @@ import java.util.function.Function;
  *   <li>{@code sender}：将 {@code (topic, payload)} 投递到消息总线（Kafka/RabbitMQ 等）；</li>
  *   <li>{@code taskExecutor}：异步发送，避免阻塞发布方。</li>
  * </ul>
- * 事件类型 {@code event.getClass().getSimpleName()} 约定作为消息 topic。</p>
+ * 事件 topic 通过 {@link DomainEvent#topic()} 获取（默认简单类名，可覆盖以支持同名事件与版本演进）。</p>
  */
 public class MqEventPublisher implements DomainEventPublisher {
 
@@ -36,7 +36,7 @@ public class MqEventPublisher implements DomainEventPublisher {
 
     @Override
     public void publish(DomainEvent event) {
-        String topic = event.getClass().getSimpleName();
+        String topic = event.topic();
         String payload = serializer.apply(event);
         taskExecutor.execute(() -> sender.accept(topic, payload));
     }
