@@ -11,6 +11,7 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 
@@ -24,6 +25,7 @@ import java.time.LocalDateTime;
 @Table(name = "tenant_relation",
         uniqueConstraints = @UniqueConstraint(name = "uk_tenant_relation",
                 columnNames = {"project_tenant_id", "member_tenant_id", "member_org_id"}))
+@SQLRestriction("deleted_at IS NULL")
 public class TenantRelation {
 
     @Id
@@ -47,6 +49,9 @@ public class TenantRelation {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @PrePersist
     protected void onCreate() {
