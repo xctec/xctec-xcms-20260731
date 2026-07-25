@@ -13,7 +13,7 @@ public class PageQuery {
     private String sortBy;
     private String sortOrder = "ASC";
 
-    public int getOffset() {
-        return (page - 1) * size;
+    public long getOffset() {
+        return (long) (page - 1) * size;
     }
 }
