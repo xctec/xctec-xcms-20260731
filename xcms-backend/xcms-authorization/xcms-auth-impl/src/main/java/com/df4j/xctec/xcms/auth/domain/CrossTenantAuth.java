@@ -39,7 +39,7 @@ public class CrossTenantAuth extends BaseEntity {
     @Column(name = "data_scope", length = 2000)
     private String dataScope;
 
-    @Column(name = "token", length = 64)
+    @Column(name = "token", length = 512)
     private String token;
 
     @Column(name = "valid_from")
