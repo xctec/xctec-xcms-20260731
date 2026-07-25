@@ -13,6 +13,9 @@ import com.df4j.xctec.xcms.kernel.event.DomainEventPublisher;
 import com.df4j.xctec.xcms.kernel.exception.BusinessException;
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -85,9 +88,12 @@ public class BusinessVisibilityAuthServiceImpl implements BusinessVisibilityAuth
 
     @Override
     public PageResult<CrossTenantAuthDTO> listAuthorizations(CrossTenantAuthQuery query) {
-        List<CrossTenantAuth> list = repository.search(query.getTenantId(), query.getTargetTenantId(),
-                query.getUserId(), query.getStatus());
-        return PageResult.of(list.stream().map(this::toDTO).toList(), list.size());
+        int page = query.getPage() <= 0 ? 1 : query.getPage();
+        int size = query.getSize() <= 0 ? 20 : query.getSize();
+        Pageable pageable = PageRequest.of(page - 1, size);
+        Page<CrossTenantAuth> result = repository.searchPage(
+                query.getTenantId(), query.getTargetTenantId(), query.getUserId(), query.getStatus(), pageable);
+        return PageResult.of(result.stream().map(this::toDTO).toList(), result.getTotalElements());
     }
 
     @Override
