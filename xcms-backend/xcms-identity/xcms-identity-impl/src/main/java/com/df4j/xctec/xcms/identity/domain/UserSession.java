@@ -31,10 +31,10 @@ public class UserSession extends TenantEntity {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "token", nullable = false, length = 64)
+    @Column(name = "token", nullable = false, length = 1024)
     private String token;
 
-    @Column(name = "refresh_token", length = 64)
+    @Column(name = "refresh_token", length = 1024)
     private String refreshToken;
 
     @Column(name = "session_id", length = 64)

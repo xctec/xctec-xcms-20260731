@@ -12,6 +12,7 @@ import com.df4j.xctec.xcms.identity.domain.UserSession;
 import com.df4j.xctec.xcms.identity.mapper.UserMapper;
 import com.df4j.xctec.xcms.identity.repository.UserRepository;
 import com.df4j.xctec.xcms.identity.repository.UserSessionRepository;
+import com.df4j.xctec.xcms.identity.security.JwtTokenProvider;
 import com.df4j.xctec.xcms.kernel.context.TenantContext;
 import com.df4j.xctec.xcms.kernel.event.DomainEventPublisher;
 import com.df4j.xctec.xcms.kernel.exception.BusinessException;
@@ -39,6 +40,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserSessionRepository sessionRepository;
     private final UserMapper userMapper;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
     private final DomainEventPublisher eventPublisher;
 
     @Override
@@ -78,8 +80,8 @@ public class AuthServiceImpl implements AuthService {
         String loginIp = resolveClientIp();
         UserSession session = UserSession.builder()
                 .userId(user.getId())
-                .token(UUID.randomUUID().toString().replace("-", ""))
-                .refreshToken(UUID.randomUUID().toString().replace("-", ""))
+                .token(jwtTokenProvider.generateAccessToken(user.getId(), tenantId, user.getUsername()))
+                .refreshToken(jwtTokenProvider.generateRefreshToken(user.getId(), tenantId, user.getUsername()))
                 .sessionId(UUID.randomUUID().toString().replace("-", ""))
                 .deviceType(request.getDeviceType())
                 .loginIp(loginIp)
@@ -147,12 +149,13 @@ public class AuthServiceImpl implements AuthService {
         if (session.getExpireAt().isBefore(LocalDateTime.now())) {
             throw new BusinessException(ErrorCodes.AUTH_TOKEN_EXPIRED);
         }
-        LocalDateTime now = LocalDateTime.now();
-        session.setToken(UUID.randomUUID().toString().replace("-", ""));
-        session.setLastActiveAt(now);
-        sessionRepository.save(session);
         User user = userRepository.findById(session.getUserId()).orElseThrow(
                 () -> new BusinessException(ErrorCodes.USER_NOT_FOUND));
+        LocalDateTime now = LocalDateTime.now();
+        session.setToken(jwtTokenProvider.generateAccessToken(user.getId(), session.getTenantId(), user.getUsername()));
+        session.setRefreshToken(jwtTokenProvider.generateRefreshToken(user.getId(), session.getTenantId(), user.getUsername()));
+        session.setLastActiveAt(now);
+        sessionRepository.save(session);
         LoginResult result = new LoginResult();
         result.setToken(session.getToken());
         result.setRefreshToken(session.getRefreshToken());
