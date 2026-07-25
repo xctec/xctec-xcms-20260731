@@ -94,7 +94,12 @@ public class PortalServiceImpl implements PortalService {
         }
         List<PortalQuickEntry> existing = quickEntryRepository
                 .findByUserIdAndSurfaceAndDeletedAtIsNull(userId, surface, Sort.unsorted());
-        quickEntryRepository.deleteAll(existing);
+        // 软删除旧数据，与 deleteQuickEntry 的 deletedAt 软删设计保持一致
+        LocalDateTime now = LocalDateTime.now();
+        existing.forEach(e -> e.setDeletedAt(now));
+        if (!existing.isEmpty()) {
+            quickEntryRepository.saveAll(existing);
+        }
 
         List<PortalQuickEntry> toSave = (entries == null ? List.<PortalQuickEntryDTO>of() : entries).stream()
                 .map(e -> toEntity(e, userId, surface))
