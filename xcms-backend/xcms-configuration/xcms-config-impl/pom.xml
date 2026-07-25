@@ -10,7 +10,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>xcms-config-impl</artifactId>
-    <name>XCMS uconfig Impl</name>
+    <name>XCMS Configuration Impl</name>
     <dependencies>
         <dependency>
             <groupId>com.df4j.xctec.xcms</groupId>
