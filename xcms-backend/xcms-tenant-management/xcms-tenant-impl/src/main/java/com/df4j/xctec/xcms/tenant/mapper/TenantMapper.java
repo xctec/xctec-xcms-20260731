@@ -8,7 +8,6 @@ import com.df4j.xctec.xcms.tenant.domain.TenantFeature;
 import com.df4j.xctec.xcms.tenant.domain.TenantInfo;
 import com.df4j.xctec.xcms.tenant.domain.TenantQuota;
 import org.mapstruct.Mapper;
-import org.mapstruct.Named;
 
 import java.util.List;
 
@@ -31,9 +30,9 @@ public interface TenantMapper {
     List<TenantFeatureDTO> toFeatureDtoList(List<TenantFeature> entities);
 
     /**
-     * 配额实体转使用明细（计算使用百分比）
+     * 配额实体转使用明细（计算使用百分比）。
+     * 该方法由 mapstruct 按返回类型与参数类型自动匹配为元素映射方法，无需 @Named 限定。
      */
-    @Named("toUsageItem")
     default QuotaUsageItem toUsageItem(TenantQuota quota) {
         QuotaUsageItem item = new QuotaUsageItem();
         item.setQuotaType(quota.getQuotaType());
