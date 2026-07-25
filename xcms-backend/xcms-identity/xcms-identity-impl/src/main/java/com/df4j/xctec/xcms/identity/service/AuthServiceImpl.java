@@ -121,7 +121,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void logout(String token) {
-        sessionRepository.deleteByToken(token);
+        sessionRepository.findByToken(token).ifPresent(session -> {
+            session.setStatus("EXPIRED");
+            sessionRepository.save(session);
+        });
     }
 
     @Override
@@ -197,7 +200,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void revokeSession(String token) {
-        sessionRepository.deleteByToken(token);
+        sessionRepository.findByToken(token).ifPresent(session -> {
+            session.setStatus("REVOKED");
+            sessionRepository.save(session);
+        });
     }
 
     @Override
