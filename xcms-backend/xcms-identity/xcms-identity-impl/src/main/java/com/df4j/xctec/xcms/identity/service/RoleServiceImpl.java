@@ -141,10 +141,13 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public PageResult<UserBriefDTO> getRoleUsers(Long roleId, PageQuery query) {
-        List<UserRole> urs = userRoleRepository.findByRoleId(roleId);
-        List<Long> userIds = urs.stream().map(UserRole::getUserId).distinct().toList();
+        org.springframework.data.domain.Pageable pageable = PageRequest.of(
+                Math.max(query.getPage() - 1, 0), Math.max(query.getSize(), 1),
+                Sort.by(Sort.Direction.ASC, "id"));
+        Page<UserRole> urPage = userRoleRepository.findByRoleId(roleId, pageable);
+        List<Long> userIds = urPage.getContent().stream().map(UserRole::getUserId).distinct().toList();
         if (userIds.isEmpty()) {
-            return PageResult.of(List.of(), 0);
+            return PageResult.of(List.of(), urPage.getTotalElements());
         }
         List<User> users = userRepository.findAllById(userIds);
         List<UserBriefDTO> list = users.stream().map(u -> {
@@ -154,7 +157,7 @@ public class RoleServiceImpl implements RoleService {
             d.setRealName(u.getRealName());
             return d;
         }).toList();
-        return PageResult.of(list, list.size());
+        return PageResult.of(list, urPage.getTotalElements());
     }
 
     public void grantToUser(Long userId, Long roleId) {
