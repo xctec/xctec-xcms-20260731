@@ -17,11 +17,12 @@ import com.df4j.xctec.xcms.identity.api.RoleService;
 import com.df4j.xctec.xcms.identity.api.dto.RoleDTO;
 import com.df4j.xctec.xcms.kernel.exception.BusinessException;
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
-import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +30,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class PermissionServiceImpl implements PermissionService {
 
     private final RoleService roleService;
@@ -39,8 +39,32 @@ public class PermissionServiceImpl implements PermissionService {
     private final MenuRepository menuRepository;
     private final CrossTenantAuthRepository crossTenantAuthRepository;
 
+    /**
+     * 自注入：让 checkPermission/requirePermission 内部调用 getUserPermissions 时走 Spring AOP 代理，
+     * 使 @Cacheable 生效。若直接用 this. 调用（self-invocation），代理被绕过，缓存不会触发，
+     * 导致每次鉴权仍全量查 DB（N+1）。@Lazy 避免启动期循环依赖检查。
+     */
+    private final PermissionService self;
+
+    public PermissionServiceImpl(
+            RoleService roleService,
+            RolePermissionService rolePermissionService,
+            RolePermissionRepository rolePermissionRepository,
+            PermissionRepository permissionRepository,
+            MenuRepository menuRepository,
+            CrossTenantAuthRepository crossTenantAuthRepository,
+            @Lazy PermissionService self) {
+        this.roleService = roleService;
+        this.rolePermissionService = rolePermissionService;
+        this.rolePermissionRepository = rolePermissionRepository;
+        this.permissionRepository = permissionRepository;
+        this.menuRepository = menuRepository;
+        this.crossTenantAuthRepository = crossTenantAuthRepository;
+        this.self = self;
+    }
+
     @Override
-    @Cacheable(cacheNames = "userPermissions", key = "#userId")
+    @Cacheable(cacheNames = "userPermissions", key = "#userId", unless = "#result.isEmpty()")
     public Set<String> getUserPermissions(Long userId) {
         List<RoleDTO> roles = roleService.getUserRoles(userId);
         if (roles == null || roles.isEmpty()) {
@@ -52,13 +76,16 @@ public class PermissionServiceImpl implements PermissionService {
         if (permIds.isEmpty()) {
             return Set.of();
         }
-        return permissionRepository.findByIdIn(permIds).stream()
+        Set<String> result = permissionRepository.findByIdIn(permIds).stream()
                 .map(Permission::getPermCode).collect(Collectors.toSet());
+        // 返回不可变 Set，防止调用方修改污染缓存中的引用
+        return Collections.unmodifiableSet(result);
     }
 
     @Override
     public boolean checkPermission(Long userId, String permCode) {
-        return getUserPermissions(userId).contains(permCode);
+        // 通过 self 调用走代理，使 @Cacheable 生效
+        return self.getUserPermissions(userId).contains(permCode);
     }
 
     @Override
