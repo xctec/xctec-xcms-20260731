@@ -55,7 +55,6 @@ public class RoleServiceImpl implements RoleService {
         Role role = Role.builder()
                 .roleCode(request.getRoleCode())
                 .roleName(request.getRoleName())
-                .roleScope(request.getRoleType() != null ? RoleScope.valueOf(request.getRoleType()) : RoleScope.TENANT)
                 .roleType(request.getRoleType() != null ? request.getRoleType() : RoleScope.TENANT.name())
                 .description(request.getDescription())
                 .build();
@@ -107,13 +106,19 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     public void assignRoleToUser(Long userId, Long roleId, RoleScope scope, String scopeValue) {
         requireTenant();
-        if (userRoleRepository.findByUserIdAndRoleId(userId, roleId).isEmpty()) {
-            userRoleRepository.save(UserRole.builder().userId(userId).roleId(roleId).build());
+        String scopeType = scope != null ? scope.name() : null;
+        if (userRoleRepository.findByUserIdAndRoleIdAndScopeTypeAndScopeValue(userId, roleId, scopeType, scopeValue).isEmpty()) {
+            userRoleRepository.save(UserRole.builder()
+                    .userId(userId).roleId(roleId)
+                    .scopeType(scopeType).scopeValue(scopeValue)
+                    .grantedBy(TenantContext.getCurrentUserId())
+                    .grantedAt(LocalDateTime.now())
+                    .build());
             RoleAssignedEvent evt = new RoleAssignedEvent();
             evt.setUserId(userId);
             evt.setRoleId(roleId);
             evt.setTenantId(TenantContext.getTenantId());
-            evt.setScopeType(scope != null ? scope.name() : null);
+            evt.setScopeType(scopeType);
             evt.setScopeValue(scopeValue);
             eventPublisher.publish(evt);
         }
@@ -168,7 +173,6 @@ public class RoleServiceImpl implements RoleService {
                 roleRepository.save(Role.builder()
                         .roleCode("tenant_admin")
                         .roleName("租户管理员")
-                        .roleScope(RoleScope.TENANT)
                         .roleType(RoleScope.TENANT.name())
                         .description("租户默认管理员角色")
                         .build());
@@ -177,7 +181,6 @@ public class RoleServiceImpl implements RoleService {
                 roleRepository.save(Role.builder()
                         .roleCode("tenant_user")
                         .roleName("普通用户")
-                        .roleScope(RoleScope.TENANT)
                         .roleType(RoleScope.TENANT.name())
                         .description("租户默认用户角色")
                         .build());

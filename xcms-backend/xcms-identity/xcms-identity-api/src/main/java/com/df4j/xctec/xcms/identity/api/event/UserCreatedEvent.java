@@ -14,4 +14,6 @@ public class UserCreatedEvent implements DomainEvent, Serializable {
     private Long tenantId;
     private String username;
     private String realName;
+    private Long deptId;
+    private Long positionId;
 }

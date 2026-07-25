@@ -75,6 +75,8 @@ public class UserServiceImpl implements UserService {
         event.setTenantId(TenantContext.getTenantId());
         event.setUsername(saved.getUsername());
         event.setRealName(saved.getRealName());
+        event.setDeptId(request.getDeptId());
+        event.setPositionId(request.getPositionId());
         eventPublisher.publish(event);
         return toDTO(saved);
     }
@@ -138,6 +140,7 @@ public class UserServiceImpl implements UserService {
         requireTenant();
         User user = getById(userId);
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordChangedAt(LocalDateTime.now());
         userRepository.save(user);
     }
 
@@ -150,6 +153,7 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ErrorCodes.AUTH_INVALID_CREDENTIALS, "原密码不正确");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordChangedAt(LocalDateTime.now());
         userRepository.save(user);
     }
 

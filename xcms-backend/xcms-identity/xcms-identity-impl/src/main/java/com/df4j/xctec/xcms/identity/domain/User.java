@@ -84,6 +84,9 @@ public class User extends TenantEntity {
     @Column(name = "remark", length = 255)
     private String remark;
 
+    @Column(name = "password_changed_at")
+    private LocalDateTime passwordChangedAt;
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 }

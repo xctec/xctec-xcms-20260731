@@ -31,4 +31,19 @@ public class UserRole extends TenantEntity {
 
     @Column(name = "role_id", nullable = false)
     private Long roleId;
+
+    @Column(name = "scope_type", length = 20)
+    private String scopeType;
+
+    @Column(name = "scope_value", length = 512)
+    private String scopeValue;
+
+    @Column(name = "granted_by")
+    private Long grantedBy;
+
+    @Column(name = "granted_at")
+    private LocalDateTime grantedAt;
+
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
 }
