@@ -20,6 +20,9 @@ import com.df4j.xctec.xcms.kernel.event.DomainEventPublisher;
 import com.df4j.xctec.xcms.kernel.exception.BusinessException;
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -185,16 +188,14 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     public PageResult<UserBriefDTO> listDepartmentUsers(Long deptId, PageQuery query) {
         requireTenant();
-        List<Long> userIds = userPositionRepository.findByDeptId(deptId).stream()
-                .map(u -> u.getUserId()).distinct().toList();
-        int total = userIds.size();
-        int from = (query.getPage() - 1) * query.getSize();
-        int to = Math.min(from + query.getSize(), total);
+        // 改为 Repository 分页查询，避免全量查询后在内存切片（评审 P1.2）
+        Pageable pageable = PageRequest.of(Math.max(query.getPage() - 1, 0), query.getSize());
+        Page<UserPosition> page = userPositionRepository.findByDeptIdAndDeletedAtIsNull(deptId, pageable);
         String deptName = departmentRepository.findByIdAndDeletedAtIsNull(deptId)
                 .map(Department::getDeptName).orElse(null);
-        List<UserBriefDTO> list = userIds.subList(Math.max(from, 0), Math.max(to, 0)).stream()
-                .map(uid -> toBrief(uid, deptId, deptName)).toList();
-        return PageResult.of(list, total);
+        List<UserBriefDTO> list = page.getContent().stream()
+                .map(up -> toBrief(up.getUserId(), deptId, deptName)).toList();
+        return PageResult.of(list, page.getTotalElements());
     }
 
     private UserBriefDTO toBrief(Long userId, Long deptId, String deptName) {
