@@ -114,8 +114,7 @@ public class TenantServiceImpl implements TenantService {
     @Override
     @Transactional
     public TenantDTO updateTenant(Long tenantId, TenantUpdateRequest request) {
-        assertNotMigrating(tenantId);
-        TenantInfo entity = requireTenant(tenantId);
+        TenantInfo entity = assertNotMigrating(tenantId);
         if (StringUtils.hasText(request.getTenantName())) {
             entity.setTenantName(request.getTenantName());
         }
@@ -190,8 +189,7 @@ public class TenantServiceImpl implements TenantService {
     @Override
     @Transactional
     public void changeTenantStatus(Long tenantId, TenantStatus status) {
-        assertNotMigrating(tenantId);
-        TenantInfo entity = requireTenant(tenantId);
+        TenantInfo entity = assertNotMigrating(tenantId);
         TenantStatus old = entity.getStatus();
         entity.setStatus(status);
         tenantInfoRepository.save(entity);
@@ -257,11 +255,12 @@ public class TenantServiceImpl implements TenantService {
         eventPublisher.publish(migratedEvent);
     }
 
-    private void assertNotMigrating(Long tenantId) {
+    private TenantInfo assertNotMigrating(Long tenantId) {
         TenantInfo entity = requireTenant(tenantId);
         if (entity.getStatus() == TenantStatus.MIGRATING) {
             throw new BusinessException("1006", "租户正在迁移中，当前为只读状态，禁止写操作: " + tenantId);
         }
+        return entity;
     }
 
     @Override
