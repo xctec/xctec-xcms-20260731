@@ -1,6 +1,7 @@
 package com.df4j.xctec.xcms.tenant.service;
 
 import com.df4j.xctec.xcms.kernel.exception.BusinessException;
+import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
 import com.df4j.xctec.xcms.tenant.api.TenantQuotaService;
 import com.df4j.xctec.xcms.tenant.api.dto.QuotaAllocateRequest;
 import com.df4j.xctec.xcms.tenant.api.dto.QuotaUsageDTO;
@@ -66,6 +67,9 @@ public class TenantQuotaServiceImpl implements TenantQuotaService {
     @Override
     @Transactional
     public void consumeQuota(Long tenantId, QuotaType quotaType, long amount) {
+        if (!checkQuota(tenantId, quotaType, amount)) {
+            throw new BusinessException(ErrorCodes.QUOTA_EXCEEDED, "配额不足: " + quotaType);
+        }
         tenantQuotaRepository
                 .findByTenantIdAndQuotaTypeAndPeriod(tenantId, quotaType, DEFAULT_PERIOD)
                 .ifPresent(q -> {
