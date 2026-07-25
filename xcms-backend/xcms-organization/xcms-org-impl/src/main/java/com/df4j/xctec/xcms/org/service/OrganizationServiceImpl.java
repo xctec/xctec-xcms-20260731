@@ -74,6 +74,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         deptEvent.setDeptCode(dept.getDeptCode());
         deptEvent.setDeptName(dept.getDeptName());
         deptEvent.setParentId(dept.getParentId());
+        deptEvent.setPath(dept.getPath());
         eventPublisher.publish(deptEvent);
         return departmentMapper.toDTO(dept);
     }
@@ -142,6 +143,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         requireTenant();
         Department dept = findDept(deptId);
         Long oldParentId = dept.getParentId();
+        String oldPath = dept.getPath();
         if (newParentId != null) {
             Department newParent = findDept(newParentId);
             dept.setParentId(newParentId);
@@ -158,6 +160,8 @@ public class OrganizationServiceImpl implements OrganizationService {
         movedEvent.setDeptId(deptId);
         movedEvent.setOldParentId(oldParentId);
         movedEvent.setNewParentId(newParentId);
+        movedEvent.setOldPath(oldPath);
+        movedEvent.setNewPath(dept.getPath());
         eventPublisher.publish(movedEvent);
     }
 

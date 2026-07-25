@@ -15,4 +15,5 @@ public class DepartmentCreatedEvent implements DomainEvent, Serializable {
     private String deptCode;
     private String deptName;
     private Long parentId;
+    private String path;
 }

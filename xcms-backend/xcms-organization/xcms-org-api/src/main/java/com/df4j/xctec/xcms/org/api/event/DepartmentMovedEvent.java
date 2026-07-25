@@ -13,4 +13,6 @@ public class DepartmentMovedEvent implements DomainEvent, Serializable {
     private Long deptId;
     private Long oldParentId;
     private Long newParentId;
+    private String oldPath;
+    private String newPath;
 }
