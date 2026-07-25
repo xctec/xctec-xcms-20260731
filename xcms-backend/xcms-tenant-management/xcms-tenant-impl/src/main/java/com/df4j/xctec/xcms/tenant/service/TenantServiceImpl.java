@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -191,6 +192,10 @@ public class TenantServiceImpl implements TenantService {
     public void changeTenantStatus(Long tenantId, TenantStatus status) {
         TenantInfo entity = assertNotMigrating(tenantId);
         TenantStatus old = entity.getStatus();
+        if (!isTransitionAllowed(old, status)) {
+            throw new BusinessException(ErrorCodes.VALIDATION_ERROR,
+                    "非法的租户状态转换: " + old + " -> " + status);
+        }
         entity.setStatus(status);
         tenantInfoRepository.save(entity);
         if (old != TenantStatus.SUSPENDED && status == TenantStatus.SUSPENDED) {
@@ -306,5 +311,20 @@ public class TenantServiceImpl implements TenantService {
                 .filter(StringUtils::hasText)
                 .map(Long::valueOf)
                 .toList();
+    }
+
+    /** 合法的租户状态转换表：key 为源状态，value 为允许进入的目标状态集合 */
+    private static final Map<TenantStatus, Set<TenantStatus>> ALLOWED_TRANSITIONS = Map.of(
+            TenantStatus.ACTIVE, Set.of(TenantStatus.SUSPENDED, TenantStatus.LOCKED, TenantStatus.ARCHIVED),
+            TenantStatus.SUSPENDED, Set.of(TenantStatus.ACTIVE, TenantStatus.LOCKED, TenantStatus.ARCHIVED),
+            TenantStatus.LOCKED, Set.of(TenantStatus.ACTIVE, TenantStatus.SUSPENDED, TenantStatus.ARCHIVED),
+            TenantStatus.MIGRATING, Set.of(TenantStatus.ACTIVE),
+            TenantStatus.ARCHIVED, Set.of());
+
+    private boolean isTransitionAllowed(TenantStatus oldStatus, TenantStatus newStatus) {
+        if (oldStatus == newStatus) {
+            return false;
+        }
+        return ALLOWED_TRANSITIONS.getOrDefault(oldStatus, Set.of()).contains(newStatus);
     }
 }
