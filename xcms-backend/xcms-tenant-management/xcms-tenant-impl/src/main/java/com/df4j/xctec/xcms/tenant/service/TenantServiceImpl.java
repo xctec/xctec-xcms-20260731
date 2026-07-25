@@ -215,12 +215,20 @@ public class TenantServiceImpl implements TenantService {
         }
 
         // 阶段一：锁定。将租户置为 MIGRATING，迁移期间该租户及子树只读。
+        // 乐观锁（@Version）：并发迁移同一租户时，后提交的事务会因版本号不匹配抛出
+        // OptimisticLockException，从而避免两个迁移请求基于旧 path 各自更新导致 path 错乱。
         entity.setStatus(TenantStatus.MIGRATING);
         tenantInfoRepository.save(entity);
 
         String oldPath = entity.getPath();
         int oldLevel = entity.getLevel();
         Long oldParentId = entity.getParentId();
+
+        // 先基于旧 path 查询子树（在修改自身 path 之前），避免查询条件依赖已经被改写的实体状态。
+        // 此时子节点 path 尚未变更，故 findSubTree(oldPath) 仍可命中全部后代。
+        List<TenantInfo> descendants = tenantInfoRepository.findSubTree(oldPath).stream()
+                .filter(t -> !t.getId().equals(tenantId))
+                .toList();
 
         String newPath = newParent.getPath() + tenantId + "/";
         int levelDelta = (newParent.getLevel() + 1) - oldLevel;
@@ -230,10 +238,8 @@ public class TenantServiceImpl implements TenantService {
         entity.setPath(newPath);
         tenantInfoRepository.save(entity);
 
-        // 同步更新所有后代租户的路径与层级
-        List<TenantInfo> descendants = tenantInfoRepository.findSubTree(oldPath).stream()
-                .filter(t -> !t.getId().equals(tenantId))
-                .toList();
+        // 阶段二：同步更新所有后代租户的路径与层级（子节点 path 尚未变更，可安全基于 oldPath 前缀替换）。
+        // 迁移保证：本租户被锁定为 MIGRATING，外部对其及子树的写操作均被 assertNotMigrating 拒绝，故子树只读。
         for (TenantInfo child : descendants) {
             child.setPath(child.getPath().replace(oldPath, newPath));
             child.setLevel(child.getLevel() + levelDelta);
