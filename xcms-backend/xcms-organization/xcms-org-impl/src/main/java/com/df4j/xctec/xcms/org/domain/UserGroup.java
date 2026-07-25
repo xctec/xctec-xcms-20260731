@@ -24,9 +24,6 @@ import java.time.LocalDateTime;
 })
 public class UserGroup extends TenantEntity {
 
-    @Column(name = "group_code", length = 64)
-    private String groupCode;
-
     @Column(name = "group_name", nullable = false, length = 128)
     private String groupName;
 
