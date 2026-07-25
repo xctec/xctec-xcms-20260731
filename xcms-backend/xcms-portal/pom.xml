@@ -24,6 +24,10 @@
             <artifactId>xcms-identity-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.df4j.xctec.xcms</groupId>
+            <artifactId>xcms-auth-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
