@@ -13,6 +13,8 @@ import com.df4j.xctec.xcms.identity.api.RoleService;
 import com.df4j.xctec.xcms.identity.api.UserService;
 import com.df4j.xctec.xcms.identity.api.dto.RoleDTO;
 import com.df4j.xctec.xcms.kernel.context.TenantContext;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
@@ -33,6 +35,7 @@ public class DataPermissionServiceImpl implements DataPermissionService {
     private final DataRuleRoleRepository dataRuleRoleRepository;
     private final DataRuleRepository dataRuleRepository;
     private final ColumnMaskRepository columnMaskRepository;
+    private final ObjectMapper objectMapper;
 
     @Override
     public <T> Specification<T> getDataScopeSpec(Long userId, String resourceType) {
@@ -174,25 +177,23 @@ public class DataPermissionServiceImpl implements DataPermissionService {
     }
 
     private List<Long> parseRoleIds(String s) {
-        String t = s.trim();
-        if (t.startsWith("[")) {
-            t = t.substring(1);
+        if (s == null || s.isBlank()) {
+            return List.of();
         }
-        if (t.endsWith("]")) {
-            t = t.substring(0, t.length() - 1);
-        }
-        t = t.trim();
-        List<Long> result = new ArrayList<>();
-        if (t.isEmpty()) {
+        try {
+            List<Long> parsed = objectMapper.readValue(s, new TypeReference<List<Long>>() {});
+            return parsed == null ? List.of() : parsed;
+        } catch (Exception e) {
+            // 兼容非标准 JSON（如 "1,2,3"）的历史数据
+            List<Long> result = new ArrayList<>();
+            for (String id : s.split(",")) {
+                try {
+                    result.add(Long.valueOf(id.trim()));
+                } catch (NumberFormatException ignored) {
+                }
+            }
             return result;
         }
-        for (String id : t.split(",")) {
-            try {
-                result.add(Long.valueOf(id.trim()));
-            } catch (Exception ignored) {
-            }
-        }
-        return result;
     }
 
     private String maskValue(String value, String maskType, String maskRule) {
