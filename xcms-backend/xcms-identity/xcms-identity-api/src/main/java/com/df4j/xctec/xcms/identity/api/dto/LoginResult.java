@@ -11,4 +11,5 @@ public class LoginResult {
     private String refreshToken;
     private Long expiresIn;
     private UserDTO user;
+    private Boolean forceChangePassword;
 }

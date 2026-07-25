@@ -108,6 +108,7 @@ public class AuthServiceImpl implements AuthService {
         result.setRefreshToken(session.getRefreshToken());
         result.setExpiresIn(SESSION_TTL_SECONDS);
         result.setUser(userMapper.toDTO(user));
+        result.setForceChangePassword(user.getPasswordChangedAt() == null);
         return result;
     }
 

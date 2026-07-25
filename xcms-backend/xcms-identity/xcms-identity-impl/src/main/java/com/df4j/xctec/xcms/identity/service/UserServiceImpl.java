@@ -15,6 +15,7 @@ import com.df4j.xctec.xcms.identity.api.event.UserCreatedEvent;
 import com.df4j.xctec.xcms.identity.domain.User;
 import com.df4j.xctec.xcms.identity.mapper.UserMapper;
 import com.df4j.xctec.xcms.identity.repository.UserRepository;
+import com.df4j.xctec.xcms.identity.security.PasswordPolicy;
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
 import com.df4j.xctec.xcms.kernel.common.PageResult;
 import com.df4j.xctec.xcms.kernel.context.TenantContext;
@@ -45,6 +46,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final DomainEventPublisher eventPublisher;
     private final RoleService roleService;
+    private final PasswordPolicy passwordPolicy;
 
     @Override
     @Transactional
@@ -53,6 +55,7 @@ public class UserServiceImpl implements UserService {
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new BusinessException(ErrorCodes.USER_ALREADY_EXISTS, "用户名已存在: " + request.getUsername());
         }
+        passwordPolicy.validate(request.getPassword());
         User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -139,6 +142,7 @@ public class UserServiceImpl implements UserService {
     public void resetPassword(Long userId, String newPassword) {
         requireTenant();
         User user = getById(userId);
+        passwordPolicy.validate(newPassword);
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setPasswordChangedAt(LocalDateTime.now());
         userRepository.save(user);
@@ -152,6 +156,7 @@ public class UserServiceImpl implements UserService {
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
             throw new BusinessException(ErrorCodes.AUTH_INVALID_CREDENTIALS, "原密码不正确");
         }
+        passwordPolicy.validate(newPassword);
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setPasswordChangedAt(LocalDateTime.now());
         userRepository.save(user);
