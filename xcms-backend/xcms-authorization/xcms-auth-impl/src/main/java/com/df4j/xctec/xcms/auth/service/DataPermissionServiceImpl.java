@@ -13,8 +13,10 @@ import com.df4j.xctec.xcms.identity.api.RoleService;
 import com.df4j.xctec.xcms.identity.api.UserService;
 import com.df4j.xctec.xcms.identity.api.dto.RoleDTO;
 import com.df4j.xctec.xcms.kernel.context.TenantContext;
+import jakarta.persistence.Entity;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +27,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DataPermissionServiceImpl implements DataPermissionService {
 
     private final UserService userService;
@@ -127,6 +130,12 @@ public class DataPermissionServiceImpl implements DataPermissionService {
     @Override
     public <T> T applyColumnMask(T entity, Long userId, String resourceType) {
         if (entity == null) {
+            return entity;
+        }
+        // 脱敏必须在 DTO 层面进行，禁止直接修改受管 JPA 实体：若传入实体，
+        // 同一事务后续读取会拿到脱敏后的值，造成数据污染。遇到实体直接跳过并告警。
+        if (entity.getClass().isAnnotationPresent(Entity.class)) {
+            log.warn("列级脱敏跳过 JPA 实体 {}，请改为在 toDTO 之后对 DTO 执行脱敏", entity.getClass().getName());
             return entity;
         }
         Long tenantId = TenantContext.getTenantId();
