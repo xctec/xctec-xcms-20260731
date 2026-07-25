@@ -94,6 +94,12 @@ public class OrganizationServiceImpl implements OrganizationService {
     public void deleteDepartment(Long deptId) {
         requireTenant();
         Department dept = findDept(deptId);
+        if (!departmentRepository.findByParentIdAndDeletedAtIsNull(deptId).isEmpty()) {
+            throw new BusinessException(ErrorCodes.VALIDATION_ERROR, "该部门下存在子部门，无法删除");
+        }
+        if (!userPositionRepository.findByDeptId(deptId).isEmpty()) {
+            throw new BusinessException(ErrorCodes.VALIDATION_ERROR, "该部门下存在在岗人员，无法删除");
+        }
         dept.setDeletedAt(java.time.LocalDateTime.now());
         dept.setUpdatedBy(TenantContext.getCurrentUserId());
         departmentRepository.save(dept);
