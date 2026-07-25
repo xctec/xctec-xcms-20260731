@@ -2,6 +2,8 @@ package com.df4j.xctec.xcms.tenant.controller;
 
 import com.df4j.xctec.xcms.kernel.common.ApiResponse;
 import com.df4j.xctec.xcms.kernel.common.dto.IdRequest;
+import com.df4j.xctec.xcms.kernel.exception.BusinessException;
+import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
 import com.df4j.xctec.xcms.tenant.api.TenantQuotaService;
 import com.df4j.xctec.xcms.tenant.api.dto.QuotaAllocateRequest;
 import com.df4j.xctec.xcms.tenant.api.dto.TenantQuotaAllocateRequest;
@@ -39,23 +41,31 @@ public class TenantQuotaController {
 
     @PostMapping("/consume")
     public ApiResponse<Void> consumeQuota(@RequestBody TenantQuotaOpRequest request) {
-        tenantQuotaService.consumeQuota(request.getId(), QuotaType.valueOf(request.getType()), toLong(request.getAmount()));
+        tenantQuotaService.consumeQuota(request.getId(), parseQuotaType(request.getType()), toLong(request.getAmount()));
         return ApiResponse.success();
     }
 
     @PostMapping("/release")
     public ApiResponse<Void> releaseQuota(@RequestBody TenantQuotaOpRequest request) {
-        tenantQuotaService.releaseQuota(request.getId(), QuotaType.valueOf(request.getType()), toLong(request.getAmount()));
+        tenantQuotaService.releaseQuota(request.getId(), parseQuotaType(request.getType()), toLong(request.getAmount()));
         return ApiResponse.success();
     }
 
     @PostMapping("/check")
     public ApiResponse<Boolean> checkQuota(@RequestBody TenantQuotaOpRequest request) {
         return ApiResponse.success(
-                tenantQuotaService.checkQuota(request.getId(), QuotaType.valueOf(request.getType()), toLong(request.getAmount())));
+                tenantQuotaService.checkQuota(request.getId(), parseQuotaType(request.getType()), toLong(request.getAmount())));
     }
 
     private long toLong(Long value) {
         return value != null ? value : 0L;
+    }
+
+    private QuotaType parseQuotaType(String type) {
+        try {
+            return QuotaType.valueOf(type);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCodes.VALIDATION_ERROR, "非法的配额类型: " + type);
+        }
     }
 }
