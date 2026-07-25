@@ -30,7 +30,7 @@ public class Position extends TenantEntity {
     @Column(name = "position_code", length = 64)
     private String positionCode;
 
-    @Column(name = "position_name", nullable = false, length = 64)
+    @Column(name = "position_name", nullable = false, length = 128)
     private String positionName;
 
     @Column(name = "level")
