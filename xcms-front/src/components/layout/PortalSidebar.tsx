@@ -83,20 +83,7 @@ export default function PortalSidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-gray-200 p-3">
-        <div className="flex items-center gap-2.5 rounded-md p-1">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-100">
-            <User size={16} className="text-primary-700" />
-          </div>
-          {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-medium text-gray-700">{realName || '用户'}</div>
-              <div className="truncate text-[11px] text-gray-400">{tenantName || '集团总部'}</div>
-            </div>
-          )}
-        </div>
-      </div>
-
+      {/* Collapse */}
       <button onClick={toggleSidebar} className="flex h-9 items-center justify-center border-t border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-600">
         <ChevronLeft size={16} className={clsx('transition-transform', collapsed && 'rotate-180')} />
       </button>

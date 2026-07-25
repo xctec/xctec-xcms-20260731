@@ -13,6 +13,28 @@ body {
   min-height: 100vh;
 }
 
+/* 输入框暗色模式适配 */
+input, select, textarea {
+  background-color: var(--c-input-bg);
+  color: var(--c-text);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--c-text-muted);
+}
+
+/* checkbox/radio 暗色模式 */
+input[type="checkbox"], input[type="radio"] {
+  background-color: var(--c-input-bg);
+  accent-color: var(--c-primary);
+}
+
+/* select 下拉项暗色 */
+select option {
+  background-color: var(--c-card);
+  color: var(--c-text);
+}
+
 /* 滚动条美化 */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

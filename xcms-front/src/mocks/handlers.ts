@@ -3,6 +3,7 @@ import { mockTenants } from './data/tenants';
 import { mockMenus } from './data/menus';
 
 const ok = <T>(data: T) => HttpResponse.json({ errorCode: '0', errorMsg: 'success', data });
+let tenants = [...mockTenants];
 
 export const handlers = [
   // ====== Auth ======
@@ -12,33 +13,19 @@ export const handlers = [
       return ok({
         token: 'mock-jwt-token-' + Date.now(),
         refreshToken: 'mock-refresh-token',
-        userId: 1,
-        username: 'admin',
-        realName: '超级管理员',
-        tenantId: 1,
-        tenantName: '集团总部',
-        roles: ['SYSTEM_ADMIN'],
-        expiresIn: 7200,
+        userId: 1, username: 'admin', realName: '超级管理员',
+        tenantId: 1, tenantName: '集团总部', roles: ['SYSTEM_ADMIN'], expiresIn: 7200,
       });
     }
     return HttpResponse.json({ errorCode: '1002', errorMsg: '用户名或密码错误', data: null });
   }),
 
   http.post('/api/auth/logout', () => ok(null)),
-
-  http.post('/api/auth/user-info', () =>
-    ok({
-      token: 'mock-jwt-token',
-      refreshToken: 'mock-refresh-token',
-      userId: 1,
-      username: 'admin',
-      realName: '超级管理员',
-      tenantId: 1,
-      tenantName: '集团总部',
-      roles: ['SYSTEM_ADMIN'],
-      expiresIn: 7200,
-    })
-  ),
+  http.post('/api/auth/user-info', () => ok({
+    token: 'mock-jwt-token', refreshToken: 'mock-refresh-token',
+    userId: 1, username: 'admin', realName: '超级管理员',
+    tenantId: 1, tenantName: '集团总部', roles: ['SYSTEM_ADMIN'], expiresIn: 7200,
+  })),
 
   // ====== Menu ======
   http.post('/api/menu/user-menus', () => ok(mockMenus)),
@@ -48,22 +35,30 @@ export const handlers = [
   http.post('/admin/tenant/list-children', async ({ request }) => {
     const body = (await request.json()) as { page: number; size: number };
     const start = (body.page - 1) * body.size;
-    const list = mockTenants.slice(start, start + body.size);
-    return ok({ list, total: mockTenants.length });
+    const list = tenants.slice(start, start + body.size);
+    return ok({ list, total: tenants.length });
   }),
 
-  http.post('/admin/tenant/tree', () => ok(mockTenants)),
+  http.post('/admin/tenant/tree', () => ok(tenants)),
 
   http.post('/admin/tenant/get', async ({ request }) => {
     const { id } = (await request.json()) as { id: number };
-    const tenant = mockTenants.find((t) => t.id === id);
-    return ok(tenant || null);
+    return ok(tenants.find((t) => t.id === id) || null);
   }),
 
   http.post('/admin/tenant/create', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
-    return ok({ id: Date.now(), ...body, level: 2, path: '/1/' + Date.now(), status: 'ACTIVE', createdAt: '2025-07-25' });
+    const newTenant = {
+      id: Date.now(), ...body, level: 2, path: '/1/' + Date.now(),
+      status: 'ACTIVE', deploymentMode: 'shared', createdAt: '2025-07-25',
+    } as never;
+    tenants = [newTenant, ...tenants];
+    return ok(newTenant);
   }),
 
-  http.post('/admin/tenant/delete', () => ok(null)),
+  http.post('/admin/tenant/delete', async ({ request }) => {
+    const { id } = (await request.json()) as { id: number };
+    tenants = tenants.filter((t) => t.id !== id);
+    return ok(null);
+  }),
 ];

@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import type { LucideIcon } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 type Size = 'sm' | 'md';
@@ -8,6 +9,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
   icon?: LucideIcon;
+  loading?: boolean;
 }
 
 const variantCls: Record<Variant, string> = {
@@ -22,7 +24,7 @@ const sizeCls: Record<Size, string> = {
   md: 'h-8 px-4 text-[13px] gap-1.5',
 };
 
-export function Button({ variant = 'primary', size = 'md', icon: Icon, children, className, ...rest }: ButtonProps) {
+export function Button({ variant = 'primary', size = 'md', icon: Icon, loading, children, className, disabled, ...rest }: ButtonProps) {
   return (
     <button
       className={clsx(
@@ -31,9 +33,10 @@ export function Button({ variant = 'primary', size = 'md', icon: Icon, children,
         sizeCls[size],
         className
       )}
+      disabled={disabled || loading}
       {...rest}
     >
-      {Icon && <Icon size={size === 'sm' ? 13 : 15} />}
+      {loading ? <Loader2 size={size === 'sm' ? 13 : 15} className="animate-spin" /> : Icon && <Icon size={size === 'sm' ? 13 : 15} />}
       {children}
     </button>
   );

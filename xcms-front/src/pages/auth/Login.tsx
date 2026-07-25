@@ -72,7 +72,7 @@ export default function LoginPage() {
           <label className="flex items-center gap-1.5 text-gray-500">
             <input type="checkbox" className="rounded border-gray-300 text-primary-500 focus:ring-primary-500" /> 记住我
           </label>
-          <a href="#" className="text-primary-500 hover:underline">{t('login.forgot')}</a>
+          <a href="/forgot-password" className="text-primary-500 hover:underline">{t('login.forgot')}</a>
         </div>
         <button
           type="submit"

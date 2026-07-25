@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-type ThemeMode = 'light' | 'dark';
-type Density = 'compact' | 'standard' | 'comfortable';
-type ColorScheme = 'blue' | 'violet' | 'emerald' | 'cyan' | 'rose' | 'amber' | 'slate';
-type Face = 'admin' | 'portal';
-type Lang = 'zh-CN' | 'en-US';
+export type ThemeMode = 'light' | 'dark';
+export type Density = 'compact' | 'standard' | 'comfortable';
+export type ColorScheme = 'blue' | 'violet' | 'emerald' | 'cyan' | 'rose' | 'amber' | 'slate';
+export type Face = 'admin' | 'portal';
+export type Lang = 'zh-CN' | 'en-US';
 
 interface AppState {
   themeMode: ThemeMode;
