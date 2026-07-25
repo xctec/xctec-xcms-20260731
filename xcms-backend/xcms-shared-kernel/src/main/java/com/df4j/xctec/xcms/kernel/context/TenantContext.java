@@ -44,7 +44,9 @@ public class TenantContext {
     /** 临时切换租户上下文（跨租户操作），返回原始上下文用于恢复 */
     public static TenantInfo switchTo(Long tenantId) {
         TenantInfo original = CONTEXT.get();
-        set(tenantId, null, "shared");
+        // 跨租户操作需保留操作人身份，确保审计日志能记录到操作人
+        Long userId = original != null ? original.userId() : null;
+        set(tenantId, userId, "shared");
         return original;
     }
 
