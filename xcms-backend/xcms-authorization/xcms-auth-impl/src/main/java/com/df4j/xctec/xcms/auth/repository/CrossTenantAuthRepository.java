@@ -12,14 +12,27 @@ public interface CrossTenantAuthRepository extends JpaRepository<CrossTenantAuth
     List<CrossTenantAuth> findByUserIdAndTargetTenantIdAndStatus(Long userId, Long targetTenantId, String status);
 
     @Query("""
-            select a from CrossTenantAuth a
-            where (:tenantId is null or a.tenantId = :tenantId)
-              and (:targetTenantId is null or a.targetTenantId = :targetTenantId)
-              and (:userId is null or a.userId = :userId)
-              and (:status is null or a.status = :status)
-            """)
+        select a from CrossTenantAuth a
+        where (:tenantId is null or a.tenantId = :tenantId)
+          and (:targetTenantId is null or a.targetTenantId = :targetTenantId)
+          and (:userId is null or a.userId = :userId)
+          and (:status is null or a.status = :status)
+        """)
     List<CrossTenantAuth> search(@Param("tenantId") Long tenantId,
                                  @Param("targetTenantId") Long targetTenantId,
                                  @Param("userId") Long userId,
                                  @Param("status") String status);
+
+    @Query("""
+        select a from CrossTenantAuth a
+        where (:tenantId is null or a.tenantId = :tenantId)
+          and (:targetTenantId is null or a.targetTenantId = :targetTenantId)
+          and (:userId is null or a.userId = :userId)
+          and (:status is null or a.status = :status)
+        """)
+    Page<CrossTenantAuth> searchPage(@Param("tenantId") Long tenantId,
+                                     @Param("targetTenantId") Long targetTenantId,
+                                     @Param("userId") Long userId,
+                                     @Param("status") String status,
+                                     Pageable pageable);
 }
