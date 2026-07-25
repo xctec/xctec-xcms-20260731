@@ -3,6 +3,8 @@
 # 覆盖：Maven / Spring Boot 后端 + Vite + React 前端 + IDE(IDEA/VS Code) + 系统文件
 # ============================================================
 
+code-review/
+
 # ---------- Maven / Java / Spring Boot 后端 ----------
 # Maven 构建输出目录（含 *.class / *.jar / *.imports / *.lst 等）
 target/
