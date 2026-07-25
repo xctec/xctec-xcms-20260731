@@ -24,6 +24,7 @@ CREATE TABLE tenant_info (
     created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at      TIMESTAMP,
+    version         BIGINT          NOT NULL DEFAULT 0,  -- 乐观锁版本号（@Version）
     CONSTRAINT pk_tenant_info PRIMARY KEY (id),
     CONSTRAINT uk_tenant_code UNIQUE (tenant_code)
 );
@@ -82,6 +83,7 @@ CREATE TABLE tenant_relation (
     role                VARCHAR(64),
     status              VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     created_at          TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at          TIMESTAMP,  -- 软删除（与 @SQLRestriction 对齐）
     CONSTRAINT pk_tenant_relation PRIMARY KEY (id),
     CONSTRAINT uk_tenant_relation UNIQUE (project_tenant_id, member_tenant_id, member_org_id)
 );
