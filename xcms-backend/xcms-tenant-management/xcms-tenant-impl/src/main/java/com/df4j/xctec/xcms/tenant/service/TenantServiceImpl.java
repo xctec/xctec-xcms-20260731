@@ -50,6 +50,9 @@ public class TenantServiceImpl implements TenantService {
     private final TenantFeatureService tenantFeatureService;
     private final DomainEventPublisher eventPublisher;
 
+    /** 最大租户层级（可配置，默认 5 级） */
+    private static final int MAX_TENANT_LEVEL = 5;
+
     @Override
     @Transactional
     public TenantDTO createTenant(TenantCreateRequest request) {
@@ -63,6 +66,11 @@ public class TenantServiceImpl implements TenantService {
             parent = tenantInfoRepository.findById(request.getParentId())
                     .filter(p -> p.getDeletedAt() == null)
                     .orElseThrow(() -> new BusinessException(ErrorCodes.TENANT_NOT_FOUND, "父租户不存在: " + request.getParentId()));
+        }
+
+        if (parent != null && parent.getLevel() + 1 > MAX_TENANT_LEVEL) {
+            throw new BusinessException(ErrorCodes.QUOTA_EXCEEDED,
+                    "超过最大租户层级限制: " + MAX_TENANT_LEVEL);
         }
 
         TenantInfo entity = new TenantInfo();
