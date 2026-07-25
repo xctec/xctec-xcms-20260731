@@ -156,6 +156,17 @@ public class OrganizationServiceImpl implements OrganizationService {
         }
         dept.setUpdatedBy(TenantContext.getCurrentUserId());
         departmentRepository.save(dept);
+        // 递归更新子树 path，保证数据权限范围查询（WHERE path LIKE '/parent/%'）正确
+        String oldPathPrefix = oldPath;
+        String newPathPrefix = dept.getPath();
+        List<Department> subTree = departmentRepository.findByPathStartsWith(oldPathPrefix);
+        for (Department sub : subTree) {
+            if (!sub.getId().equals(deptId)) {
+                sub.setPath(newPathPrefix + sub.getPath().substring(oldPathPrefix.length()));
+                sub.setUpdatedBy(TenantContext.getCurrentUserId());
+            }
+        }
+        departmentRepository.saveAll(subTree);
         DepartmentMovedEvent movedEvent = new DepartmentMovedEvent();
         movedEvent.setDeptId(deptId);
         movedEvent.setOldParentId(oldParentId);

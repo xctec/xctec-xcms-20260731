@@ -1,6 +1,7 @@
 package com.df4j.xctec.xcms.org.repository;
 
 import com.df4j.xctec.xcms.org.domain.Department;
+import jakarta.persistence.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -17,4 +18,7 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
     List<Department> findByDeletedAtIsNullOrderBySortOrderAsc();
 
     boolean existsByDeptCodeAndDeletedAtIsNull(String deptCode);
+
+    @Query("select d from Department d where d.path like concat(?1, '%') and d.deletedAt is null")
+    List<Department> findByPathStartsWith(String pathPrefix);
 }
