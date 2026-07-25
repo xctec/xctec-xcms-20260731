@@ -10,7 +10,7 @@
     </parent>
     <artifactId>xcms-tenant-management</artifactId>
     <packaging>pom</packaging>
-    <name>XCMS utenant Parent</name>
+    <name>XCMS Tenant Parent</name>
     <modules>
         <module>xcms-tenant-api</module>
         <module>xcms-tenant-impl</module>
