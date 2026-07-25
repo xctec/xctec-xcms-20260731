@@ -1,0 +1,56 @@
+{
+  "app": { "name": "XCMS 集团中台", "subtitle": "集团中台" },
+  "menu": {
+    "tenant": "租户管理",
+    "organization": "组织架构",
+    "user": "用户管理",
+    "permission": "权限管理",
+    "workflow": "流程中心",
+    "message": "消息中心",
+    "config": "配置管理",
+    "audit": "审计日志",
+    "file": "文件管理",
+    "operation": "运营看板",
+    "workbench": "工作台",
+    "profile": "个人中心"
+  },
+  "topbar": {
+    "admin": "管理面",
+    "portal": "业务面",
+    "theme": "主题色",
+    "density": "界面密度",
+    "language": "语言",
+    "compact": "紧凑",
+    "standard": "标准",
+    "comfortable": "宽松",
+    "dark": "暗色模式",
+    "light": "亮色模式",
+    "notifications": "通知",
+    "profile": "个人中心",
+    "settings": "偏好设置",
+    "logout": "退出登录"
+  },
+  "login": {
+    "title": "登录",
+    "username": "用户名",
+    "password": "密码",
+    "submit": "登录",
+    "register": "注册",
+    "forgot": "忘记密码？",
+    "placeholder": { "username": "请输入用户名", "password": "请输入密码" },
+    "welcome": "欢迎回来"
+  },
+  "register": {
+    "title": "注册",
+    "username": "用户名",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "phone": "手机号",
+    "submit": "注册",
+    "toLogin": "已有账号？去登录"
+  },
+  "error": {
+    "403": { "title": "无权访问", "desc": "您没有权限访问此页面" },
+    "404": { "title": "页面不存在", "desc": "您访问的页面不存在" }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "app": { "name": "XCMS Platform", "subtitle": "Enterprise Middle Platform" },
+  "menu": {
+    "tenant": "Tenants",
+    "organization": "Organization",
+    "user": "Users",
+    "permission": "Permissions",
+    "workflow": "Workflow",
+    "message": "Messages",
+    "config": "Configuration",
+    "audit": "Audit Log",
+    "file": "Files",
+    "operation": "Operations",
+    "workbench": "Workbench",
+    "profile": "Profile"
+  },
+  "topbar": {
+    "admin": "Admin",
+    "portal": "Portal",
+    "theme": "Theme",
+    "density": "Density",
+    "language": "Language",
+    "compact": "Compact",
+    "standard": "Standard",
+    "comfortable": "Comfortable",
+    "dark": "Dark Mode",
+    "light": "Light Mode",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "login": {
+    "title": "Login",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign In",
+    "register": "Register",
+    "forgot": "Forgot password?",
+    "placeholder": { "username": "Enter username", "password": "Enter password" },
+    "welcome": "Welcome back"
+  },
+  "register": {
+    "title": "Register",
+    "username": "Username",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "phone": "Phone",
+    "submit": "Register",
+    "toLogin": "Already have an account? Sign in"
+  },
+  "error": {
+    "403": { "title": "Access Denied", "desc": "You do not have permission to access this page" },
+    "404": { "title": "Not Found", "desc": "The page you are looking for does not exist" }
+  }
+}

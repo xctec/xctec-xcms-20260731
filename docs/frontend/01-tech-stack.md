@@ -263,11 +263,21 @@ Phase 1 仅中文，但代码结构按可扩展写：
 xcms-frontend/
 ├── public/
 ├── src/
-│   ├── api/                    # API 请求封装（按模块组织）
-│   │   ├── tenant.ts
-│   │   ├── organization.ts
-│   │   ├── user.ts
-│   │   └── http.ts             # axios 实例 + 拦截器
+│   ├── api/                    # API 请求封装（按后端模块组织，与 api 模块一一对应）
+│   │   ├── http.ts             # axios 实例 + 拦截器（Token/租户头/错误码）
+│   │   ├── tenant.ts           # 租户管理（对应 tenant-api）
+│   │   ├── organization.ts     # 组织架构（对应 org-api）
+│   │   ├── identity.ts         # 用户/角色（对应 identity-api）
+│   │   ├── auth.ts             # 登录/会话（对应 identity-api AuthService）
+│   │   ├── authorization.ts    # 权限管理（对应 auth-api）
+│   │   ├── workflow.ts         # 流程管理（对应 workflow-api）
+│   │   ├── message.ts          # 消息中心（对应 message-api）
+│   │   ├── configuration.ts    # 配置管理（对应 config-api）
+│   │   ├── file.ts             # 文件管理（对应 file-api）
+│   │   ├── task.ts             # 任务调度（对应 task-api）
+│   │   ├── audit.ts            # 审计日志（对应 audit-api）
+│   │   ├── portal.ts           # 工作台（业务面聚合）
+│   │   └── operation.ts        # 运营看板
 │   ├── components/             # 通用组件（无 UI 库，基于 Tailwind）
 │   │   ├── Table/
 │   │   ├── Form/
