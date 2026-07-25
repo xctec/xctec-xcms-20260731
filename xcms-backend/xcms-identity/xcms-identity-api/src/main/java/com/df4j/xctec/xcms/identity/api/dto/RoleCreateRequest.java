@@ -12,4 +12,5 @@ public class RoleCreateRequest {
     private String roleType;
     private String description;
     private Long parentId;
+    private String status;
 }

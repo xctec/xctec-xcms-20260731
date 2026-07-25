@@ -41,6 +41,13 @@ public class Role extends TenantEntity {
     @Column(name = "description", length = 255)
     private String description;
 
+    @Column(name = "parent_id")
+    private Long parentId;
+
+    @Column(name = "status", length = 20)
+    @Builder.Default
+    private String status = "ACTIVE";
+
     @Column(name = "created_by")
     private Long createdBy;
 
