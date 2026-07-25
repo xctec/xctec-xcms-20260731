@@ -57,7 +57,8 @@ public class UserGroupServiceImpl implements UserGroupService {
         group.setDeletedAt(LocalDateTime.now());
         group.setUpdatedBy(TenantContext.getCurrentUserId());
         groupRepository.save(group);
-        memberRepository.deleteByGroupId(groupId);
+        // 成员一并软删除，与用户组删除策略保持一致（评审 P1.3）
+        memberRepository.findByGroupId(groupId).forEach(m -> m.setDeletedAt(LocalDateTime.now()));
     }
 
     @Override
@@ -81,7 +82,11 @@ public class UserGroupServiceImpl implements UserGroupService {
         requireTenant();
         findGroup(groupId);
         for (Long userId : userIds) {
-            memberRepository.deleteByGroupIdAndUserId(groupId, userId);
+            // 软删除，与部门/岗位的删除策略保持一致（评审 P1.3）
+            memberRepository.findByGroupIdAndUserId(groupId, userId).ifPresent(m -> {
+                m.setDeletedAt(LocalDateTime.now());
+                memberRepository.save(m);
+            });
         }
     }
 
@@ -90,7 +95,7 @@ public class UserGroupServiceImpl implements UserGroupService {
         requireTenant();
         findGroup(groupId);
         List<UserBriefDTO> list = new ArrayList<>();
-        for (var m : memberRepository.findByGroupId(groupId)) {
+        for (var m : memberRepository.findByGroupIdAndDeletedAtIsNull(groupId)) {
             UserBriefDTO dto = new UserBriefDTO();
             dto.setId(m.getUserId());
             try {

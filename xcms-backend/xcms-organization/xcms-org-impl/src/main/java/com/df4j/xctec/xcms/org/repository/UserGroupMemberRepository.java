@@ -12,9 +12,7 @@ public interface UserGroupMemberRepository extends JpaRepository<UserGroupMember
 
     Optional<UserGroupMember> findByGroupIdAndUserId(Long groupId, Long userId);
 
-    void deleteByGroupIdAndUserId(Long groupId, Long userId);
-
-    void deleteByGroupId(Long groupId);
+    List<UserGroupMember> findByGroupIdAndDeletedAtIsNull(Long groupId);
 
     long countByGroupId(Long groupId);
 }

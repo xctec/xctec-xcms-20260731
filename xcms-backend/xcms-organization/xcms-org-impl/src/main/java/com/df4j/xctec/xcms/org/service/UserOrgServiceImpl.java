@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -50,7 +51,11 @@ public class UserOrgServiceImpl implements UserOrgService {
     @Transactional
     public void removeUserFromPosition(Long userId, Long positionId) {
         requireTenant();
-        userPositionRepository.deleteByUserIdAndPositionId(userId, positionId);
+        // 软删除，与部门/用户组的删除策略保持一致（评审 P1.3）
+        userPositionRepository.findByUserIdAndPositionId(userId, positionId).ifPresent(up -> {
+            up.setDeletedAt(LocalDateTime.now());
+            userPositionRepository.save(up);
+        });
     }
 
     @Override

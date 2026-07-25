@@ -16,8 +16,6 @@ public interface UserPositionRepository extends JpaRepository<UserPosition, Long
 
     Optional<UserPosition> findByUserIdAndPositionId(Long userId, Long positionId);
 
-    void deleteByUserIdAndPositionId(Long userId, Long positionId);
-
     Page<UserPosition> findByDeptIdAndDeletedAtIsNull(Long deptId, Pageable pageable);
 
     List<UserPosition> findByUserIdAndIsPrimaryTrue(Long userId);
