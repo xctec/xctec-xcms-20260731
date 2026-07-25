@@ -1,7 +1,7 @@
 package com.df4j.xctec.xcms.org.repository;
 
 import com.df4j.xctec.xcms.org.domain.Department;
-import jakarta.persistence.Query;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
