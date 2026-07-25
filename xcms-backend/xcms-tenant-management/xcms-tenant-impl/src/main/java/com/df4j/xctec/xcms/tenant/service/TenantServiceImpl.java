@@ -281,6 +281,10 @@ public class TenantServiceImpl implements TenantService {
     @Override
     @Transactional(readOnly = true)
     public boolean isAncestor(Long ancestorTenantId, Long descendantTenantId) {
+        // 语义：判断 ancestorTenantId 是否为 descendantTenantId 的祖先（即 descendant 是否位于 ancestor 的子树中）。
+        // 因 path 采用 "/{id}/" 风格，若 descendant.path 包含 "/{ancestorId}/"，即表示 ancestor 在其祖先链上。
+        // 注意：migrateTenant 中调用 isAncestor(tenantId, newParentId) 即用于判断 newParentId 是否为 tenantId 的后代，
+        // 从而阻止“将租户迁移到自身或下级”的非法操作。
         TenantInfo descendant = requireTenant(descendantTenantId);
         return descendant.getPath().contains("/" + ancestorTenantId + "/");
     }
