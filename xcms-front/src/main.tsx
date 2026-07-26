@@ -7,6 +7,10 @@ import { ThemeProvider } from './components/ThemeProvider';
 import { ToastContainer } from './components/ui/Toast';
 import './index.css';
 import './i18n';
+import { initTenantIdFromUrl } from './utils/tenant';
+
+// 启动时从 URL ?tenantId=xxx 解析并持久化（支持多租户通过链接切换）
+initTenantIdFromUrl();
 
 async function enableMocking() {
   if (import.meta.env.VITE_MOCK === 'true') {

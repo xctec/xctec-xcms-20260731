@@ -3,6 +3,7 @@ package com.df4j.xctec.xcms.tenant.api;
 import com.df4j.xctec.xcms.kernel.common.PageResult;
 import com.df4j.xctec.xcms.tenant.api.dto.TenantCreateRequest;
 import com.df4j.xctec.xcms.tenant.api.dto.TenantDTO;
+import com.df4j.xctec.xcms.tenant.api.dto.TenantLookupDTO;
 import com.df4j.xctec.xcms.tenant.api.dto.TenantQuery;
 import com.df4j.xctec.xcms.tenant.api.dto.TenantTreeDTO;
 import com.df4j.xctec.xcms.tenant.api.dto.TenantUpdateRequest;
@@ -67,4 +68,12 @@ public interface TenantService {
      * 检查是否为祖先租户（用于权限判断）
      */
     boolean isAncestor(Long ancestorTenantId, Long descendantTenantId);
+
+    /**
+     * 查找启用状态的租户（免鉴权，登录页选择租户用，仅返回精简信息）。
+     *
+     * @param keyword 关键字（模糊匹配编码/名称），为空返回全部启用租户
+     * @return 精简租户列表（id/code/name），最多 50 条
+     */
+    List<TenantLookupDTO> lookupActiveTenants(String keyword);
 }

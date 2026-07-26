@@ -10,6 +10,7 @@ import com.df4j.xctec.xcms.tenant.api.TenantService;
 import com.df4j.xctec.xcms.tenant.api.dto.QuotaAllocateRequest;
 import com.df4j.xctec.xcms.tenant.api.dto.TenantCreateRequest;
 import com.df4j.xctec.xcms.tenant.api.dto.TenantDTO;
+import com.df4j.xctec.xcms.tenant.api.dto.TenantLookupDTO;
 import com.df4j.xctec.xcms.tenant.api.dto.TenantQuery;
 import com.df4j.xctec.xcms.tenant.api.dto.TenantTreeDTO;
 import com.df4j.xctec.xcms.tenant.api.dto.TenantUpdateRequest;
@@ -287,6 +288,33 @@ public class TenantServiceImpl implements TenantService {
         // 从而阻止“将租户迁移到自身或下级”的非法操作。
         TenantInfo descendant = requireTenant(descendantTenantId);
         return descendant.getPath().contains("/" + ancestorTenantId + "/");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TenantLookupDTO> lookupActiveTenants(String keyword) {
+        Specification<TenantInfo> spec = (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.isNull(root.get("deletedAt")));
+            predicates.add(cb.equal(root.get("status"), TenantStatus.ACTIVE));
+            if (StringUtils.hasText(keyword)) {
+                String like = "%" + keyword + "%";
+                predicates.add(cb.or(cb.like(root.get("tenantCode"), like),
+                        cb.like(root.get("tenantName"), like)));
+            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+        return tenantInfoRepository.findAll(spec).stream()
+                .sorted(Comparator.comparing(TenantInfo::getId))
+                .limit(50)
+                .map(t -> {
+                    TenantLookupDTO dto = new TenantLookupDTO();
+                    dto.setId(t.getId());
+                    dto.setTenantCode(t.getTenantCode());
+                    dto.setTenantName(t.getTenantName());
+                    return dto;
+                })
+                .toList();
     }
 
     private TenantTreeDTO buildChildren(TenantInfo node,

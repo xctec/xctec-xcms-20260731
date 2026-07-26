@@ -75,9 +75,12 @@ public class AuthServiceImpl implements AuthService {
         // 登录端点被 TenantInterceptor 排除（无 token），需在进入事务前确定并设置租户上下文：
         // @TenantId 的当前租户由 Hibernate 会话在开启时经 CurrentTenantIdentifierResolver 捕获，
         // 会话开启后中途 set 无法改变会话租户。故拆为非事务入口设置上下文 + 经代理调用 @Transactional doLogin。
-        Long tenantId = request.getTenantId() != null ? request.getTenantId() : TenantContext.getTenantId();
+        // 登录端点被 TenantInterceptor 排除（无 token），需由前端传入 tenantId。
+        // @TenantId 的当前租户由 Hibernate 会话在开启时经 CurrentTenantIdentifierResolver 捕获，
+        // 会话开启后中途 set 无法改变会话租户。故拆为非事务入口设置上下文 + 经代理调用 @Transactional doLogin。
+        Long tenantId = request.getTenantId();
         if (tenantId == null) {
-            throw new BusinessException(ErrorCodes.TENANT_NOT_FOUND, "无法确定租户");
+            throw new BusinessException(ErrorCodes.TENANT_NOT_FOUND, "请选择租户");
         }
         TenantContext.set(tenantId);
         try {

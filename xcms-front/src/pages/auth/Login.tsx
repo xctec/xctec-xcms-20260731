@@ -5,6 +5,7 @@ import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '@/api/auth';
 import { menuApi } from '@/api/menu';
 import { useAuthStore } from '@/stores/auth';
+import { getLoginTenantId } from '@/utils/tenant';
 
 export default function LoginPage() {
   const { t } = useTranslation();
@@ -22,7 +23,7 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const result = await authApi.login({ username, password });
+      const result = await authApi.login({ username, password, tenantId: getLoginTenantId() });
       setAuth(result);
       try {
         const [adminMenus, portalMenus] = await Promise.all([
