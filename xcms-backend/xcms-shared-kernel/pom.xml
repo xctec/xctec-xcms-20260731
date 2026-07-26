@@ -32,6 +32,14 @@
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!-- springdoc 注解库（仅 OpenAPI 注解，不含 UI）。compile 作用域使其随 shared-kernel
+             传递到所有 impl 模块，便于 Controller/DTO 使用 @Tag/@Operation/@Schema。
+             UI 运行时依赖在 xcms-app（runtime scope）。 -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

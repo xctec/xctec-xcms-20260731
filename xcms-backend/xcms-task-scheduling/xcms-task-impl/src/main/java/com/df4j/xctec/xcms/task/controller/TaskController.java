@@ -17,10 +17,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/admin/task")
+@Tag(name = "任务调度 Task", description = "管理面：定时任务与异步任务")
 @RequiredArgsConstructor
 public class TaskController {
 

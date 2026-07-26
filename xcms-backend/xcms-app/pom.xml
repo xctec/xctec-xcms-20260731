@@ -85,6 +85,13 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- OpenAPI 模型类：OpenApiConfig 在编译期需使用 io.swagger.v3.oas.models.*（OpenAPI/Info/License 等）。
+             UI 仍保持 runtime；此处仅引入必要的模型库，版本与 springdoc 3.0.3 一致。 -->
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-models-jakarta</artifactId>
+            <version>2.2.47</version>
+        </dependency>
         <dependency>
             <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-community-dialects</artifactId>
