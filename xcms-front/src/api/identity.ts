@@ -2,7 +2,7 @@ import { http } from './http';
 import { Schemas, Unwrap } from '@/types/api-helpers';
 
 export const userApi = {
-  list: (params: { page: number; size: number; keyword?: string }) =>
+  list: (params: Schemas['UserQuery']) =>
     http.post<unknown, Unwrap<Schemas['ApiResponsePageResultUserDTO']>>('/admin/user/list', params),
   get: (id: number) => http.post<unknown, Unwrap<Schemas['ApiResponseUserDTO']>>('/admin/user/get', { id }),
   create: (data: Schemas['UserCreateRequest']) =>
@@ -14,7 +14,8 @@ export const userApi = {
 };
 
 export const roleApi = {
-  list: () => http.post<unknown, Unwrap<Schemas['ApiResponseListRoleDTO']>>('/admin/role/list', {}),
+  list: (params?: Schemas['RoleQuery']) =>
+    http.post<unknown, Unwrap<Schemas['ApiResponseListRoleDTO']>>('/admin/role/list', params ?? {}),
   get: (id: number) => http.post<unknown, Unwrap<Schemas['ApiResponseRoleDTO']>>('/admin/role/get', { id }),
   create: (data: Schemas['RoleCreateRequest']) =>
     http.post<unknown, Unwrap<Schemas['ApiResponseRoleDTO']>>('/admin/role/create', data),

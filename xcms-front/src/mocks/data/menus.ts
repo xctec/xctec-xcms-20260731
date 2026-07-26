@@ -1,67 +1,12 @@
-import type { RouteMenuItem } from '@/types/menu';
+import type { MenuDTO } from '@/types/menu';
 
-export const mockMenus: RouteMenuItem[] = [
-  {
-    key: 'tenant',
-    label: '租户管理',
-    icon: 'Building2',
-    path: '/admin/tenant',
-    component: 'admin/TenantList',
-    sort: 1,
-    visible: true,
-  },
-  {
-    key: 'organization',
-    label: '组织架构',
-    icon: 'Network',
-    path: '/admin/organization',
-    component: 'admin/Organization',
-    sort: 2,
-    visible: true,
-  },
-  {
-    key: 'user',
-    label: '用户管理',
-    icon: 'Users',
-    path: '/admin/user',
-    component: 'admin/UserList',
-    sort: 3,
-    visible: true,
-  },
-  {
-    key: 'permission',
-    label: '权限管理',
-    icon: 'Shield',
-    path: '/admin/permission',
-    component: 'admin/Permission',
-    sort: 4,
-    visible: true,
-  },
-  {
-    key: 'operation',
-    label: '运营看板',
-    icon: 'BarChart3',
-    path: '/admin/operation',
-    component: 'admin/Operation',
-    sort: 5,
-    visible: true,
-  },
-  {
-    key: 'message',
-    label: '消息中心',
-    icon: 'Bell',
-    path: '/admin/message',
-    component: 'admin/Message',
-    sort: 6,
-    visible: true,
-  },
-  {
-    key: 'config',
-    label: '配置管理',
-    icon: 'Settings',
-    path: '/admin/config',
-    component: 'admin/Config',
-    sort: 7,
-    visible: true,
-  },
+/** 演示数据：使用后端实体模型 MenuDTO（与后端契约一致），由 api/menu.ts 映射为前端路由模型 */
+export const mockMenus: MenuDTO[] = [
+  { id: 1, menuCode: 'tenant', menuName: '租户管理', menuType: 'MENU', path: '/admin/tenant', icon: 'Building2', sortOrder: 1, children: [] },
+  { id: 2, menuCode: 'organization', menuName: '组织架构', menuType: 'MENU', path: '/admin/organization', icon: 'Network', sortOrder: 2, children: [] },
+  { id: 3, menuCode: 'user', menuName: '用户管理', menuType: 'MENU', path: '/admin/user', icon: 'Users', sortOrder: 3, children: [] },
+  { id: 4, menuCode: 'permission', menuName: '权限管理', menuType: 'MENU', path: '/admin/permission', icon: 'Shield', sortOrder: 4, children: [] },
+  { id: 5, menuCode: 'operation', menuName: '运营看板', menuType: 'MENU', path: '/admin/operation', icon: 'BarChart3', sortOrder: 5, children: [] },
+  { id: 6, menuCode: 'message', menuName: '消息中心', menuType: 'MENU', path: '/admin/message', icon: 'Bell', sortOrder: 6, children: [] },
+  { id: 7, menuCode: 'config', menuName: '配置管理', menuType: 'MENU', path: '/admin/config', icon: 'Settings', sortOrder: 7, children: [] },
 ];
