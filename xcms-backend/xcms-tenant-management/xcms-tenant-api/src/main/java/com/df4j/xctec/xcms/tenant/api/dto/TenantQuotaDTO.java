@@ -15,7 +15,6 @@ public class TenantQuotaDTO {
     @Schema(description = "租户 ID")
     private Long tenantId;
 
-    @Schema(description = "配额类型（枚举 QuotaType）")
     private QuotaType quotaType;
 
     @Schema(description = "配额上限")

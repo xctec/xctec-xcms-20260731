@@ -21,7 +21,6 @@ public class TenantDTO {
     @Schema(description = "租户名称")
     private String tenantName;
 
-    @Schema(description = "租户类型（枚举 TenantType）")
     private TenantType tenantType;
 
     @Schema(description = "父租户 ID，用于租户层级")
@@ -33,7 +32,6 @@ public class TenantDTO {
     @Schema(description = "租户路径，如 /1/2/3，用于层级查询")
     private String path;
 
-    @Schema(description = "租户状态（枚举 TenantStatus）")
     private TenantStatus status;
 
     @Schema(description = "部署模式")

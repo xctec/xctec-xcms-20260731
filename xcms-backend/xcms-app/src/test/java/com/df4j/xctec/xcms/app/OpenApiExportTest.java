@@ -124,8 +124,123 @@ class OpenApiExportTest {
         }
         assertTrue(idParamDoc, "FileController.download 的 id 路径变量应文档化");
 
+        // 枚举类文档化：枚举取值与 @Schema 描述应出现在引用属性处
+        JsonNode userStatusSchema = findEnumSchema(schemas,
+                java.util.Set.of("ACTIVE", "DISABLED", "LOCKED"), "正常");
+        System.out.println("[OpenApiExportTest] UserStatus resolved=" + userStatusSchema);
+        assertFalse(userStatusSchema == null, "UserStatus 枚举应出现在文档中");
+        assertTrue(containsValue(userStatusSchema.path("enum"), "ACTIVE"), "UserStatus 枚举取值应出现在文档中");
+        JsonNode usDesc = userStatusSchema.path("description");
+        assertTrue(usDesc.asText().contains("正常"), "UserStatus @Schema 描述应包含取值含义（正常）");
+        System.out.println("[OpenApiExportTest] UserStatus desc=" + usDesc.asText());
+
+        JsonNode tenantStatusSchema = findEnumSchema(schemas,
+                java.util.Set.of("ACTIVE", "SUSPENDED", "LOCKED", "MIGRATING", "ARCHIVED"), "启用");
+        System.out.println("[OpenApiExportTest] TenantStatus resolved=" + tenantStatusSchema);
+        assertFalse(tenantStatusSchema == null, "TenantStatus 枚举应出现在文档中");
+        assertTrue(containsValue(tenantStatusSchema.path("enum"), "SUSPENDED"), "TenantStatus 枚举取值应出现在文档中");
+        JsonNode tsDesc = tenantStatusSchema.path("description");
+        assertTrue(tsDesc.asText().contains("启用"), "TenantStatus @Schema 描述应包含取值含义（启用）");
+        System.out.println("[OpenApiExportTest] TenantStatus desc=" + tsDesc.asText());
+
+        // 其余枚举（TenantType）同样应以其类级 @Schema 描述呈现
+        JsonNode tenantTypeSchema = findEnumSchema(schemas,
+                java.util.Set.of("ORGANIZATION", "PROJECT", "EXTERNAL", "PLATFORM"), "组织型");
+        System.out.println("[OpenApiExportTest] TenantType resolved=" + tenantTypeSchema);
+        assertFalse(tenantTypeSchema == null, "TenantType 枚举应出现在文档中");
+        assertTrue(tenantTypeSchema.path("description").asText().contains("组织型"), "TenantType @Schema 描述应包含取值含义（组织型）");
+
+        // 关键接口 @ApiResponse 分级示例
+        JsonNode loginOp = paths.path("/api/auth/login").path("post");
+        assertFalse(loginOp.isMissingNode(), "应存在登录接口");
+        JsonNode loginResp = loginOp.path("responses");
+        assertTrue(loginResp.has("200"), "登录接口应有 200 响应");
+        assertTrue(loginResp.has("401"), "登录接口应有 401 响应（类级统一错误示例）");
+        assertTrue(loginResp.has("403"), "登录接口应有 403 响应（类级统一错误示例）");
+        assertTrue(loginResp.has("500"), "登录接口应有 500 响应（类级统一错误示例）");
+        assertTrue(treeContainsText(loginResp.path("200"), "Bearer"), "登录 200 响应示例应包含令牌信息（tokenType=Bearer）");
+        System.out.println("[OpenApiExportTest] login responses=" + loginResp.size()
+                + ", 200 example with token=" + treeContainsText(loginResp.path("200"), "token"));
+
         System.out.println("[OpenApiExportTest] paths=" + paths.size()
                 + ", tags=" + tags.size()
                 + ", opsWithSummary=" + withSummary + ", publicEndpoints=" + publicEndpoints);
+    }
+
+    private static boolean containsValue(JsonNode array, String value) {
+        if (!array.isArray()) {
+            return false;
+        }
+        for (JsonNode n : array) {
+            if (value.equals(n.asText())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static JsonNode resolveSchema(JsonNode schemas, JsonNode property) {
+        if (property != null && property.has("$ref")) {
+            String ref = property.get("$ref").asText();
+            String name = ref.substring(ref.lastIndexOf('/') + 1);
+            return schemas.path(name);
+        }
+        return property;
+    }
+
+    private static JsonNode findEnumSchema(JsonNode schemas, java.util.Set<String> values, String descFragment) {
+        for (var it = schemas.fields(); it.hasNext(); ) {
+            var e = it.next();
+            JsonNode props = e.getValue().path("properties");
+            if (props.isMissingNode()) {
+                continue;
+            }
+            for (var pit = props.fields(); pit.hasNext(); ) {
+                JsonNode resolved = resolveSchema(schemas, pit.next().getValue());
+                JsonNode en = resolved.path("enum");
+                if (en.isArray() && containsAll(en, values)
+                        && !resolved.path("description").isMissingNode()
+                        && resolved.path("description").asText().contains(descFragment)) {
+                    return resolved;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean containsAll(JsonNode array, java.util.Set<String> values) {
+        if (!array.isArray()) {
+            return false;
+        }
+        java.util.Set<String> present = new java.util.HashSet<>();
+        for (JsonNode n : array) {
+            present.add(n.asText());
+        }
+        return present.containsAll(values);
+    }
+
+    private static boolean treeContainsText(JsonNode node, String text) {
+        if (node == null || node.isMissingNode()) {
+            return false;
+        }
+        if (node.isTextual()) {
+            return node.asText().contains(text);
+        }
+        if (node.isObject()) {
+            for (JsonNode v : node) {
+                if (treeContainsText(v, text)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (node.isArray()) {
+            for (JsonNode v : node) {
+                if (treeContainsText(v, text)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

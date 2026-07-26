@@ -36,7 +36,6 @@ public class UserDTO {
     @Schema(description = "头像 URL")
     private String avatar;
 
-    @Schema(description = "用户状态（枚举 UserStatus）")
     private UserStatus status;
 
     @Schema(description = "最近登录时间")

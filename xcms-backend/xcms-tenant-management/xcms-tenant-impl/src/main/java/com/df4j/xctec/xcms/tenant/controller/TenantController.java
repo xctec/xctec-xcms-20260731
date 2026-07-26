@@ -14,6 +14,9 @@ import com.df4j.xctec.xcms.tenant.api.dto.TenantUpdateRequest;
 import com.df4j.xctec.xcms.tenant.api.dto.TenantTreeDTO;
 import com.df4j.xctec.xcms.tenant.api.enums.TenantStatus;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,10 +34,16 @@ import java.util.List;
 @RequestMapping("/admin/tenant")
 @Tag(name = "租户管理 Tenant", description = "管理面：租户创建/更新/树形层级/状态变更/迁移")
 @RequiredArgsConstructor
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "未认证或令牌失效", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"1201\",\"errorMsg\":\"未认证或令牌已失效，请重新登录\",\"data\":null}")))
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无访问权限", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"1203\",\"errorMsg\":\"无访问该资源的权限\",\"data\":null}")))
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "服务器内部错误", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"5000\",\"errorMsg\":\"服务器内部错误，请稍后重试或联系管理员\",\"data\":null}")))
 public class TenantController {
 
     private final TenantService tenantService;
 
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "创建成功，返回新租户信息", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"0\",\"errorMsg\":\"success\",\"data\":{\"id\":1,\"tenantCode\":\"acme\",\"tenantName\":\"Acme Inc\",\"status\":\"ACTIVE\",\"tenantType\":\"ORGANIZATION\"}}")))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "参数校验失败", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"1000\",\"errorMsg\":\"参数校验失败：租户编码格式不正确\",\"data\":null}")))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "租户编码冲突", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"1009\",\"errorMsg\":\"租户编码已存在\",\"data\":null}")))
     @Operation(summary = "创建租户", description = "创建新租户（含根组织与初始管理员）。")
     @PostMapping("/create")
     public ApiResponse<TenantDTO> createTenant(@RequestBody TenantCreateRequest request) {
@@ -47,6 +56,8 @@ public class TenantController {
         return ApiResponse.success(tenantService.updateTenant(request.getId(), request));
     }
 
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "成功返回租户详情", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"0\",\"errorMsg\":\"success\",\"data\":{\"id\":1,\"tenantCode\":\"acme\",\"tenantName\":\"Acme Inc\",\"status\":\"ACTIVE\",\"tenantType\":\"ORGANIZATION\",\"parentId\":null}}")))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "租户不存在", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"1004\",\"errorMsg\":\"租户不存在\",\"data\":null}")))
     @Operation(summary = "查询租户详情", description = "按 id 查询租户。")
     @PostMapping("/get")
     public ApiResponse<TenantDTO> getTenantById(@RequestBody IdRequest request) {
@@ -66,6 +77,7 @@ public class TenantController {
         return ApiResponse.success(tenantService.getTenantTree(rootId));
     }
 
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "成功返回分页子租户列表", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"0\",\"errorMsg\":\"success\",\"data\":{\"list\":[{\"id\":2,\"tenantName\":\"子公司\",\"status\":\"ACTIVE\"}],\"total\":5,\"page\":1,\"size\":20}}")))
     @Operation(summary = "分页查询子租户", description = "按父租户分页查询其直接子租户。")
     @PostMapping("/list-children")
     public ApiResponse<PageResult<TenantDTO>> listSubTenants(@RequestBody TenantListChildrenRequest request) {
