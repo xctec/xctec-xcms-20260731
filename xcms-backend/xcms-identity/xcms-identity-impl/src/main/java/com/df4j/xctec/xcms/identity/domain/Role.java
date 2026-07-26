@@ -1,5 +1,6 @@
 package com.df4j.xctec.xcms.identity.domain;
 
+import com.df4j.xctec.xcms.identity.api.enums.RoleScope;
 import com.df4j.xctec.xcms.kernel.entity.TenantEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -37,6 +38,10 @@ public class Role extends TenantEntity {
 
     @Column(name = "role_type", length = 32)
     private String roleType;
+
+    @Column(name = "role_scope", length = 20)
+    @Enumerated(EnumType.STRING)
+    private RoleScope roleScope;
 
     @Column(name = "description", length = 255)
     private String description;

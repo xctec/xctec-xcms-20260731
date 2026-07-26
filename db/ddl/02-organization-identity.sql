@@ -129,6 +129,7 @@ CREATE TABLE identity_role (
     role_code       VARCHAR(64)     NOT NULL,
     role_name       VARCHAR(128)    NOT NULL,
     role_type       VARCHAR(30)     NOT NULL DEFAULT 'BUSINESS', -- SYSTEM_ADMIN/TENANT_ADMIN/BUSINESS
+    role_scope      VARCHAR(20),    -- 角色授权范围 TENANT/DEPT/CUSTOM
     description     VARCHAR(512),
     parent_id       BIGINT,
     status          VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE',

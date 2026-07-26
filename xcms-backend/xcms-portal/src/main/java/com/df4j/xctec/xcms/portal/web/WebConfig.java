@@ -28,6 +28,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "/actuator/**",
                         "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**",
                         "/error", "/favicon.ico",
-                        "/api/auth/login", "/api/auth/refresh");
+                        "/api/auth/login", "/api/auth/refresh",
+                        "/api/sso/authorize", "/api/sso/callback",
+                        "/h2-console/**");
     }
 }

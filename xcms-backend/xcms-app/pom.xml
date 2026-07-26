@@ -80,10 +80,10 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-        </dependency>
+        <!-- springdoc-openapi 暂时移除：2.6.0 与 Spring Boot 4（Spring Data 4.0 移除
+             org.springframework.data.util.TypeInformation）不兼容，启动期
+             QuerydslPredicateOperationCustomizer 报 NoClassDefFoundError。
+             待 springdoc 适配 Boot 4 后恢复（backend 未使用 @Operation 等注解，移除无编译影响）。 -->
         <dependency>
             <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-community-dialects</artifactId>
