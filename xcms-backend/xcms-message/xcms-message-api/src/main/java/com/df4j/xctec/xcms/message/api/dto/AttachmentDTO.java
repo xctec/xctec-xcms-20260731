@@ -6,4 +6,5 @@ import lombok.Data;
 public class AttachmentDTO {
     private Long fileId;
     private String fileName;
+    private Long fileSize;
 }

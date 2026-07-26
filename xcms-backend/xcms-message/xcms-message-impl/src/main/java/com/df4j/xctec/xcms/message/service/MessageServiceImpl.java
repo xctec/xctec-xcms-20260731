@@ -58,7 +58,6 @@ public class MessageServiceImpl implements MessageService {
         message.setTitle(command.getTitle());
         message.setContent(command.getContent());
         message.setSenderId(senderId);
-        message.setSenderName(resolveName(senderId));
         message.setMsgType(command.getMsgType() == null ? "NOTICE" : command.getMsgType());
         message.setPriority(command.getPriority() == null ? "NORMAL" : command.getPriority());
         message.setStatus("SENT");
@@ -66,13 +65,10 @@ public class MessageServiceImpl implements MessageService {
         message = messageRepository.save(message);
 
         if (command.getRecipientIds() != null && !command.getRecipientIds().isEmpty()) {
-            Map<Long, UserBriefDTO> users = resolveUsers(command.getRecipientIds());
             for (Long rid : command.getRecipientIds()) {
                 MessageRecipient recipient = new MessageRecipient();
                 recipient.setMessageId(message.getId());
                 recipient.setRecipientId(rid);
-                UserBriefDTO u = users.get(rid);
-                recipient.setRecipientName(u != null ? u.getRealName() : null);
                 recipient.setRead(false);
                 recipient.setStatus("ACTIVE");
                 messageRecipientRepository.save(recipient);
@@ -86,7 +82,8 @@ public class MessageServiceImpl implements MessageService {
                 attachment.setFileId(fileId);
                 try {
                     FileDTO file = fileStorageService.getFileInfo(fileId);
-                    attachment.setFileName(file.getOriginalName());
+                    attachment.setFileName(file.getFileName());
+                    attachment.setFileSize(file.getFileSize());
                 } catch (Exception ignored) {
                     // 文件不存在时仅保留 id
                 }
@@ -167,6 +164,10 @@ public class MessageServiceImpl implements MessageService {
         }
         message.setStatus("REVOKED");
         messageRepository.save(message);
+        messageRecipientRepository.findByMessageId(messageId).forEach(r -> {
+            r.setStatus("REVOKED");
+            messageRecipientRepository.save(r);
+        });
     }
 
     private String resolveName(Long userId) {
@@ -190,10 +191,16 @@ public class MessageServiceImpl implements MessageService {
     }
 
     private List<String> recipientNames(Long messageId) {
-        return messageRecipientRepository.findByMessageId(messageId).stream()
-                .map(MessageRecipient::getRecipientName)
+        List<Long> ids = messageRecipientRepository.findByMessageId(messageId).stream()
+                .map(MessageRecipient::getRecipientId)
+                .toList();
+        if (ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return resolveUsers(ids).values().stream()
+                .map(UserBriefDTO::getRealName)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<AttachmentDTO> attachments(Long messageId) {
@@ -212,7 +219,7 @@ public class MessageServiceImpl implements MessageService {
         dto.setTitle(m.getTitle());
         dto.setContent(m.getContent());
         dto.setSenderId(m.getSenderId());
-        dto.setSenderName(m.getSenderName());
+        dto.setSenderName(resolveName(m.getSenderId()));
         dto.setMsgType(m.getMsgType());
         dto.setPriority(m.getPriority());
         dto.setStatus(m.getStatus());

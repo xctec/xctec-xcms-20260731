@@ -9,7 +9,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 消息附件（关联文件存储模块的文件 id）。租户隔离。
+ * 消息附件（对应 DDL 表 msg_attachment，关联文件存储模块的文件 id）。租户隔离。
  */
 @Entity
 @Table(name = "msg_attachment", uniqueConstraints = @UniqueConstraint(columnNames = {"tenant_id", "message_id", "file_id"}))
@@ -25,4 +25,7 @@ public class MessageAttachment extends TenantEntity {
 
     @Column(name = "file_name", length = 255)
     private String fileName;
+
+    @Column(name = "file_size")
+    private Long fileSize;
 }

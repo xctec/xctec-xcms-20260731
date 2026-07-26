@@ -10,7 +10,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * 消息主体。租户隔离。发件人、标题、内容、类型、状态。
+ * 消息主体（对应 DDL 表 msg_message）。租户隔离；发件人姓名由 senderId 在查询时解析，不冗余存储。
  */
 @Entity
 @Table(name = "msg_message")
@@ -29,9 +29,6 @@ public class Message extends TenantEntity {
 
     @Column(name = "sender_id")
     private Long senderId;
-
-    @Column(name = "sender_name", length = 64)
-    private String senderName;
 
     @Column(name = "msg_type", length = 16)
     private String msgType = "NOTICE";

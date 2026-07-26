@@ -11,7 +11,8 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * 消息接收人。租户隔离，(messageId, recipientId) 唯一。
+ * 消息接收人（对应 DDL 表 msg_recipient）。租户隔离，(messageId, recipientId) 唯一。
+ * 收件人姓名由 recipientId 在查询时解析，不冗余存储。
  */
 @Entity
 @Table(name = "msg_recipient", uniqueConstraints = @UniqueConstraint(columnNames = {"tenant_id", "message_id", "recipient_id"}))
@@ -24,9 +25,6 @@ public class MessageRecipient extends TenantEntity {
 
     @Column(name = "recipient_id", nullable = false)
     private Long recipientId;
-
-    @Column(name = "recipient_name", length = 64)
-    private String recipientName;
 
     @Column(name = "is_read", nullable = false)
     private boolean read = false;
