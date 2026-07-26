@@ -22,7 +22,7 @@ CREATE TABLE sso_provider (
     name_field        VARCHAR(64)     DEFAULT 'name',
     scope             VARCHAR(256)    DEFAULT 'openid email profile',
     auto_create       BOOLEAN         NOT NULL DEFAULT TRUE,
-    default_role      VARCHAR(64),
+    default_role_id  BIGINT,
     enabled           BOOLEAN         NOT NULL DEFAULT TRUE,
     created_at        TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at        TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,

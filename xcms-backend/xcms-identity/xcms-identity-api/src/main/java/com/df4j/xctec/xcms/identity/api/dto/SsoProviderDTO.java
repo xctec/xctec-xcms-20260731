@@ -23,7 +23,7 @@ public class SsoProviderDTO {
     private String nameField;
     private String scope;
     private boolean autoCreate;
-    private String defaultRole;
+    private Long defaultRole;
     private boolean enabled;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

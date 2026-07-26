@@ -24,4 +24,13 @@ public interface SsoService {
 
     /** 根据 serverCode 生成 IdP 授权跳转地址 */
     SsoAuthorizeDTO authorize(String serverCode, String state);
+
+    /**
+     * 校验回调 state 中的 csrfToken 部分，并防止重放。
+     * 校验通过即一次性失效缓存中的条目。
+     *
+     * @param serverCode 提供方编码
+     * @param csrfToken  state 三段式中的 csrfToken 部分
+     */
+    void validateSsoState(String serverCode, String csrfToken);
 }

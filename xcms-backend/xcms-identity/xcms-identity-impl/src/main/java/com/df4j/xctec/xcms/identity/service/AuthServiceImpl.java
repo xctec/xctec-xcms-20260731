@@ -21,6 +21,9 @@ import com.df4j.xctec.xcms.identity.domain.SsoBinding;
 import com.df4j.xctec.xcms.identity.domain.SsoProvider;
 import com.df4j.xctec.xcms.identity.repository.SsoBindingRepository;
 import com.df4j.xctec.xcms.identity.repository.SsoProviderRepository;
+import com.df4j.xctec.xcms.identity.api.RoleService;
+import com.df4j.xctec.xcms.identity.api.SsoService;
+import com.df4j.xctec.xcms.identity.api.enums.RoleScope;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +58,8 @@ public class AuthServiceImpl implements AuthService {
     private final DomainEventPublisher eventPublisher;
     private final SsoProviderRepository ssoProviderRepository;
     private final SsoBindingRepository ssoBindingRepository;
+    private final SsoService ssoService;
+    private final RoleService roleService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
@@ -132,11 +137,21 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public LoginResult ssoCallback(String code, String state) {
-        String serverCode = state != null && state.contains(":") ? state.substring(0, state.indexOf(":")) : state;
-        if (!StringUtils.hasText(serverCode)) {
-            throw new BusinessException(ErrorCodes.BUSINESS_ERROR, "无效的 SSO state");
+        // 1. state 三段式：tenantId:serverCode:csrfToken，校验并解析租户（防 CSRF/重放）
+        if (!StringUtils.hasText(state)) {
+            throw new BusinessException(ErrorCodes.BUSINESS_ERROR, "缺少 SSO state");
         }
-        SsoProvider p = ssoProviderRepository.findByServerCodeAndEnabledTrue(serverCode, true)
+        String[] stateParts = state.split(":", 3);
+        if (stateParts.length != 3 || !StringUtils.hasText(stateParts[0])
+                || !StringUtils.hasText(stateParts[1]) || !StringUtils.hasText(stateParts[2])) {
+            throw new BusinessException(ErrorCodes.BUSINESS_ERROR, "非法的 SSO state");
+        }
+        Long tenantId = Long.valueOf(stateParts[0].trim());
+        String serverCode = stateParts[1];
+        ssoService.validateSsoState(serverCode, stateParts[2]);
+        TenantContext.set(tenantId);
+
+        SsoProvider p = ssoProviderRepository.findByServerCodeAndEnabled(serverCode, true)
                 .orElseThrow(() -> new BusinessException(ErrorCodes.BUSINESS_ERROR, "SSO 服务不可用: " + serverCode));
         if (!"OAUTH2".equals(p.getProtocol()) && !"OIDC".equals(p.getProtocol())) {
             throw new BusinessException(ErrorCodes.BUSINESS_ERROR, "暂不支持的 SSO 协议: " + p.getProtocol());
@@ -156,12 +171,6 @@ public class AuthServiceImpl implements AuthService {
             username = idpOpenId;
         }
 
-        Long tenantId = p.getTenantId() != null ? p.getTenantId() : TenantContext.getTenantId();
-        if (tenantId == null) {
-            throw new BusinessException(ErrorCodes.TENANT_NOT_FOUND, "无法确定租户");
-        }
-        TenantContext.set(tenantId);
-
         User user = ssoBindingRepository.findByProviderIdAndIdpOpenId(p.getId(), idpOpenId)
                 .flatMap(b -> userRepository.findById(b.getUserId())).orElse(null);
         if (user == null) {
@@ -178,13 +187,16 @@ public class AuthServiceImpl implements AuthService {
                     .build();
             user.setTenantId(tenantId);
             user = userRepository.save(user);
+            if (p.getDefaultRole() != null) {
+                roleService.assignRoleToUser(user.getId(), p.getDefaultRole(), RoleScope.TENANT, String.valueOf(tenantId));
+            }
         }
 
         SsoBinding binding = ssoBindingRepository.findByProviderIdAndIdpOpenId(p.getId(), idpOpenId).orElse(null);
         if (binding == null) {
             binding = SsoBinding.builder()
                     .providerId(p.getId()).userId(user.getId()).idpOpenId(idpOpenId)
-                    .idpUsername(username).tenantId(tenantId).build();
+                    .idpUsername(username).build();
         }
         binding.setLastLoginAt(LocalDateTime.now());
         ssoBindingRepository.save(binding);

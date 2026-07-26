@@ -71,8 +71,8 @@ public class SsoProvider extends BaseEntity {
     @Column(name = "auto_create", nullable = false)
     private boolean autoCreate = true;
 
-    @Column(name = "default_role", length = 64)
-    private String defaultRole;
+    @Column(name = "default_role_id")
+    private Long defaultRole;
 
     @Column(name = "enabled", nullable = false)
     private boolean enabled = true;
