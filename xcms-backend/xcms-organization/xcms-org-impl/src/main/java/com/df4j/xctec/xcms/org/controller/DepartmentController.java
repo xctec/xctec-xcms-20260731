@@ -12,11 +12,12 @@ import com.df4j.xctec.xcms.org.api.dto.DepartmentDTO;
 import com.df4j.xctec.xcms.org.api.dto.DepartmentTreeDTO;
 import com.df4j.xctec.xcms.org.api.dto.DepartmentUpdateRequest;
 import com.df4j.xctec.xcms.org.api.dto.DepartmentUsersRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -32,43 +33,51 @@ public class DepartmentController {
 
     private final OrganizationService organizationService;
 
+    @Operation(summary = "创建部门")
     @PostMapping("/create")
     public ApiResponse<DepartmentDTO> createDepartment(@RequestBody DepartmentCreateRequest request) {
         return ApiResponse.success(organizationService.createDepartment(request));
     }
 
+    @Operation(summary = "更新部门")
     @PostMapping("/update")
     public ApiResponse<DepartmentDTO> updateDepartment(@RequestBody DepartmentUpdateRequest request) {
         return ApiResponse.success(organizationService.updateDepartment(request.getId(), request));
     }
 
+    @Operation(summary = "删除部门")
     @PostMapping("/delete")
     public ApiResponse<Void> deleteDepartment(@RequestBody IdRequest request) {
         organizationService.deleteDepartment(request.getId());
         return ApiResponse.success();
     }
 
+    @Operation(summary = "查询部门详情")
     @PostMapping("/get")
     public ApiResponse<DepartmentDTO> getDepartment(@RequestBody IdRequest request) {
         return ApiResponse.success(organizationService.getDepartment(request.getId()));
     }
 
+    @Operation(summary = "查询部门树", description = "返回当前租户的部门层级树")
     @PostMapping("/tree")
     public ApiResponse<List<DepartmentTreeDTO>> getDepartmentTree() {
         return ApiResponse.success(organizationService.getDepartmentTree());
     }
 
+    @Operation(summary = "查询子部门列表")
     @PostMapping("/list-children")
     public ApiResponse<List<DepartmentDTO>> listSubDepartments(@RequestBody IdRequest request) {
         return ApiResponse.success(organizationService.listSubDepartments(request.getId()));
     }
 
+    @Operation(summary = "移动部门", description = "调整部门归属（父子关系）")
     @PostMapping("/move")
     public ApiResponse<Void> moveDepartment(@RequestBody MoveRequest request) {
         organizationService.moveDepartment(request.getId(), request.getTargetId());
         return ApiResponse.success();
     }
 
+    @Operation(summary = "查询部门成员", description = "分页查询部门下的用户")
     @PostMapping("/list-users")
     public ApiResponse<PageResult<UserBriefDTO>> listDepartmentUsers(@RequestBody DepartmentUsersRequest request) {
         return ApiResponse.success(organizationService.listDepartmentUsers(request.getDeptId(), request.getPage()));

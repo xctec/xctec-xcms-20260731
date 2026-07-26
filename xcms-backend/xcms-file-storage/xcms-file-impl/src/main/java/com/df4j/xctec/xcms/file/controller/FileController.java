@@ -10,6 +10,8 @@ import com.df4j.xctec.xcms.kernel.common.dto.IdRequest;
 import com.df4j.xctec.xcms.kernel.context.TenantContext;
 import com.df4j.xctec.xcms.kernel.exception.BusinessException;
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -22,7 +24,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -42,6 +43,7 @@ public class FileController {
 
     private final FileStorageService fileStorageService;
 
+    @Operation(summary = "上传文件", description = "上传文件并返回文件元信息")
     @PostMapping("/upload")
     public ApiResponse<FileDTO> upload(@RequestParam("file") MultipartFile multipart) {
         FileUploadCommand command = new FileUploadCommand();
@@ -56,22 +58,26 @@ public class FileController {
         return ApiResponse.success(fileStorageService.upload(command));
     }
 
+    @Operation(summary = "查询文件信息")
     @PostMapping("/info")
     public ApiResponse<FileDTO> info(@RequestBody IdRequest request) {
         return ApiResponse.success(fileStorageService.getFileInfo(request.getId()));
     }
 
+    @Operation(summary = "分页查询文件列表")
     @PostMapping("/list")
     public ApiResponse<PageResult<FileDTO>> list(@RequestBody FileQuery query) {
         return ApiResponse.success(fileStorageService.listFiles(query));
     }
 
+    @Operation(summary = "删除文件")
     @PostMapping("/delete")
     public ApiResponse<Void> delete(@RequestBody IdRequest request) {
         fileStorageService.delete(request.getId());
         return ApiResponse.success();
     }
 
+    @Operation(summary = "下载文件", description = "按 ID 流式下载文件二进制内容")
     @GetMapping("/download/{id}")
     public ResponseEntity<Resource> download(@PathVariable("id") Long id) {
         FileDTO dto = fileStorageService.getFileInfo(id);

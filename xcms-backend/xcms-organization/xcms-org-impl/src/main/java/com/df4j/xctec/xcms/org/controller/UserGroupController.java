@@ -7,11 +7,12 @@ import com.df4j.xctec.xcms.kernel.common.dto.MembersRequest;
 import com.df4j.xctec.xcms.org.api.UserGroupService;
 import com.df4j.xctec.xcms.org.api.dto.UserGroupCreateRequest;
 import com.df4j.xctec.xcms.org.api.dto.UserGroupDTO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -27,34 +28,40 @@ public class UserGroupController {
 
     private final UserGroupService userGroupService;
 
+    @Operation(summary = "创建用户组")
     @PostMapping("/create")
     public ApiResponse<UserGroupDTO> createGroup(@RequestBody UserGroupCreateRequest request) {
         return ApiResponse.success(userGroupService.createGroup(request));
     }
 
+    @Operation(summary = "删除用户组")
     @PostMapping("/delete")
     public ApiResponse<Void> deleteGroup(@RequestBody IdRequest request) {
         userGroupService.deleteGroup(request.getId());
         return ApiResponse.success();
     }
 
+    @Operation(summary = "添加组成员")
     @PostMapping("/add-members")
     public ApiResponse<Void> addMembers(@RequestBody MembersRequest request) {
         userGroupService.addMembers(request.getId(), request.getMemberIds());
         return ApiResponse.success();
     }
 
+    @Operation(summary = "移除组成员")
     @PostMapping("/remove-members")
     public ApiResponse<Void> removeMembers(@RequestBody MembersRequest request) {
         userGroupService.removeMembers(request.getId(), request.getMemberIds());
         return ApiResponse.success();
     }
 
+    @Operation(summary = "查询组成员列表")
     @PostMapping("/list-members")
     public ApiResponse<List<UserBriefDTO>> listGroupMembers(@RequestBody IdRequest request) {
         return ApiResponse.success(userGroupService.listGroupMembers(request.getId()));
     }
 
+    @Operation(summary = "查询用户组列表")
     @PostMapping("/list")
     public ApiResponse<List<UserGroupDTO>> listGroups() {
         return ApiResponse.success(userGroupService.listGroups());

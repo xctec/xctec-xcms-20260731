@@ -7,11 +7,12 @@ import com.df4j.xctec.xcms.org.api.dto.DepartmentDTO;
 import com.df4j.xctec.xcms.org.api.dto.UserOrgAssignRequest;
 import com.df4j.xctec.xcms.org.api.dto.UserOrgUnassignRequest;
 import com.df4j.xctec.xcms.org.api.dto.UserPositionDTO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -27,6 +28,7 @@ public class UserOrgController {
 
     private final UserOrgService userOrgService;
 
+    @Operation(summary = "分配用户到岗位", description = "建立用户-部门-岗位关系，可标记主岗位")
     @PostMapping("/assign")
     public ApiResponse<Void> assign(@RequestBody UserOrgAssignRequest request) {
         userOrgService.assignUserToPosition(
@@ -34,22 +36,26 @@ public class UserOrgController {
         return ApiResponse.success();
     }
 
+    @Operation(summary = "取消用户岗位分配")
     @PostMapping("/unassign")
     public ApiResponse<Void> unassign(@RequestBody UserOrgUnassignRequest request) {
         userOrgService.removeUserFromPosition(request.getUserId(), request.getPositionId());
         return ApiResponse.success();
     }
 
+    @Operation(summary = "查询用户岗位列表")
     @PostMapping("/positions")
     public ApiResponse<List<UserPositionDTO>> getUserPositions(@RequestBody IdRequest request) {
         return ApiResponse.success(userOrgService.getUserPositions(request.getId()));
     }
 
+    @Operation(summary = "查询用户主部门")
     @PostMapping("/primary-dept")
     public ApiResponse<DepartmentDTO> getUserPrimaryDept(@RequestBody IdRequest request) {
         return ApiResponse.success(userOrgService.getUserPrimaryDept(request.getId()));
     }
 
+    @Operation(summary = "查询用户部门路径列表")
     @PostMapping("/paths")
     public ApiResponse<List<String>> getUserDeptPaths(@RequestBody IdRequest request) {
         return ApiResponse.success(userOrgService.getUserDeptPaths(request.getId()));

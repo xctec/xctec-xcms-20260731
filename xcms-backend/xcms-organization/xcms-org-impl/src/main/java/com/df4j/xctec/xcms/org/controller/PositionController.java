@@ -6,11 +6,12 @@ import com.df4j.xctec.xcms.org.api.PositionService;
 import com.df4j.xctec.xcms.org.api.dto.PositionCreateRequest;
 import com.df4j.xctec.xcms.org.api.dto.PositionDTO;
 import com.df4j.xctec.xcms.org.api.dto.PositionUpdateRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -26,22 +27,26 @@ public class PositionController {
 
     private final PositionService positionService;
 
+    @Operation(summary = "创建岗位")
     @PostMapping("/create")
     public ApiResponse<PositionDTO> createPosition(@RequestBody PositionCreateRequest request) {
         return ApiResponse.success(positionService.createPosition(request));
     }
 
+    @Operation(summary = "更新岗位")
     @PostMapping("/update")
     public ApiResponse<PositionDTO> updatePosition(@RequestBody PositionUpdateRequest request) {
         return ApiResponse.success(positionService.updatePosition(request.getId(), request));
     }
 
+    @Operation(summary = "删除岗位")
     @PostMapping("/delete")
     public ApiResponse<Void> deletePosition(@RequestBody IdRequest request) {
         positionService.deletePosition(request.getId());
         return ApiResponse.success();
     }
 
+    @Operation(summary = "按部门查询岗位列表")
     @PostMapping("/list-by-dept")
     public ApiResponse<List<PositionDTO>> listPositionsByDept(@RequestBody IdRequest request) {
         return ApiResponse.success(positionService.listPositionsByDept(request.getId()));

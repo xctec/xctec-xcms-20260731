@@ -1,5 +1,6 @@
 package com.df4j.xctec.xcms.kernel.common;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,10 +16,10 @@ import java.util.List;
 @AllArgsConstructor
 public class PageResult<T> {
 
-    /** 数据列表 */
+    @Schema(description = "当前页数据列表")
     private List<T> list;
 
-    /** 总记录数 */
+    @Schema(description = "总记录数")
     private long total;
 
     public static <T> PageResult<T> of(List<T> list, long total) {

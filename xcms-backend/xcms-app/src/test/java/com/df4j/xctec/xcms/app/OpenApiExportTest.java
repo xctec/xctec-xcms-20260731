@@ -61,6 +61,20 @@ class OpenApiExportTest {
         }
         assertTrue(withSummary > 0, "应至少存在一个带 summary 的 operation");
         assertTrue(publicEndpoints >= 3, "登录/刷新/SSO 回调等公开端点应豁免 Bearer（实际=" + publicEndpoints + "）");
+
+        // @Schema 字段级描述（核心 DTO）
+        JsonNode schemas = doc.path("components").path("schemas");
+        JsonNode userDto = schemas.path("UserDTO");
+        assertFalse(userDto.isMissingNode(), "应存在 UserDTO schema");
+        JsonNode usernameDesc = userDto.path("properties").path("username").path("description");
+        assertFalse(usernameDesc.isMissingNode(), "UserDTO.username 应有 @Schema 描述");
+        System.out.println("[OpenApiExportTest] UserDTO.username desc=" + usernameDesc.asText());
+        JsonNode loginReq = schemas.path("LoginRequest");
+        assertFalse(loginReq.isMissingNode(), "应存在 LoginRequest schema");
+        JsonNode pwdDesc = loginReq.path("properties").path("password").path("description");
+        assertFalse(pwdDesc.isMissingNode(), "LoginRequest.password 应有 @Schema 描述");
+        System.out.println("[OpenApiExportTest] LoginRequest.password desc=" + pwdDesc.asText());
+
         System.out.println("[OpenApiExportTest] paths=" + paths.size()
                 + ", tags=" + tags.size()
                 + ", opsWithSummary=" + withSummary + ", publicEndpoints=" + publicEndpoints);

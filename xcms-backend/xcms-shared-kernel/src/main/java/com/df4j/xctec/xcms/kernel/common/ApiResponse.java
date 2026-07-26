@@ -1,6 +1,7 @@
 package com.df4j.xctec.xcms.kernel.common;
 
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,13 +15,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ApiResponse<T> {
 
-    /** 错误码，"0" 表示成功，其他为业务错误码（如 "1001"） */
+    @Schema(description = "错误码，\"0\" 表示成功，其他为业务错误码（如 \"1001\"）")
     private String errorCode;
 
-    /** 错误信息，成功时为 "success" */
+    @Schema(description = "错误信息，成功时为 \"success\"")
     private String errorMsg;
 
-    /** 响应数据 */
+    @Schema(description = "响应数据（泛型，可为 null）")
     private T data;
 
     public static <T> ApiResponse<T> success(T data) {
