@@ -17,8 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,11 +35,33 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public void assignPermissionsToRole(Long roleId, List<PermissionAssignRequest> permissions) {
+        // 按 permId 批量查 Permission 表(perm_operation)与 Menu 表(perm_menu)，自动推断 permType：
+        // 命中 Permission 表记为 OPERATION，命中 Menu 表记为 MENU。
+        // 前端未传 permType 时使用推断值，避免 permType=null 导致 getRolePermissions
+        // 按 permType 分组查询时漏掉记录（分配成功但刷新查不到）。
+        List<Long> permIds = permissions.stream().map(PermissionAssignRequest::getPermId).toList();
+        Set<Long> operationIds = permIds.isEmpty() ? new HashSet<>()
+                : permissionRepository.findByIdIn(permIds).stream()
+                        .map(Permission::getId).collect(Collectors.toSet());
+        Set<Long> menuIds = permIds.isEmpty() ? new HashSet<>()
+                : menuRepository.findByIdIn(permIds).stream()
+                        .map(Menu::getId).collect(Collectors.toSet());
         for (PermissionAssignRequest req : permissions) {
+            String permType = req.getPermType();
+            if (permType == null || permType.isBlank()) {
+                if (operationIds.contains(req.getPermId())) {
+                    permType = "OPERATION";
+                } else if (menuIds.contains(req.getPermId())) {
+                    permType = "MENU";
+                } else {
+                    permType = "OPERATION";
+                }
+            }
+            String finalPermType = permType;
             if (rolePermissionRepository.findByRoleIdAndPermissionId(roleId, req.getPermId()).isEmpty()) {
                 rolePermissionRepository.save(RolePermission.builder()
                         .roleId(roleId).permissionId(req.getPermId())
-                        .permType(req.getPermType()).scopeConfig(req.getScopeConfig()).build());
+                        .permType(finalPermType).scopeConfig(req.getScopeConfig()).build());
             }
         }
         PermissionChangedEvent assignEvent = new PermissionChangedEvent();
