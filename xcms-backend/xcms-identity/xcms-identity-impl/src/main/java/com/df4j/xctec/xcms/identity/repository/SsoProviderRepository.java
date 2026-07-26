@@ -10,9 +10,9 @@ import java.util.Optional;
 @Repository
 public interface SsoProviderRepository extends JpaRepository<SsoProvider, Long> {
 
-    Optional<SsoProvider> findByServerCodeAndEnabledTrue(String serverCode, boolean enabled);
+    Optional<SsoProvider> findByServerCodeAndEnabled(String serverCode, boolean enabled);
 
     List<SsoProvider> findByTenantId(Long tenantId);
 
-    boolean existsByServerCode(String serverCode);
+    boolean existsByTenantIdAndServerCode(Long tenantId, String serverCode);
 }

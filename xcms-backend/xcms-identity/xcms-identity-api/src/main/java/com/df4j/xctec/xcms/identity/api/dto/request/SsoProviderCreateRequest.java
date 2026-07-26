@@ -21,6 +21,6 @@ public class SsoProviderCreateRequest {
     private String nameField;
     private String scope;
     private Boolean autoCreate;
-    private String defaultRole;
+    private Long defaultRole;
     private Boolean enabled;
 }

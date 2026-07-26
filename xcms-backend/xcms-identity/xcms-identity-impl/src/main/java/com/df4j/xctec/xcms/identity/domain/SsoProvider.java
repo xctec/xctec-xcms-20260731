@@ -15,7 +15,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "sso_provider", indexes = {
-        @Index(name = "uk_sso_provider_code", columnList = "server_code", unique = true),
+        @Index(name = "uk_sso_provider_code", columnList = "tenant_id, server_code", unique = true),
         @Index(name = "idx_sso_provider_tenant", columnList = "tenant_id")
 })
 public class SsoProvider extends BaseEntity {
@@ -71,8 +71,8 @@ public class SsoProvider extends BaseEntity {
     @Column(name = "auto_create", nullable = false)
     private boolean autoCreate = true;
 
-    @Column(name = "default_role", length = 64)
-    private String defaultRole;
+    @Column(name = "default_role_id")
+    private Long defaultRole;
 
     @Column(name = "enabled", nullable = false)
     private boolean enabled = true;

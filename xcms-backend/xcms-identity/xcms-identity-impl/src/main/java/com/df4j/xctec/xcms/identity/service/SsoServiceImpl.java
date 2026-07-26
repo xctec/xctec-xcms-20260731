@@ -7,8 +7,12 @@ import com.df4j.xctec.xcms.identity.api.dto.request.SsoProviderCreateRequest;
 import com.df4j.xctec.xcms.identity.api.dto.request.SsoProviderUpdateRequest;
 import com.df4j.xctec.xcms.identity.domain.SsoProvider;
 import com.df4j.xctec.xcms.identity.repository.SsoProviderRepository;
+import com.df4j.xctec.xcms.identity.util.CryptoUtil;
 import com.df4j.xctec.xcms.kernel.exception.BusinessException;
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
+import com.df4j.xctec.xcms.kernel.context.TenantContext;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +20,7 @@ import org.springframework.util.StringUtils;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -26,10 +31,14 @@ public class SsoServiceImpl implements SsoService {
 
     private final SsoProviderRepository providerRepository;
 
+    private final Cache<String, SsoStateEntry> ssoStateCache = Caffeine.newBuilder()
+            .expireAfterWrite(Duration.ofMinutes(5))
+            .build();
+
     @Override
     @Transactional
     public SsoProviderDTO createProvider(SsoProviderCreateRequest request) {
-        if (providerRepository.existsByServerCode(request.getServerCode())) {
+        if (providerRepository.existsByTenantIdAndServerCode(request.getTenantId(), request.getServerCode())) {
             throw new BusinessException(ErrorCodes.ALREADY_EXISTS, "serverCode 已存在: " + request.getServerCode());
         }
         SsoProvider p = new SsoProvider();
@@ -58,7 +67,7 @@ public class SsoServiceImpl implements SsoService {
             p.setClientId(request.getClientId());
         }
         if (request.getClientSecret() != null) {
-            p.setClientSecret(request.getClientSecret());
+            p.setClientSecret(CryptoUtil.encrypt(request.getClientSecret()));
         }
         if (request.getAuthorizeUrl() != null) {
             p.setAuthorizeUrl(request.getAuthorizeUrl());
@@ -126,12 +135,34 @@ public class SsoServiceImpl implements SsoService {
 
     @Override
     public SsoAuthorizeDTO authorize(String serverCode, String state) {
-        SsoProvider p = providerRepository.findByServerCodeAndEnabledTrue(serverCode, true)
+        Long tenantId = TenantContext.getTenantId();
+        if (tenantId == null) {
+            throw new BusinessException(ErrorCodes.TENANT_NOT_FOUND, "未确定租户上下文");
+        }
+        SsoProvider p = providerRepository.findByServerCodeAndEnabled(serverCode, true)
                 .orElseThrow(() -> new BusinessException(ErrorCodes.BUSINESS_ERROR, "SSO 服务不可用: " + serverCode));
+        String csrfToken = UUID.randomUUID().toString();
+        String fullState = tenantId + ":" + serverCode + ":" + csrfToken;
+        ssoStateCache.put(csrfToken, new SsoStateEntry(tenantId, serverCode));
         SsoAuthorizeDTO dto = new SsoAuthorizeDTO();
         dto.setServerCode(serverCode);
-        dto.setRedirectUrl(buildAuthorizeUrl(p, state));
+        dto.setRedirectUrl(buildAuthorizeUrl(p, fullState));
         return dto;
+    }
+
+    @Override
+    public void validateSsoState(String serverCode, String csrfToken) {
+        if (!StringUtils.hasText(csrfToken) || !StringUtils.hasText(serverCode)) {
+            throw new BusinessException(ErrorCodes.BUSINESS_ERROR, "非法的 SSO state");
+        }
+        SsoStateEntry entry = ssoStateCache.getIfPresent(csrfToken);
+        if (entry == null) {
+            throw new BusinessException(ErrorCodes.BUSINESS_ERROR, "SSO state 已失效或非法");
+        }
+        if (!serverCode.equals(entry.serverCode())) {
+            throw new BusinessException(ErrorCodes.BUSINESS_ERROR, "SSO state 与提供方不匹配");
+        }
+        ssoStateCache.invalidate(csrfToken);
     }
 
     private String buildAuthorizeUrl(SsoProvider p, String state) {
@@ -141,7 +172,7 @@ public class SsoServiceImpl implements SsoService {
         sb.append("&redirect_uri=").append(enc(p.getRedirectUri()));
         sb.append("&response_type=code");
         sb.append("&scope=").append(enc(p.getScope()));
-        String st = (StringUtils.hasText(state) ? state : "") + ":" + UUID.randomUUID().toString().substring(0, 8);
+        String st = StringUtils.hasText(state) ? state : UUID.randomUUID().toString();
         sb.append("&state=").append(enc(st));
         return sb.toString();
     }
@@ -154,12 +185,12 @@ public class SsoServiceImpl implements SsoService {
                        String clientId, String clientSecret, String authorizeUrl, String tokenUrl,
                        String userInfoUrl, String redirectUri, String logoutUrl,
                        String idpUserIdField, String usernameField, String emailField,
-                       String nameField, String scope, Boolean autoCreate, String defaultRole, Boolean enabled) {
+                       String nameField, String scope, Boolean autoCreate, Long defaultRole, Boolean enabled) {
         p.setServerCode(serverCode);
         p.setServerName(serverName);
         p.setProtocol(protocol);
         p.setClientId(clientId);
-        p.setClientSecret(clientSecret);
+        p.setClientSecret(CryptoUtil.encrypt(clientSecret));
         p.setAuthorizeUrl(authorizeUrl);
         p.setTokenUrl(tokenUrl);
         p.setUserInfoUrl(userInfoUrl);
@@ -200,4 +231,6 @@ public class SsoServiceImpl implements SsoService {
         dto.setUpdatedAt(p.getUpdatedAt());
         return dto;
     }
+
+    private record SsoStateEntry(Long tenantId, String serverCode) {}
 }

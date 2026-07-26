@@ -1,6 +1,6 @@
 package com.df4j.xctec.xcms.identity.domain;
 
-import com.df4j.xctec.xcms.kernel.entity.BaseEntity;
+import com.df4j.xctec.xcms.kernel.entity.TenantEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
@@ -26,10 +26,7 @@ import java.time.LocalDateTime;
         @Index(name = "uk_sso_binding", columnList = "provider_id, idp_open_id", unique = true),
         @Index(name = "idx_sso_binding_user", columnList = "user_id")
 })
-public class SsoBinding extends BaseEntity {
-
-    @Column(name = "tenant_id")
-    private Long tenantId;
+public class SsoBinding extends TenantEntity {
 
     @Column(name = "provider_id", nullable = false)
     private Long providerId;

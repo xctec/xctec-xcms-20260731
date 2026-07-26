@@ -4,7 +4,7 @@
 
 -- SSO 服务端（IdP）配置（租户级，可系统级）
 CREATE TABLE sso_provider (
-    id                BIGINT          NOT NULL,
+    id                BIGINT          NOT NULL AUTO_INCREMENT,
     tenant_id         BIGINT,
     server_code       VARCHAR(64)     NOT NULL,
     server_name       VARCHAR(128)    NOT NULL,
@@ -22,17 +22,17 @@ CREATE TABLE sso_provider (
     name_field        VARCHAR(64)     DEFAULT 'name',
     scope             VARCHAR(256)    DEFAULT 'openid email profile',
     auto_create       BOOLEAN         NOT NULL DEFAULT TRUE,
-    default_role      VARCHAR(64),
+    default_role_id  BIGINT,
     enabled           BOOLEAN         NOT NULL DEFAULT TRUE,
     created_at        TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at        TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_sso_provider PRIMARY KEY (id),
-    CONSTRAINT uk_sso_provider_code UNIQUE (server_code)
+    CONSTRAINT uk_sso_provider_code UNIQUE (tenant_id, server_code)
 );
 
 -- SSO 用户绑定（本地用户 <-> IdP 开放ID）
 CREATE TABLE sso_binding (
-    id           BIGINT          NOT NULL,
+    id           BIGINT          NOT NULL AUTO_INCREMENT,
     tenant_id    BIGINT,
     provider_id  BIGINT          NOT NULL,
     user_id      BIGINT          NOT NULL,
@@ -40,6 +40,7 @@ CREATE TABLE sso_binding (
     idp_username VARCHAR(128),
     last_login_at TIMESTAMP,
     created_at   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_sso_binding PRIMARY KEY (id),
     CONSTRAINT uk_sso_binding UNIQUE (provider_id, idp_open_id)
 );
