@@ -213,16 +213,23 @@ export const handlers = [
     await request.json();
     return ok(null);
   }),
-  http.post('/admin/authz/role-permissions', async ({ request }) => {
-    const { roleId } = (await request.json()) as { roleId: number };
-    const ids = mockRolePermissions[roleId] ?? [];
+  // 对齐后端 RolePermissionController：/admin/role-permission/get（IdRequest{id}）
+  http.post('/admin/role-permission/get', async ({ request }) => {
+    const { id } = (await request.json()) as { id: number };
+    const ids = mockRolePermissions[id] ?? [];
     return ok(mockPermissions.filter((p) => ids.includes(p.id!)));
   }),
-  http.post('/admin/authz/assign', async ({ request }) => {
-    const { roleId, permissionIds } = (await request.json()) as { roleId: number; permissionIds: number[] };
+  // /admin/role-permission/assign（RolePermissionAssignRequest{roleId, permissions: PermissionAssignRequest[]}）
+  http.post('/admin/role-permission/assign', async ({ request }) => {
+    const { roleId, permissions } = (await request.json()) as {
+      roleId: number;
+      permissions: { permId: number }[];
+    };
+    const permissionIds = (permissions ?? []).map((p) => p.permId);
     mockRolePermissions[roleId] = permissionIds || [];
     return ok(null);
   }),
+  // TODO(后端待补): listPermissions 依赖后端「列举全部权限」接口，当前仅 mock 支撑开发联调
   http.post('/admin/authz/permissions', () => ok(mockPermissions)),
   http.post('/admin/authz/data-scope', async ({ request }) => {
     const { roleId } = (await request.json()) as { roleId: number };
