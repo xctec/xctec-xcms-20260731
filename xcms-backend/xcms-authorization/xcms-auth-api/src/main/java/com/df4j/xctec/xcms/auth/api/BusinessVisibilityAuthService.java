@@ -1,5 +1,6 @@
 package com.df4j.xctec.xcms.auth.api;
 
+import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthContext;
 import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthDTO;
 import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthQuery;
 import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthRequest;
@@ -19,5 +20,12 @@ public interface BusinessVisibilityAuthService {
 
     CrossTenantAuthDTO getActiveAuth(Long userId, Long targetTenantId);
 
-    void cleanupExpiredAuthorizations();
+    /** 校验令牌有效性，返回授权上下文（含 dataScope 可见资源范围） */
+    CrossTenantAuthContext verifyToken(String token);
+
+    /** 更新授权的数据范围（dataScope JSON） */
+    void updateDataScope(Long authId, String dataScope);
+
+    /** 清理过期的授权记录，返回清理数量 */
+    int cleanupExpiredAuthorizations();
 }

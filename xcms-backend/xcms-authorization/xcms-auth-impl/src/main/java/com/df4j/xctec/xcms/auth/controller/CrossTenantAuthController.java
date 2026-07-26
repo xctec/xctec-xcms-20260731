@@ -3,10 +3,13 @@ package com.df4j.xctec.xcms.auth.controller;
 import com.df4j.xctec.xcms.auth.api.BusinessVisibilityAuthService;
 import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthActiveRequest;
 import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthApproveRequest;
+import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthContext;
 import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthDTO;
 import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthQuery;
 import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthRejectRequest;
 import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthRequest;
+import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthScopeRequest;
+import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthVerifyRequest;
 import com.df4j.xctec.xcms.kernel.common.ApiResponse;
 import com.df4j.xctec.xcms.kernel.common.PageResult;
 import com.df4j.xctec.xcms.kernel.common.dto.IdRequest;
@@ -57,5 +60,16 @@ public class CrossTenantAuthController {
     @PostMapping("/active")
     public ApiResponse<CrossTenantAuthDTO> getActiveAuth(@RequestBody CrossTenantAuthActiveRequest request) {
         return ApiResponse.success(businessVisibilityAuthService.getActiveAuth(request.getUserId(), request.getTargetTenantId()));
+    }
+
+    @PostMapping("/verify")
+    public ApiResponse<CrossTenantAuthContext> verifyToken(@RequestBody CrossTenantAuthVerifyRequest request) {
+        return ApiResponse.success(businessVisibilityAuthService.verifyToken(request.getToken()));
+    }
+
+    @PostMapping("/scope/update")
+    public ApiResponse<Void> updateDataScope(@RequestBody CrossTenantAuthScopeRequest request) {
+        businessVisibilityAuthService.updateDataScope(request.getId(), request.getDataScope());
+        return ApiResponse.success();
     }
 }

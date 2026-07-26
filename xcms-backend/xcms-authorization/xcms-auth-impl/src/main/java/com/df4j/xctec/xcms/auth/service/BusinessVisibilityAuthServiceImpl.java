@@ -3,6 +3,7 @@ package com.df4j.xctec.xcms.auth.service;
 import com.df4j.xctec.xcms.auth.api.BusinessVisibilityAuthService;
 import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthDTO;
 import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthQuery;
+import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthContext;
 import com.df4j.xctec.xcms.auth.api.dto.CrossTenantAuthRequest;
 import com.df4j.xctec.xcms.auth.api.event.CrossTenantAuthApprovedEvent;
 import com.df4j.xctec.xcms.auth.domain.CrossTenantAuth;
@@ -103,16 +104,54 @@ public class BusinessVisibilityAuthServiceImpl implements BusinessVisibilityAuth
     }
 
     @Override
-    @Transactional
-    public void cleanupExpiredAuthorizations() {
-        List<CrossTenantAuth> active = repository.search(null, null, null, "ACTIVE");
-        LocalDateTime now = LocalDateTime.now();
-        for (CrossTenantAuth a : active) {
-            if (a.getValidUntil() != null && a.getValidUntil().isBefore(now)) {
-                a.setStatus("EXPIRED");
-                repository.save(a);
-            }
+    @Transactional(readOnly = true)
+    public CrossTenantAuthContext verifyToken(String token) {
+        if (token == null || token.isBlank()) {
+            throw new BusinessException(ErrorCodes.PERMISSION_DENIED, "令牌为空");
         }
+        CrossTenantAuth a = repository.findByToken(token)
+                .orElseThrow(() -> new BusinessException(ErrorCodes.PERMISSION_DENIED, "令牌无效"));
+        LocalDateTime now = LocalDateTime.now();
+        if (!"ACTIVE".equals(a.getStatus())) {
+            throw new BusinessException(ErrorCodes.PERMISSION_DENIED, "授权未激活: " + a.getStatus());
+        }
+        if (a.getValidFrom() != null && now.isBefore(a.getValidFrom())) {
+            throw new BusinessException(ErrorCodes.PERMISSION_DENIED, "授权尚未生效");
+        }
+        if (a.getValidUntil() != null && now.isAfter(a.getValidUntil())) {
+            throw new BusinessException(ErrorCodes.PERMISSION_DENIED, "授权已过期");
+        }
+        CrossTenantAuthContext ctx = new CrossTenantAuthContext();
+        ctx.setToken(token);
+        ctx.setSourceTenantId(a.getTenantId());
+        ctx.setTargetTenantId(a.getTargetTenantId());
+        ctx.setUserId(a.getUserId());
+        ctx.setDataScope(a.getDataScope());
+        ctx.setValidFrom(a.getValidFrom());
+        ctx.setValidUntil(a.getValidUntil());
+        ctx.setStatus(a.getStatus());
+        ctx.setValid(true);
+        return ctx;
+    }
+
+    @Override
+    @Transactional
+    public void updateDataScope(Long authId, String dataScope) {
+        CrossTenantAuth a = repository.findById(authId)
+                .orElseThrow(() -> new BusinessException(ErrorCodes.NOT_FOUND, "授权不存在: " + authId));
+        a.setDataScope(dataScope);
+        repository.save(a);
+    }
+
+    @Override
+    @Transactional
+    public int cleanupExpiredAuthorizations() {
+        List<CrossTenantAuth> expired = repository.findByStatusAndValidUntilBefore("ACTIVE", LocalDateTime.now());
+        for (CrossTenantAuth a : expired) {
+            a.setStatus("EXPIRED");
+        }
+        repository.saveAll(expired);
+        return expired.size();
     }
 
     private CrossTenantAuth find(Long authId) {
