@@ -8,6 +8,7 @@ import com.df4j.xctec.xcms.auth.api.dto.request.CrossTenantResourceUpdateRequest
 import com.df4j.xctec.xcms.auth.domain.CrossTenantResource;
 import com.df4j.xctec.xcms.auth.repository.CrossTenantResourceRepository;
 import com.df4j.xctec.xcms.kernel.common.PageResult;
+import com.df4j.xctec.xcms.kernel.context.TenantContext;
 import com.df4j.xctec.xcms.kernel.exception.BusinessException;
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,11 +32,13 @@ public class CrossTenantResourceServiceImpl implements CrossTenantResourceServic
     @Override
     @Transactional
     public CrossTenantResourceDTO create(CrossTenantResourceCreateRequest request) {
-        if (resourceRepository.existsByTenantIdAndResourceKey(request.getTenantId(), request.getResourceKey())) {
+        requireTenant();
+        Long tenantId = TenantContext.getTenantId();
+        if (resourceRepository.existsByTenantIdAndResourceKey(tenantId, request.getResourceKey())) {
             throw new BusinessException(ErrorCodes.ALREADY_EXISTS, "资源标识已存在: " + request.getResourceKey());
         }
         CrossTenantResource r = new CrossTenantResource();
-        r.setTenantId(request.getTenantId());
+        r.setTenantId(tenantId);
         r.setResourceType(request.getResourceType());
         r.setResourceKey(request.getResourceKey());
         r.setResourceName(request.getResourceName());
@@ -68,8 +72,9 @@ public class CrossTenantResourceServiceImpl implements CrossTenantResourceServic
     @Override
     @Transactional
     public void delete(Long id) {
-        getOrThrow(id);
-        resourceRepository.deleteById(id);
+        CrossTenantResource r = getOrThrow(id);
+        r.setDeletedAt(LocalDateTime.now());
+        resourceRepository.save(r);
     }
 
     @Override
@@ -100,6 +105,12 @@ public class CrossTenantResourceServiceImpl implements CrossTenantResourceServic
     private CrossTenantResource getOrThrow(Long id) {
         return resourceRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCodes.NOT_FOUND, "资源不存在: " + id));
+    }
+
+    private void requireTenant() {
+        if (TenantContext.getTenantId() == null) {
+            throw new BusinessException(ErrorCodes.TENANT_NOT_FOUND, "未确定租户上下文");
+        }
     }
 
     private CrossTenantResourceDTO toDto(CrossTenantResource r) {
