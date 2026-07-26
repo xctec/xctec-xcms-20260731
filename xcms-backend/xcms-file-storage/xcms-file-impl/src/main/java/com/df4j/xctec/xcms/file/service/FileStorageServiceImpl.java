@@ -25,13 +25,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class FileStorageServiceImpl implements FileStorageService {
 
-    private static final long DEFAULT_QUOTA_BYTES = 0L; // 0 表示不限配额，由配置中心开关覆盖
+    private static final long DEFAULT_QUOTA_BYTES = 0L; // 0 表示不限配额，由配置中心参数 file.storage.quota.bytes 覆盖
 
     private final FileRepository fileRepository;
     private final FileMapper fileMapper;
@@ -54,7 +55,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
 
         String code = UUID.randomUUID().toString().replace("-", "");
-        String relPath = buildRelativePath(tenantId, code, command.getOriginalName());
+        String relPath = buildRelativePath(tenantId, code, command.getFileName());
         Path full = Paths.get(resolveRoot(), relPath);
         try {
             Files.createDirectories(full.getParent());
@@ -64,17 +65,15 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
 
         FileInfo info = new FileInfo();
-        info.setFileCode(code);
-        info.setOriginalName(command.getOriginalName());
-        info.setContentType(command.getContentType());
-        info.setSizeBytes(newSize);
+        info.setFileName(command.getFileName());
+        info.setFileType(command.getFileType());
+        info.setFileSize(newSize);
         info.setStorageType("LOCAL");
-        info.setStoragePath(relPath);
-        info.setMd5(DigestUtils.md5DigestAsHex(command.getContent()));
-        info.setBizModule(command.getBizModule());
-        info.setBizId(command.getBizId());
-        info.setUploaderId(command.getUploaderId());
-        info.setStatus("ACTIVE");
+        info.setFilePath(relPath);
+        info.setStorageKey(code);
+        info.setMd5(command.getContent() == null ? null : DigestUtils.md5DigestAsHex(command.getContent()));
+        info.setOwnerId(command.getOwnerId());
+        info.setStatus("NORMAL");
         return fileMapper.toDto(fileRepository.save(info));
     }
 
@@ -91,7 +90,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     public byte[] download(Long fileId) {
         FileInfo info = fileRepository.findById(fileId)
                 .orElseThrow(() -> new BusinessException(ErrorCodes.NOT_FOUND, "文件不存在: " + fileId));
-        Path full = Paths.get(resolveRoot(), info.getStoragePath());
+        Path full = Paths.get(resolveRoot(), info.getFilePath());
         try {
             return Files.readAllBytes(full);
         } catch (IOException e) {
@@ -104,13 +103,14 @@ public class FileStorageServiceImpl implements FileStorageService {
     public void delete(Long fileId) {
         FileInfo info = fileRepository.findById(fileId)
                 .orElseThrow(() -> new BusinessException(ErrorCodes.NOT_FOUND, "文件不存在: " + fileId));
-        Path full = Paths.get(resolveRoot(), info.getStoragePath());
+        Path full = Paths.get(resolveRoot(), info.getFilePath());
         try {
             Files.deleteIfExists(full);
         } catch (IOException ignored) {
             // 物理文件缺失不影响逻辑删除
         }
         info.setStatus("DELETED");
+        info.setDeletedAt(LocalDateTime.now());
         fileRepository.save(info);
     }
 
@@ -121,10 +121,10 @@ public class FileStorageServiceImpl implements FileStorageService {
         int size = query.getSize() <= 0 ? 20 : query.getSize();
         Pageable pageable = PageRequest.of(page - 1, size);
         Page<FileInfo> result;
-        if (query.getBizId() != null && !query.getBizId().isBlank()) {
-            result = fileRepository.findByBizModuleAndBizId(query.getBizModule(), query.getBizId(), pageable);
-        } else if (query.getBizModule() != null && !query.getBizModule().isBlank()) {
-            result = fileRepository.findByBizModule(query.getBizModule(), pageable);
+        if (query.getFolderId() != null) {
+            result = fileRepository.findByOwnerIdAndFolderId(query.getOwnerId(), query.getFolderId(), pageable);
+        } else if (query.getOwnerId() != null) {
+            result = fileRepository.findByOwnerId(query.getOwnerId(), pageable);
         } else {
             result = fileRepository.findAll(pageable);
         }
@@ -138,10 +138,10 @@ public class FileStorageServiceImpl implements FileStorageService {
         return System.getProperty("user.home") + "/xcms-files";
     }
 
-    private String buildRelativePath(Long tenantId, String code, String originalName) {
+    private String buildRelativePath(Long tenantId, String code, String fileName) {
         String ext = "";
-        if (originalName != null && originalName.contains(".")) {
-            ext = originalName.substring(originalName.lastIndexOf("."));
+        if (fileName != null && fileName.contains(".")) {
+            ext = fileName.substring(fileName.lastIndexOf("."));
         }
         return tenantId + "/" + code.substring(0, 2) + "/" + code + ext;
     }

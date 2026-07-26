@@ -8,6 +8,8 @@ import com.df4j.xctec.xcms.kernel.common.ApiResponse;
 import com.df4j.xctec.xcms.kernel.common.PageResult;
 import com.df4j.xctec.xcms.kernel.common.dto.IdRequest;
 import com.df4j.xctec.xcms.kernel.context.TenantContext;
+import com.df4j.xctec.xcms.kernel.exception.BusinessException;
+import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -39,21 +41,16 @@ public class FileController {
     private final FileStorageService fileStorageService;
 
     @PostMapping("/upload")
-    public ApiResponse<FileDTO> upload(@RequestParam("file") MultipartFile multipart,
-                                       @RequestParam(value = "bizModule", required = false) String bizModule,
-                                       @RequestParam(value = "bizId", required = false) String bizId) {
+    public ApiResponse<FileDTO> upload(@RequestParam("file") MultipartFile multipart) {
         FileUploadCommand command = new FileUploadCommand();
         try {
             command.setContent(multipart.getBytes());
         } catch (IOException e) {
-            throw new com.df4j.xctec.xcms.kernel.exception.BusinessException(
-                    com.df4j.xctec.xcms.kernel.exception.ErrorCodes.BAD_REQUEST, "读取上传文件失败");
+            throw new BusinessException(ErrorCodes.BAD_REQUEST, "读取上传文件失败");
         }
-        command.setOriginalName(multipart.getOriginalFilename());
-        command.setContentType(multipart.getContentType());
-        command.setUploaderId(TenantContext.getCurrentUserId());
-        command.setBizModule(bizModule);
-        command.setBizId(bizId);
+        command.setFileName(multipart.getOriginalFilename());
+        command.setFileType(multipart.getContentType());
+        command.setOwnerId(TenantContext.getCurrentUserId());
         return ApiResponse.success(fileStorageService.upload(command));
     }
 
@@ -78,9 +75,9 @@ public class FileController {
         FileDTO dto = fileStorageService.getFileInfo(id);
         byte[] bytes = fileStorageService.download(id);
         ByteArrayResource resource = new ByteArrayResource(bytes);
-        String fileName = dto.getOriginalName() == null ? ("file-" + id) : dto.getOriginalName();
+        String fileName = dto.getFileName() == null ? ("file-" + id) : dto.getFileName();
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(dto.getContentType() == null ? MediaType.APPLICATION_OCTET_STREAM_VALUE : dto.getContentType()))
+                .contentType(MediaType.parseMediaType(dto.getFileType() == null ? MediaType.APPLICATION_OCTET_STREAM_VALUE : dto.getFileType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + URLEncoder.encode(fileName, StandardCharsets.UTF_8) + "\"")
                 .body(resource);

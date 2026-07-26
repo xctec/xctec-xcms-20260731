@@ -4,50 +4,59 @@ import com.df4j.xctec.xcms.kernel.entity.TenantEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 /**
- * 文件元数据。实际内容存储在本地文件系统（storagePath 为相对 storage-root 的路径）。
- * 租户隔离，fileCode 在租户内唯一。
+ * 文件元数据（对应 DDL 表 file_metadata）。租户隔离，owner_id 为上传人。
  */
 @Entity
-@Table(name = "file_info", uniqueConstraints = @UniqueConstraint(columnNames = {"tenant_id", "file_code"}))
+@Table(name = "file_metadata")
 @Getter
 @Setter
 public class FileInfo extends TenantEntity {
 
-    @Column(name = "file_code", nullable = false, length = 64)
-    private String fileCode;
+    @Column(name = "file_name", nullable = false)
+    private String fileName;
 
-    @Column(name = "original_name", length = 255)
-    private String originalName;
+    @Column(name = "file_path", nullable = false)
+    private String filePath;
 
-    @Column(name = "content_type", length = 128)
-    private String contentType;
+    @Column(name = "file_size", nullable = false)
+    private long fileSize;
 
-    @Column(name = "size_bytes")
-    private Long sizeBytes;
+    @Column(name = "file_type", length = 128)
+    private String fileType;
 
-    @Column(name = "storage_type", length = 16)
+    @Column(name = "storage_type", length = 30, nullable = false)
     private String storageType = "LOCAL";
 
-    @Column(name = "storage_path", length = 512)
-    private String storagePath;
+    @Column(name = "storage_bucket", length = 128)
+    private String storageBucket;
+
+    @Column(name = "storage_key", nullable = false, length = 512)
+    private String storageKey;
 
     @Column(name = "md5", length = 64)
     private String md5;
 
-    @Column(name = "biz_module", length = 64)
-    private String bizModule;
+    @Column(name = "owner_id", nullable = false)
+    private Long ownerId;
 
-    @Column(name = "biz_id", length = 64)
-    private String bizId;
+    @Column(name = "folder_id")
+    private Long folderId;
 
-    @Column(name = "uploader_id")
-    private Long uploaderId;
+    @Column(name = "share_token", length = 128)
+    private String shareToken;
 
-    @Column(name = "status", length = 16)
-    private String status = "ACTIVE";
+    @Column(name = "share_expire")
+    private LocalDateTime shareExpire;
+
+    @Column(name = "status", length = 20, nullable = false)
+    private String status = "NORMAL";
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

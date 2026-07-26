@@ -4,8 +4,8 @@ import lombok.Data;
 
 @Data
 public class FileQuery {
-    private String bizModule;
-    private String bizId;
+    private Long ownerId;
+    private Long folderId;
     private int page = 1;
     private int size = 20;
 }

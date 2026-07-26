@@ -10,9 +10,7 @@ import java.io.Serializable;
 @Data
 public class FileUploadCommand implements Serializable {
     private byte[] content;
-    private String originalName;
-    private String contentType;
-    private Long uploaderId;
-    private String bizModule;
-    private String bizId;
+    private String fileName;
+    private String fileType;
+    private Long ownerId;
 }

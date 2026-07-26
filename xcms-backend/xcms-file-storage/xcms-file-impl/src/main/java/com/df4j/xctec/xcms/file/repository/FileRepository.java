@@ -7,16 +7,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.Optional;
-
 public interface FileRepository extends JpaRepository<FileInfo, Long> {
 
-    Optional<FileInfo> findByFileCode(String fileCode);
-
-    @Query("select coalesce(sum(f.sizeBytes),0) from FileInfo f where f.tenantId = :tenantId and f.status = 'ACTIVE'")
+    @Query("select coalesce(sum(f.fileSize),0) from FileInfo f where f.tenantId = :tenantId and f.status = 'NORMAL'")
     long sumSizeByTenant(@Param("tenantId") Long tenantId);
 
-    Page<FileInfo> findByBizModule(String bizModule, Pageable pageable);
+    Page<FileInfo> findByOwnerId(Long ownerId, Pageable pageable);
 
-    Page<FileInfo> findByBizModuleAndBizId(String bizModule, String bizId, Pageable pageable);
+    Page<FileInfo> findByOwnerIdAndFolderId(Long ownerId, Long folderId, Pageable pageable);
 }
