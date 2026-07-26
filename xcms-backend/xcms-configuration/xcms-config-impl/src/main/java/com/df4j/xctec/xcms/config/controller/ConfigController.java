@@ -7,11 +7,11 @@ import com.df4j.xctec.xcms.config.api.dto.DictItemDTO;
 import com.df4j.xctec.xcms.config.api.dto.DictTypeDTO;
 import com.df4j.xctec.xcms.config.api.dto.request.CodeRuleCreateRequest;
 import com.df4j.xctec.xcms.config.api.dto.request.ConfigSwitchCreateRequest;
+import com.df4j.xctec.xcms.config.api.dto.request.ConfigValueRequest;
 import com.df4j.xctec.xcms.config.api.dto.request.DictItemCreateRequest;
 import com.df4j.xctec.xcms.config.api.dto.request.DictItemQueryRequest;
 import com.df4j.xctec.xcms.config.api.dto.request.DictTypeCreateRequest;
 import com.df4j.xctec.xcms.config.api.dto.request.NextCodeRequest;
-import com.df4j.xctec.xcms.config.api.dto.request.ConfigValueRequest;
 import com.df4j.xctec.xcms.config.api.dto.request.SetSwitchRequest;
 import com.df4j.xctec.xcms.kernel.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -21,10 +21,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-/**
- * 配置中心（管理面）。遵循全 POST 风格。
- */
 @RestController
 @RequestMapping("/admin/config")
 @RequiredArgsConstructor
@@ -34,11 +33,13 @@ public class ConfigController {
 
     @PostMapping("/dict-items")
     public ApiResponse<List<DictItemDTO>> dictItems(@RequestBody DictItemQueryRequest request) {
-        // typeCode 必填时返回该类型下所有项；同时传 itemCode 时返回单个
-        if (request.getItemCode() != null && !request.getItemCode().isBlank()) {
-            return ApiResponse.success(List.of(configService.getDictItem(request.getTypeCode(), request.getItemCode())));
-        }
-        return ApiResponse.success(configService.getDictItems(request.getTypeCode()));
+        List<DictItemDTO> items = configService.getDictItems(request.getDictCode());
+        return ApiResponse.success(items);
+    }
+
+    @PostMapping("/dict-item")
+    public ApiResponse<DictItemDTO> dictItem(@RequestBody DictItemQueryRequest request) {
+        return ApiResponse.success(configService.getDictItem(request.getDictCode(), request.getItemCode()));
     }
 
     @PostMapping("/switch-on")
@@ -53,7 +54,7 @@ public class ConfigController {
 
     @PostMapping("/next-code")
     public ApiResponse<String> nextCode(@RequestBody NextCodeRequest request) {
-        return ApiResponse.success(configService.nextCode(request.getRuleCode()));
+        return ApiResponse.success(configService.nextCode(request));
     }
 
     @PostMapping("/create-dict-type")
@@ -68,7 +69,7 @@ public class ConfigController {
 
     @PostMapping("/create-switch")
     public ApiResponse<ConfigSwitchDTO> createSwitch(@RequestBody ConfigSwitchCreateRequest request) {
-        return ApiResponse.success(configService.createSwitch(request));
+        return ApiResponse.success(configService.createConfigSwitch(request));
     }
 
     @PostMapping("/create-code-rule")
@@ -78,7 +79,7 @@ public class ConfigController {
 
     @PostMapping("/set-switch")
     public ApiResponse<Void> setSwitch(@RequestBody SetSwitchRequest request) {
-        configService.setSwitch(request.getSwitchKey(), request.isEnabled());
-        return ApiResponse.success();
+        configService.setSwitch(request);
+        return ApiResponse.success(null);
     }
 }

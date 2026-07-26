@@ -8,7 +8,8 @@ public class CodeRuleDTO {
     private String ruleName;
     private String prefix;
     private int seqLength;
-    private long currentVal;
-    private int step;
+    private long currentSeq;
+    private String pattern;
+    private String resetCycle;
     private String example;
 }

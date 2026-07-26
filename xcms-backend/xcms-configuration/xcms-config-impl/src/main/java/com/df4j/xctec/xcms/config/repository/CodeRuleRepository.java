@@ -14,6 +14,6 @@ public interface CodeRuleRepository extends JpaRepository<CodeRule, Long> {
     Optional<CodeRule> findByRuleCode(String ruleCode);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select r from CodeRule r where r.ruleCode = :code")
-    Optional<CodeRule> findByRuleCodeForUpdate(@Param("code") String code);
+    @Query("select c from CodeRule c where c.ruleCode = :ruleCode")
+    Optional<CodeRule> findByRuleCodeForUpdate(@Param("ruleCode") String ruleCode);
 }

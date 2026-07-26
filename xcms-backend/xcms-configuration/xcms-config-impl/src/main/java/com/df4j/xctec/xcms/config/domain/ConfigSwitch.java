@@ -1,35 +1,32 @@
 package com.df4j.xctec.xcms.config.domain;
 
-import com.df4j.xctec.xcms.kernel.entity.TenantEntity;
+import com.df4j.xctec.xcms.kernel.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * 配置开关 / 通用配置值。租户隔离，switchKey 在租户内唯一。
- * enabled 表示开关状态，switchValue 承载字符串/数字等通用配置（如配额上限）。
+ * 功能开关（对应 DDL 表 cfg_feature_flag）。租户级全局配置，tenant_id 允许为空。
  */
-@Entity
-@Table(name = "cfg_switch", uniqueConstraints = @UniqueConstraint(columnNames = {"tenant_id", "switch_key"}))
 @Getter
 @Setter
-public class ConfigSwitch extends TenantEntity {
+@NoArgsConstructor
+@Entity
+@Table(name = "cfg_feature_flag")
+public class ConfigSwitch extends BaseEntity {
 
-    @Column(name = "switch_key", nullable = false, length = 128)
-    private String switchKey;
-
-    @Column(name = "switch_name", length = 128)
-    private String switchName;
+    @Column(name = "feature_code", nullable = false, unique = true)
+    private String featureCode;
 
     @Column(name = "enabled", nullable = false)
-    private boolean enabled = false;
+    private boolean enabled;
 
-    @Column(name = "switch_value", length = 512)
-    private String switchValue;
+    @Column(name = "config", columnDefinition = "text")
+    private String config;
 
-    @Column(name = "remark", length = 255)
-    private String remark;
+    @Column(name = "description")
+    private String description;
 }

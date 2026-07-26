@@ -5,8 +5,8 @@ import lombok.Data;
 @Data
 public class DictTypeDTO {
     private Long id;
-    private String typeCode;
-    private String typeName;
-    private String remark;
+    private String dictCode;
+    private String dictName;
+    private String description;
     private String status;
 }

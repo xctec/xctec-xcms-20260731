@@ -4,10 +4,10 @@ import lombok.Data;
 
 @Data
 public class DictItemCreateRequest {
-    private String typeCode;
+    private String dictCode;
     private String itemCode;
-    private String itemName;
     private String itemValue;
     private Integer sortOrder;
+    private Long parentId;
     private String status;
 }

@@ -6,5 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface DictTypeRepository extends JpaRepository<DictType, Long> {
-    Optional<DictType> findByTypeCode(String typeCode);
+
+    Optional<DictType> findByDictCode(String dictCode);
 }

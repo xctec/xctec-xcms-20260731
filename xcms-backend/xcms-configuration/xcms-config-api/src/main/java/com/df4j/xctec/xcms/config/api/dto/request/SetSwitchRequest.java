@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class SetSwitchRequest {
-    private String switchKey;
+    private String featureCode;
     private boolean enabled;
 }

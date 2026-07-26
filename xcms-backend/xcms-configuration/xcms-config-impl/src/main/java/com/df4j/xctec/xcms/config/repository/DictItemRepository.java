@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface DictItemRepository extends JpaRepository<DictItem, Long> {
-    List<DictItem> findByTypeCode(String typeCode);
 
-    Optional<DictItem> findByTypeCodeAndItemCode(String typeCode, String itemCode);
+    List<DictItem> findByDictId(Long dictId);
+
+    Optional<DictItem> findByDictIdAndItemCode(Long dictId, String itemCode);
 }

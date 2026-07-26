@@ -4,8 +4,8 @@ import lombok.Data;
 
 @Data
 public class DictTypeCreateRequest {
-    private String typeCode;
-    private String typeName;
-    private String remark;
+    private String dictCode;
+    private String dictName;
+    private String description;
     private String status;
 }

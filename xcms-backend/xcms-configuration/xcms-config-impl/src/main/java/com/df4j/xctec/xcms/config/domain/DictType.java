@@ -4,28 +4,29 @@ import com.df4j.xctec.xcms.kernel.entity.TenantEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * 字典类型。租户隔离，typeCode 在租户内唯一。
+ * 数据字典类型（对应 DDL 表 cfg_dictionary）。
  */
-@Entity
-@Table(name = "cfg_dict_type", uniqueConstraints = @UniqueConstraint(columnNames = {"tenant_id", "type_code"}))
 @Getter
 @Setter
+@NoArgsConstructor
+@Entity
+@Table(name = "cfg_dictionary")
 public class DictType extends TenantEntity {
 
-    @Column(name = "type_code", nullable = false, length = 64)
-    private String typeCode;
+    @Column(name = "dict_code", nullable = false, unique = true)
+    private String dictCode;
 
-    @Column(name = "type_name", nullable = false, length = 128)
-    private String typeName;
+    @Column(name = "dict_name", nullable = false)
+    private String dictName;
 
-    @Column(name = "remark", length = 255)
-    private String remark;
+    @Column(name = "description")
+    private String description;
 
-    @Column(name = "status", length = 16)
-    private String status = "ACTIVE";
+    @Column(name = "status")
+    private String status;
 }

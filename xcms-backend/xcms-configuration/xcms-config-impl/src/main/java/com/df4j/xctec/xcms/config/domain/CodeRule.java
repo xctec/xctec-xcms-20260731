@@ -4,37 +4,38 @@ import com.df4j.xctec.xcms.kernel.entity.TenantEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * 编码规则。用于生成业务单号（如单据号、流水号）。租户隔离，ruleCode 在租户内唯一。
+ * 编码规则（对应 DDL 表 cfg_code_rule）。
  */
-@Entity
-@Table(name = "cfg_code_rule", uniqueConstraints = @UniqueConstraint(columnNames = {"tenant_id", "rule_code"}))
 @Getter
 @Setter
+@NoArgsConstructor
+@Entity
+@Table(name = "cfg_code_rule")
 public class CodeRule extends TenantEntity {
 
-    @Column(name = "rule_code", nullable = false, length = 64)
+    @Column(name = "rule_code", nullable = false, unique = true)
     private String ruleCode;
 
-    @Column(name = "rule_name", length = 128)
+    @Column(name = "rule_name")
     private String ruleName;
 
-    @Column(name = "prefix", length = 32)
-    private String prefix = "";
+    @Column(name = "prefix")
+    private String prefix;
 
-    @Column(name = "seq_length", nullable = false)
-    private int seqLength = 6;
+    @Column(name = "seq_length")
+    private int seqLength;
 
-    @Column(name = "current_val", nullable = false)
-    private long currentVal = 0;
+    @Column(name = "current_seq")
+    private long currentSeq;
 
-    @Column(name = "step", nullable = false)
-    private int step = 1;
+    @Column(name = "pattern")
+    private String pattern;
 
-    @Column(name = "example", length = 64)
-    private String example;
+    @Column(name = "reset_cycle")
+    private String resetCycle;
 }

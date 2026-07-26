@@ -8,5 +8,6 @@ public class CodeRuleCreateRequest {
     private String ruleName;
     private String prefix;
     private int seqLength;
-    private int step;
+    private String pattern;
+    private String resetCycle;
 }

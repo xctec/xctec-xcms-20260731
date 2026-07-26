@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class DictItemQueryRequest {
-    private String typeCode;
+    private String dictCode;
     private String itemCode;
 }

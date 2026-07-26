@@ -5,10 +5,10 @@ import lombok.Data;
 @Data
 public class DictItemDTO {
     private Long id;
-    private String typeCode;
+    private Long dictId;
     private String itemCode;
-    private String itemName;
     private String itemValue;
     private Integer sortOrder;
+    private Long parentId;
     private String status;
 }
