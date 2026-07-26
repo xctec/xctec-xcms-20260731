@@ -21,6 +21,31 @@
             <artifactId>xcms-shared-kernel</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.df4j.xctec.xcms</groupId>
+            <artifactId>xcms-config-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.df4j.xctec.xcms</groupId>
+            <artifactId>xcms-file-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.df4j.xctec.xcms</groupId>
+            <artifactId>xcms-identity-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.df4j.xctec.xcms</groupId>
+            <artifactId>xcms-auth-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.df4j.xctec.xcms</groupId>
+            <artifactId>xcms-message-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flowable</groupId>
+            <artifactId>flowable-spring-boot-starter</artifactId>
+            <version>${flowable.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
