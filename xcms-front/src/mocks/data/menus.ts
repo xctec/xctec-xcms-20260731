@@ -1,131 +1,62 @@
-import type { RouteMenuItem } from '@/types/menu';
+import type { MenuDTO } from '@/types/menu';
 
 /**
- * 管理面菜单树（顶层为分组/目录，children 为菜单项）。
- * 每项可携带 permission（权限码）与 roles（角色）用于前端二次校验；
- * 后端实际返回时已完成按权限过滤，此处仅作为演示数据。
+ * 演示数据：使用后端实体模型 MenuDTO（与后端契约一致），由 api/menu.ts 的 toRouteMenu 映射为前端路由模型。
+ * 树形结构：顶层为分组（DIRECTORY），children 为菜单项（MENU）与按钮项（BUTTON，仅驱动按钮级权限）。
+ * 按钮项的 menuCode 填权限码（如 user:create），菜单项的 menuCode 填菜单码（如 tenant）。
+ * TODO: 后端 MenuDTO 补 permission 字段后，toRouteMenu 改为 permission: dto.permission。
  */
-export const mockAdminMenus: RouteMenuItem[] = [
-  {
-    key: 'group-tenant',
-    label: '租户与组织',
-    icon: 'Building2',
-    path: '',
-    component: '',
-    sort: 1,
-    visible: true,
-    children: [
-      { key: 'tenant', label: '租户管理', icon: 'Building2', path: '/admin/tenant', component: 'admin/TenantList', sort: 1, visible: true, permission: 'tenant:view' },
-      { key: 'organization', label: '组织架构', icon: 'Network', path: '/admin/organization', component: 'admin/Organization', sort: 2, visible: true, permission: 'organization:view' },
-      { key: 'user', label: '用户管理', icon: 'Users', path: '/admin/user', component: 'admin/UserList', sort: 3, visible: true, permission: 'user:view' },
-      { key: 'btn-user-create', label: '新建用户', path: '', sort: 0, visible: true, permission: 'user:create', type: 'BUTTON' },
-      { key: 'btn-user-export', label: '导出', path: '', sort: 0, visible: true, permission: 'user:export', type: 'BUTTON' },
-      { key: 'btn-user-reset-pwd', label: '重置密码', path: '', sort: 0, visible: true, permission: 'user:reset-pwd', type: 'BUTTON' },
-    ],
-  },
-  {
-    key: 'group-security',
-    label: '安全与权限',
-    icon: 'Shield',
-    path: '',
-    component: '',
-    sort: 2,
-    visible: true,
-    children: [
-      { key: 'permission', label: '权限管理', icon: 'Shield', path: '/admin/permission', component: 'admin/Permission', sort: 1, visible: true, permission: 'permission:view' },
-    ],
-  },
-  {
-    key: 'group-biz',
-    label: '业务流程',
-    icon: 'Workflow',
-    path: '',
-    component: '',
-    sort: 3,
-    visible: true,
-    children: [
-      { key: 'workflow', label: '流程管理', icon: 'Workflow', path: '/admin/workflow', component: 'admin/Workflow', sort: 1, visible: true, permission: 'workflow:view' },
-    ],
-  },
-  {
-    key: 'group-ops',
-    label: '运营',
-    icon: 'BarChart3',
-    path: '',
-    component: '',
-    sort: 4,
-    visible: true,
-    children: [
-      { key: 'operation', label: '运营看板', icon: 'BarChart3', path: '/admin/operation', component: 'admin/Operation', sort: 1, visible: true, permission: 'operation:view' },
-      { key: 'message', label: '消息中心', icon: 'Bell', path: '/admin/message', component: 'admin/Message', sort: 2, visible: true, permission: 'message:view' },
-      { key: 'file', label: '文件管理', icon: 'FolderOpen', path: '/admin/file', component: 'admin/FileManagement', sort: 3, visible: true, permission: 'file:view' },
-    ],
-  },
-  {
-    key: 'group-system',
-    label: '系统',
-    icon: 'Settings',
-    path: '',
-    component: '',
-    sort: 5,
-    visible: true,
-    children: [
-      { key: 'config', label: '配置管理', icon: 'Settings', path: '/admin/config', component: 'admin/Config', sort: 1, visible: true, permission: 'config:view' },
-      { key: 'task', label: '任务调度', icon: 'Clock', path: '/admin/task', component: 'admin/TaskSchedule', sort: 2, visible: true, permission: 'task:view' },
-      { key: 'audit', label: '审计日志', icon: 'FileText', path: '/admin/audit', component: 'admin/Audit', sort: 3, visible: true, permission: 'audit:view' },
-    ],
-  },
+const adminGroup = (id: number, code: string, name: string, icon: string, sort: number, children: MenuDTO[]): MenuDTO => ({
+  id, menuCode: code, menuName: name, menuType: 'DIRECTORY', path: '', icon, sortOrder: sort, children,
+});
+
+const menu = (id: number, code: string, name: string, icon: string, path: string, sort: number): MenuDTO => ({
+  id, menuCode: code, menuName: name, menuType: 'MENU', path, icon, sortOrder: sort, children: [],
+});
+
+const btn = (code: string, name: string): MenuDTO => ({
+  id: 0, menuCode: code, menuName: name, menuType: 'BUTTON', path: '', icon: '', sortOrder: 0, children: [],
+});
+
+export const mockAdminMenus: MenuDTO[] = [
+  adminGroup(10, 'group-tenant', '租户与组织', 'Building2', 1, [
+    menu(11, 'tenant', '租户管理', 'Building2', '/admin/tenant', 1),
+    menu(12, 'organization', '组织架构', 'Network', '/admin/organization', 2),
+    menu(13, 'user', '用户管理', 'Users', '/admin/user', 3),
+    btn('user:create', '新建用户'),
+    btn('user:export', '导出'),
+    btn('user:reset-pwd', '重置密码'),
+  ]),
+  adminGroup(20, 'group-security', '安全与权限', 'Shield', 2, [
+    menu(21, 'permission', '权限管理', 'Shield', '/admin/permission', 1),
+  ]),
+  adminGroup(30, 'group-biz', '业务流程', 'Workflow', 3, [
+    menu(31, 'workflow', '流程管理', 'Workflow', '/admin/workflow', 1),
+  ]),
+  adminGroup(40, 'group-ops', '运营', 'BarChart3', 4, [
+    menu(41, 'operation', '运营看板', 'BarChart3', '/admin/operation', 1),
+    menu(42, 'message', '消息中心', 'Bell', '/admin/message', 2),
+    menu(43, 'file', '文件管理', 'FolderOpen', '/admin/file', 3),
+  ]),
+  adminGroup(50, 'group-system', '系统', 'Settings', 5, [
+    menu(51, 'config', '配置管理', 'Settings', '/admin/config', 1),
+    menu(52, 'task', '任务调度', 'Clock', '/admin/task', 2),
+    menu(53, 'audit', '审计日志', 'FileText', '/admin/audit', 3),
+  ]),
 ];
 
-/** 业务面菜单树 */
-export const mockPortalMenus: RouteMenuItem[] = [
-  {
-    key: 'group-workbench',
-    label: '工作台',
-    icon: 'LayoutDashboard',
-    path: '',
-    component: '',
-    sort: 1,
-    visible: true,
-    children: [
-      { key: 'workbench', label: '我的工作台', icon: 'LayoutDashboard', path: '/portal/workbench', component: 'portal/Workbench', sort: 1, visible: true, permission: 'workbench:view' },
-    ],
-  },
-  {
-    key: 'group-portal-biz',
-    label: '业务流程',
-    icon: 'Workflow',
-    path: '',
-    component: '',
-    sort: 2,
-    visible: true,
-    children: [
-      { key: 'portal-workflow', label: '流程办理', icon: 'Workflow', path: '/portal/workflow', component: 'portal/Workflow', sort: 1, visible: true, permission: 'portal:workflow:view' },
-    ],
-  },
-  {
-    key: 'group-portal-ops',
-    label: '信息中心',
-    icon: 'Bell',
-    path: '',
-    component: '',
-    sort: 3,
-    visible: true,
-    children: [
-      { key: 'portal-message', label: '消息中心', icon: 'Bell', path: '/portal/message', component: 'portal/Message', sort: 1, visible: true, permission: 'portal:message:view' },
-      { key: 'portal-file', label: '文件管理', icon: 'FolderOpen', path: '/portal/file', component: 'portal/FileManagement', sort: 2, visible: true, permission: 'portal:file:view' },
-    ],
-  },
-  {
-    key: 'group-profile',
-    label: '个人中心',
-    icon: 'User',
-    path: '',
-    component: '',
-    sort: 4,
-    visible: true,
-    children: [
-      { key: 'profile', label: '个人资料', icon: 'User', path: '/portal/profile', component: 'portal/Profile', sort: 1, visible: true, permission: 'portal:profile:view' },
-    ],
-  },
+export const mockPortalMenus: MenuDTO[] = [
+  adminGroup(60, 'group-workbench', '工作台', 'LayoutDashboard', 1, [
+    menu(61, 'workbench', '我的工作台', 'LayoutDashboard', '/portal/workbench', 1),
+  ]),
+  adminGroup(70, 'group-portal-biz', '业务流程', 'Workflow', 2, [
+    menu(71, 'portal-workflow', '流程办理', 'Workflow', '/portal/workflow', 1),
+  ]),
+  adminGroup(80, 'group-portal-ops', '信息中心', 'Bell', 3, [
+    menu(81, 'portal-message', '消息中心', 'Bell', '/portal/message', 1),
+    menu(82, 'portal-file', '文件管理', 'FolderOpen', '/portal/file', 2),
+  ]),
+  adminGroup(90, 'group-profile', '个人中心', 'User', 4, [
+    menu(91, 'profile', '个人资料', 'User', '/portal/profile', 1),
+  ]),
 ];

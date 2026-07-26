@@ -5,6 +5,15 @@ import { mockAdminMenus, mockPortalMenus } from './data/menus';
 const ok = <T>(data: T) => HttpResponse.json({ errorCode: '0', errorMsg: 'success', data });
 let tenants = [...mockTenants];
 
+const mockUser = {
+  id: 1,
+  tenantId: 1,
+  username: 'admin',
+  realName: '超级管理员',
+  tenantName: '集团总部',
+  roles: [{ roleCode: 'SYSTEM_ADMIN', roleName: '系统管理员' }],
+};
+
 export const handlers = [
   // ====== Auth ======
   http.post('/api/auth/login', async ({ request }) => {
@@ -14,14 +23,7 @@ export const handlers = [
         token: 'mock-jwt-token-' + Date.now(),
         refreshToken: 'mock-refresh-token',
         expiresIn: 7200,
-        user: {
-          id: 1,
-          tenantId: 1,
-          username: 'admin',
-          realName: '超级管理员',
-          tenantName: '集团总部',
-          roles: [{ roleCode: 'SYSTEM_ADMIN', roleName: '系统管理员' }],
-        },
+        user: mockUser,
         forceChangePassword: false,
       });
     }
@@ -33,14 +35,7 @@ export const handlers = [
     token: 'mock-jwt-token',
     refreshToken: 'mock-refresh-token',
     expiresIn: 7200,
-    user: {
-      id: 1,
-      tenantId: 1,
-      username: 'admin',
-      realName: '超级管理员',
-      tenantName: '集团总部',
-      roles: [{ roleCode: 'SYSTEM_ADMIN', roleName: '系统管理员' }],
-    },
+    user: mockUser,
     forceChangePassword: false,
   })),
 
@@ -53,14 +48,7 @@ export const handlers = [
         token: 'mock-jwt-token-' + Date.now(),
         refreshToken: 'mock-refresh-token-' + Date.now(),
         expiresIn: 7200,
-        user: {
-          id: 1,
-          tenantId: 1,
-          username: 'admin',
-          realName: '超级管理员',
-          tenantName: '集团总部',
-          roles: [{ roleCode: 'SYSTEM_ADMIN', roleName: '系统管理员' }],
-        },
+        user: mockUser,
         forceChangePassword: false,
       });
     }
