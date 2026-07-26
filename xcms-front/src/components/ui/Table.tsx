@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import clsx from 'clsx';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Checkbox } from './FormControls';
@@ -15,7 +15,7 @@ export interface Column<T> {
   fixed?: 'left';
 }
 
-interface TableProps<T> {
+export interface TableProps<T> {
   columns: Column<T>[];
   data: T[];
   rowKey: (record: T) => string | number;
@@ -29,6 +29,8 @@ interface TableProps<T> {
   };
   onRow?: (record: T, index: number) => React.HTMLAttributes<HTMLTableRowElement>;
   emptyText?: React.ReactNode;
+  /** 容器最大高度（px 或 CSS 长度）；设置后表头垂直吸顶 */
+  maxHeight?: number | string;
 }
 
 const EXPAND_W = 36;
@@ -45,11 +47,14 @@ export function Table<T>({
   expandable,
   onRow,
   emptyText,
+  maxHeight,
 }: TableProps<T>) {
   const [expandedKeys, setExpandedKeys] = useState<Array<string | number>>([]);
 
   const checkLeft = expandable ? EXPAND_W : 0;
   const firstFixedLeft = checkLeft + (selectable ? CHECK_W : 0);
+  const colSpan = columns.length + (expandable ? 1 : 0) + (selectable ? 1 : 0);
+  const maxH = typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight;
 
   const allKeys = data.map(rowKey);
   const allChecked = selectable && allKeys.length > 0 && allKeys.every((k) => selectedKeys.includes(k));
@@ -78,19 +83,22 @@ export function Table<T>({
     a === 'center' ? 'text-center' : a === 'right' ? 'text-right' : 'text-left';
 
   return (
-    <div className="border border-gray-200 rounded-[var(--card-radius)] overflow-x-auto bg-white">
+    <div
+      className="border border-gray-200 rounded-[var(--card-radius)] bg-white overflow-auto"
+      style={maxH ? { maxHeight: maxH } : undefined}
+    >
       <table className="w-full border-collapse text-[length:var(--fs)]">
         <thead>
           <tr className="border-b border-gray-200">
             {expandable && (
               <th
-                className="sticky left-0 z-20 bg-[var(--c-header-bg)] border-r border-gray-200"
+                className="sticky left-0 top-0 z-30 bg-[var(--c-header-bg)] border-r border-gray-200"
                 style={{ width: EXPAND_W, height: 'var(--header-h)' }}
               />
             )}
             {selectable && (
               <th
-                className="sticky z-20 bg-[var(--c-header-bg)] border-r border-gray-200 px-2"
+                className="sticky top-0 z-30 bg-[var(--c-header-bg)] border-r border-gray-200 px-2"
                 style={{ left: checkLeft, width: CHECK_W, height: 'var(--header-h)' }}
               >
                 <Checkbox checked={!!allChecked} indeterminate={!!indeterminate} onChange={toggleAll} />
@@ -100,8 +108,8 @@ export function Table<T>({
               <th
                 key={col.key}
                 className={clsx(
-                  'bg-[var(--c-header-bg)] text-[length:var(--fs-sm)] font-medium text-gray-500 px-[var(--gap-sm)] whitespace-nowrap',
-                  col.fixed && 'sticky z-10 border-r border-gray-200',
+                  'sticky top-0 bg-[var(--c-header-bg)] text-[length:var(--fs-sm)] font-medium text-gray-500 px-[var(--gap-sm)] whitespace-nowrap',
+                  col.fixed ? 'left-0 z-20 border-r border-gray-200' : 'z-10',
                   alignCls(col.align)
                 )}
                 style={{
@@ -118,13 +126,13 @@ export function Table<T>({
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={columns.length + (expandable ? 1 : 0) + (selectable ? 1 : 0)} className="p-0">
+              <td colSpan={colSpan} className="p-0">
                 <TableSkeleton rows={6} cols={columns.length} />
               </td>
             </tr>
           ) : data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length + (expandable ? 1 : 0) + (selectable ? 1 : 0)} className="p-0">
+              <td colSpan={colSpan} className="p-0">
                 {emptyText ?? <EmptyState title="暂无数据" />}
               </td>
             </tr>
@@ -136,12 +144,13 @@ export function Table<T>({
               const canExpand = expandable && (!expandable.rowExpandable || expandable.rowExpandable(record));
               const rowAttrs = onRow?.(record, index) ?? {};
               return (
-                <FragmentTag key={k}>
+                <Fragment key={k}>
                   <tr
                     {...rowAttrs}
                     className={clsx(
+                      rowAttrs.className,
                       'border-b border-gray-200 transition-colors',
-                      checked ? 'bg-primary-50' : 'hover:bg-[var(--c-hover)]'
+                      checked ? 'bg-primary-50' : 'bg-white hover:bg-[var(--c-hover)]'
                     )}
                   >
                     {expandable && (
@@ -183,15 +192,12 @@ export function Table<T>({
                   </tr>
                   {expandable && expanded && canExpand && (
                     <tr>
-                      <td
-                        colSpan={columns.length + (expandable ? 1 : 0) + (selectable ? 1 : 0)}
-                        className="bg-[var(--c-bg)] px-[var(--card-p)]"
-                      >
+                      <td colSpan={colSpan} className="bg-[var(--c-bg)] px-[var(--card-p)]">
                         {expandable.expandedRowRender(record)}
                       </td>
                     </tr>
                   )}
-                </FragmentTag>
+                </Fragment>
               );
             })
           )}
@@ -200,6 +206,3 @@ export function Table<T>({
     </div>
   );
 }
-
-// 局部 Fragment 别名，避免顶层 import 与 JSX 冲突
-const FragmentTag = ({ children }: { children: React.ReactNode }) => <>{children}</>;
