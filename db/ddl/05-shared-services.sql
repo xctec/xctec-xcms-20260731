@@ -305,3 +305,12 @@ CREATE TABLE audit_policy (
     enabled         BOOLEAN         NOT NULL DEFAULT TRUE,
     CONSTRAINT pk_audit_policy PRIMARY KEY (id)
 );
+
+-- 调度器集群选主锁（系统级，单行）
+CREATE TABLE task_lock (
+    lock_key        VARCHAR(64)     NOT NULL,
+    owner_id        VARCHAR(128)    NOT NULL,
+    acquired_at     TIMESTAMP       NOT NULL,
+    expires_at      TIMESTAMP       NOT NULL,
+    CONSTRAINT pk_task_lock PRIMARY KEY (lock_key)
+);
