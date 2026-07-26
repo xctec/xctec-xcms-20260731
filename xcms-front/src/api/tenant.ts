@@ -11,6 +11,8 @@ export const tenantApi = {
     ),
   create: (data: S['TenantCreateRequest']) =>
     http.post<unknown, Unwrap<S['ApiResponseTenantDTO']>>('/admin/tenant/create', data),
+  update: (data: S['TenantUpdateRequest']) =>
+    http.post<unknown, Unwrap<S['ApiResponseTenantDTO']>>('/admin/tenant/update', data),
   get: (id: number) =>
     http.post<unknown, Unwrap<S['ApiResponseTenantDTO']>>('/admin/tenant/get', { id }),
   delete: (id: number) =>

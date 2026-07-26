@@ -1,103 +1,214 @@
-import { useState } from 'react';
-import { Plus, Shield, MoreHorizontal, Lock, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { StatusBadge } from '@/components/ui/StatusBadge';
-import { PageHeader, TableCard } from '@/components/ui/PageHeader';
+import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  PageHeader,
+  FilterBar,
+  TableCard,
+  Table,
+  Pagination,
+  Button,
+  Modal,
+  Input,
+  RadioGroup,
+  Checkbox,
+} from '@/components/ui';
+import type { Column } from '@/components/ui';
+import { toast } from '@/components/ui';
+import { roleApi } from '@/api/identity';
+import { authzApi } from '@/api/authorization';
+import type { PermissionDTO, RoleDTO } from '@/types/authorization';
 
-const mockRoles = [
-  { id: 1, code: 'SYSTEM_ADMIN', name: '系统管理员', desc: '拥有系统全部权限', scope: 'TENANT', scopeValue: null, userCount: 1, status: 'ACTIVE' },
-  { id: 2, code: 'TENANT_ADMIN', name: '租户管理员', desc: '租户内全部管理权限', scope: 'TENANT', scopeValue: null, userCount: 3, status: 'ACTIVE' },
-  { id: 3, code: 'DEPT_MANAGER', name: '部门主管', desc: '管理部门内用户和资源', scope: 'DEPT', scopeValue: '技术研发部', userCount: 5, status: 'ACTIVE' },
-  { id: 4, code: 'FINANCE_USER', name: '财务人员', desc: '财务相关操作权限', scope: 'CUSTOM', scopeValue: '财务组', userCount: 4, status: 'ACTIVE' },
-  { id: 5, code: 'VIEWER', name: '访客', desc: '只读权限', scope: 'TENANT', scopeValue: null, userCount: 2, status: 'ACTIVE' },
-  { id: 6, code: 'AUDITOR', name: '审计员', desc: '审计日志查看权限', scope: 'TENANT', scopeValue: null, userCount: 1, status: 'ACTIVE' },
+const SCOPE_OPTIONS = [
+  { label: '全部数据', value: 'ALL' },
+  { label: '仅本人', value: 'SELF' },
+  { label: '本部门', value: 'CURRENT_DEPT' },
+  { label: '本部门及子部门', value: 'DEPT_AND_CHILD' },
+  { label: '自定义', value: 'CUSTOM' },
 ];
 
-const scopeLabels: Record<string, string> = { TENANT: '租户级', DEPT: '部门级', CUSTOM: '自定义' };
+export default function Permission() {
+  const [page, setPage] = useState(1);
+  const [size] = useState(10);
+  const [keyword, setKeyword] = useState('');
+  const [selectedRole, setSelectedRole] = useState<number | null>(null);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [scopeType, setScopeType] = useState('ALL');
+  const queryClient = useQueryClient();
 
-export default function PermissionPage() {
-  const [selectedRole, setSelectedRole] = useState(mockRoles[0]);
+  const { data, isFetching } = useQuery({
+    queryKey: ['role-list', page, keyword],
+    queryFn: () => roleApi.list({ page, size, keyword: keyword || undefined }),
+  });
+  const roles = (data ?? []) as RoleDTO[];
+  const total = roles.length;
 
-  const menuTree = [
-    { name: '租户管理', children: ['查看', '创建', '编辑', '删除', '迁移'] },
-    { name: '组织架构', children: ['查看', '创建', '编辑', '删除'] },
-    { name: '用户管理', children: ['查看', '创建', '编辑', '删除', '重置密码'] },
-    { name: '权限管理', children: ['查看', '角色管理', '权限分配'] },
-    { name: '流程管理', children: ['查看', '发起', '审批'] },
-    { name: '配置管理', children: ['查看', '参数管理', '字典管理'] },
+  const { data: permissions = [], isFetching: permLoading } = useQuery({
+    queryKey: ['role-permissions', selectedRole],
+    queryFn: () => authzApi.getRolePermissions(selectedRole!),
+    enabled: selectedRole !== null,
+  });
+
+  const { data: scope } = useQuery({
+    queryKey: ['role-scope', selectedRole],
+    queryFn: () => authzApi.getDataScope(selectedRole!),
+    enabled: selectedRole !== null,
+  });
+
+  useEffect(() => {
+    if (scope?.scopeType) setScopeType(scope.scopeType);
+  }, [scope]);
+
+  const roleColumns: Column<RoleDTO>[] = [
+    { key: 'id', title: 'ID', width: 64 },
+    { key: 'roleName', title: '角色名称' },
+    { key: 'roleCode', title: '角色编码' },
+    { key: 'roleType', title: '类型' },
+    { key: 'description', title: '描述' },
+    { key: 'status', title: '状态', render: (r) => r.status },
   ];
 
+  const permColumns: Column<PermissionDTO>[] = [
+    { key: 'permCode', title: '权限编码' },
+    { key: 'permName', title: '权限名称' },
+    { key: 'module', title: '模块' },
+    { key: 'permType', title: '类型', render: (p) => p.permType },
+    { key: 'action', title: '操作', render: (p) => p.action },
+  ];
+
+  const handleSaveScope = async () => {
+    if (selectedRole == null) return;
+    await authzApi.updateDataScope(selectedRole, scopeType, []);
+    toast.success('数据范围已保存');
+  };
+
   return (
-    <div>
-      <PageHeader title="权限管理" description="管理角色、菜单权限、数据权限" actions={<Button variant="primary" icon={Plus}>新建角色</Button>} />
-      <div className="grid grid-cols-3 gap-4">
-        {/* Role List */}
+    <div className="space-y-4">
+      <PageHeader title="权限管理" description="管理角色及其数据权限范围" />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr]">
         <TableCard>
-          <div className="border-b border-gray-100 px-4 py-3"><h3 className="text-sm font-semibold text-gray-800">角色列表</h3></div>
-          <div className="p-2">
-            {mockRoles.map(role => (
-              <button key={role.id} onClick={() => setSelectedRole(role)} className={`w-full flex items-center gap-3 rounded-md px-3 py-2 text-left transition-colors ${selectedRole.id === role.id ? 'bg-primary-50' : 'hover:bg-gray-50'}`}>
-                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${selectedRole.id === role.id ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                  <Shield size={16} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className={`text-sm font-medium truncate ${selectedRole.id === role.id ? 'text-primary-700' : 'text-gray-700'}`}>{role.name}</div>
-                  <div className="text-[11px] text-gray-400">{role.userCount} 人 · {scopeLabels[role.scope]}</div>
-                </div>
-                <StatusBadge status={role.status} label="" />
-              </button>
-            ))}
+          <FilterBar>
+            <Input
+              placeholder="搜索角色"
+              value={keyword}
+              onChange={(e) => {
+                setKeyword(e.target.value);
+                setPage(1);
+              }}
+            />
+          </FilterBar>
+          <Table
+            rowKey={(r) => r.id ?? 0}
+            columns={roleColumns}
+            data={roles}
+            loading={isFetching}
+            emptyText="暂无角色"
+            selectable
+            selectedKeys={selectedRole != null ? [String(selectedRole)] : []}
+            onSelectionChange={(keys) => setSelectedRole(keys.length ? Number(keys[0]) : null)}
+          />
+          <div className="flex justify-end pt-3">
+            <Pagination page={page} size={size} total={total} onChange={setPage} />
           </div>
         </TableCard>
 
-        {/* Permission Tree */}
-        <div className="col-span-2 space-y-4">
+        <div className="space-y-4">
           <TableCard>
-            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-800">{selectedRole.name} — 菜单权限</h3>
-                <p className="mt-0.5 text-[11px] text-gray-400">{selectedRole.desc}</p>
-              </div>
-              <Button variant="secondary" size="sm" icon={Lock}>保存权限</Button>
+            <div className="mb-3 flex justify-end">
+              <Button disabled={selectedRole == null} onClick={() => setAssignOpen(true)}>
+                分配权限
+              </Button>
             </div>
-            <div className="p-4">
-              {menuTree.map((menu, mi) => (
-                <div key={mi} className="mb-3">
-                  <label className="flex items-center gap-2 py-1.5">
-                    <input type="checkbox" defaultChecked={mi < 3} className="rounded border-gray-300 text-primary-500" />
-                    <span className="text-sm font-medium text-gray-700">{menu.name}</span>
-                  </label>
-                  <div className="ml-6 flex flex-wrap gap-3">
-                    {menu.children.map((perm, pi) => (
-                      <label key={pi} className="flex items-center gap-1.5">
-                        <input type="checkbox" defaultChecked={mi < 3} className="rounded border-gray-300 text-primary-500" />
-                        <span className="text-xs text-gray-500">{perm}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            {selectedRole == null ? (
+              <div className="py-8 text-center text-sm text-gray-400">请选择左侧角色</div>
+            ) : (
+              <Table
+                rowKey={(p) => p.id ?? 0}
+                columns={permColumns}
+                data={permissions}
+                loading={permLoading}
+                emptyText="该角色暂无权限"
+              />
+            )}
           </TableCard>
 
           <TableCard>
-            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-              <h3 className="text-sm font-semibold text-gray-800">数据权限</h3>
-              <Button variant="ghost" size="sm" icon={Eye}>预览</Button>
-            </div>
-            <div className="p-4">
-              <div className="flex gap-4">
-                {['全部数据', '本部门', '本部门及子部门', '自定义'].map((scope, i) => (
-                  <label key={scope} className="flex items-center gap-1.5">
-                    <input type="radio" name="dataScope" defaultChecked={i === 1} className="border-gray-300 text-primary-500" />
-                    <span className="text-sm text-gray-600">{scope}</span>
-                  </label>
-                ))}
+            {selectedRole == null ? (
+              <div className="py-8 text-center text-sm text-gray-400">请选择左侧角色</div>
+            ) : (
+              <div className="space-y-4">
+                <RadioGroup
+                  options={SCOPE_OPTIONS}
+                  value={scopeType}
+                  onChange={(v) => setScopeType(String(v))}
+                />
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveScope}>保存数据范围</Button>
+                </div>
               </div>
-            </div>
+            )}
           </TableCard>
         </div>
       </div>
+
+      {assignOpen && selectedRole != null && (
+        <AssignPermissionModal
+          roleId={selectedRole}
+          current={permissions.map((p) => p.id!)}
+          onClose={() => setAssignOpen(false)}
+          onSuccess={() => {
+            setAssignOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['role-permissions', selectedRole] });
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function AssignPermissionModal({
+  roleId,
+  current,
+  onClose,
+  onSuccess,
+}: {
+  roleId: number;
+  current: number[];
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const { data: all = [] } = useQuery({
+    queryKey: ['all-permissions'],
+    queryFn: () => authzApi.listPermissions(),
+  });
+  const [checked, setChecked] = useState<number[]>(current);
+
+  const toggle = (id: number) => {
+    setChecked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const handleSave = async () => {
+    await authzApi.assignPermissions(roleId, checked);
+    toast.success('权限已分配');
+    onSuccess();
+  };
+
+  return (
+    <Modal open onClose={onClose} title="分配权限">
+      <div className="max-h-[60vh] space-y-2 overflow-auto">
+        {all.map((p) => (
+          <label key={p.id} className="flex items-center gap-2 text-sm">
+            <Checkbox checked={checked.includes(p.id!)} onChange={() => toggle(p.id!)} />
+            <span>{p.permName}</span>
+            <span className="text-gray-400">（{p.permCode}）</span>
+          </label>
+        ))}
+      </div>
+      <div className="flex justify-end gap-2 pt-3">
+        <Button type="button" variant="ghost" onClick={onClose}>
+          取消
+        </Button>
+        <Button onClick={handleSave}>保存</Button>
+      </div>
+    </Modal>
   );
 }
