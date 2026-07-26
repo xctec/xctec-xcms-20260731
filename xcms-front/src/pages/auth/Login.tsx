@@ -10,8 +10,9 @@ export default function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { setAuth, setMenus } = useAuthStore();
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  // 仅开发环境预填演示账号，生产环境留空（避免硬编码凭证）
+  const [username, setUsername] = useState(import.meta.env.DEV ? 'admin' : '');
+  const [password, setPassword] = useState(import.meta.env.DEV ? 'admin123' : '');
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

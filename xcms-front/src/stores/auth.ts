@@ -1,21 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { RouteMenuItem } from '@/types/menu';
+import type { LoginResult } from '@/types/identity';
 
 /** token 过期前多少秒开始主动刷新 */
 const REFRESH_THRESHOLD = 60;
 
-interface SetAuthData {
-  token: string;
-  refreshToken: string;
-  userId: number;
-  username: string;
-  realName: string;
-  tenantId: number;
-  tenantName: string;
-  roles: string[];
-  expiresIn?: number;
-}
+// 登录结果（嵌套 user）重导出生成类型；setAuth 内部解平为扁平 AuthState
+type SetAuthData = LoginResult;
 
 interface AuthState {
   token: string | null;
@@ -86,16 +78,18 @@ export const useAuthStore = create<AuthState>()(
       portalMenus: [],
       setAuth: (data) =>
         set({
-          token: data.token,
-          refreshToken: data.refreshToken,
+          token: data.token ?? null,
+          refreshToken: data.refreshToken ?? null,
           tokenIssuedAt: Date.now(),
           expiresIn: data.expiresIn ?? null,
-          userId: data.userId,
-          username: data.username,
-          realName: data.realName,
-          tenantId: data.tenantId,
-          tenantName: data.tenantName,
-          roles: data.roles,
+          // 解平嵌套的 user 对象到扁平 AuthState
+          userId: data.user?.id ?? null,
+          username: data.user?.username ?? null,
+          realName: data.user?.realName ?? null,
+          tenantId: data.user?.tenantId ?? null,
+          // 生成 UserDTO 暂未含 tenantName，兼容后端未来补充（mock 已带）
+          tenantName: (data.user as { tenantName?: string } | undefined)?.tenantName ?? null,
+          roles: data.user?.roles?.map((r) => r.roleCode ?? '') ?? [],
         }),
       setTokens: ({ token, refreshToken, expiresIn }) =>
         set({

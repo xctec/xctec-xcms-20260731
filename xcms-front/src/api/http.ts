@@ -19,6 +19,17 @@ const http = axios.create({
 });
 
 // 请求拦截器：注入令牌 / 租户，并在访问令牌即将过期时主动刷新
+// 并发 401 仅跳转一次登录页
+let isRedirecting = false;
+function redirectToLogin() {
+  if (isRedirecting) return;
+  isRedirecting = true;
+  useAuthStore.getState().clearAuth();
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login';
+  }
+}
+
 http.interceptors.request.use(async (config) => {
   const state = useAuthStore.getState();
   if (
@@ -27,7 +38,12 @@ http.interceptors.request.use(async (config) => {
     config.url !== LOGIN_URL &&
     state.isAboutToExpire()
   ) {
-    await refreshTokens();
+    // 主动刷新失败：中断请求，避免携带空 token 发出并跳转登录
+    const ok = await refreshTokens();
+    if (!ok) {
+      redirectToLogin();
+      return Promise.reject(new Error('token refresh failed'));
+    }
   }
   const { token, tenantId } = useAuthStore.getState();
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -67,10 +83,7 @@ http.interceptors.response.use(
     }
 
     if (status === 401 && config?.url !== LOGIN_URL) {
-      useAuthStore.getState().clearAuth();
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
+      redirectToLogin();
     }
     return Promise.reject(error);
   }

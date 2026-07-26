@@ -19,6 +19,7 @@ export const mockAdminMenus: RouteMenuItem[] = [
       { key: 'organization', label: '组织架构', icon: 'Network', path: '/admin/organization', component: 'admin/Organization', sort: 2, visible: true, permission: 'organization:view' },
       { key: 'user', label: '用户管理', icon: 'Users', path: '/admin/user', component: 'admin/UserList', sort: 3, visible: true, permission: 'user:view' },
       { key: 'btn-user-create', label: '新建用户', path: '', sort: 0, visible: true, permission: 'user:create', type: 'BUTTON' },
+      { key: 'btn-user-export', label: '导出', path: '', sort: 0, visible: true, permission: 'user:export', type: 'BUTTON' },
       { key: 'btn-user-reset-pwd', label: '重置密码', path: '', sort: 0, visible: true, permission: 'user:reset-pwd', type: 'BUTTON' },
     ],
   },

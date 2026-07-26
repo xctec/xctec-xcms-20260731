@@ -13,8 +13,16 @@ export const handlers = [
       return ok({
         token: 'mock-jwt-token-' + Date.now(),
         refreshToken: 'mock-refresh-token',
-        userId: 1, username: 'admin', realName: '超级管理员',
-        tenantId: 1, tenantName: '集团总部', roles: ['SYSTEM_ADMIN'], expiresIn: 7200,
+        expiresIn: 7200,
+        user: {
+          id: 1,
+          tenantId: 1,
+          username: 'admin',
+          realName: '超级管理员',
+          tenantName: '集团总部',
+          roles: [{ roleCode: 'SYSTEM_ADMIN', roleName: '系统管理员' }],
+        },
+        forceChangePassword: false,
       });
     }
     return HttpResponse.json({ errorCode: '1002', errorMsg: '用户名或密码错误', data: null });
@@ -22,9 +30,18 @@ export const handlers = [
 
   http.post('/api/auth/logout', () => ok(null)),
   http.post('/api/auth/user-info', () => ok({
-    token: 'mock-jwt-token', refreshToken: 'mock-refresh-token',
-    userId: 1, username: 'admin', realName: '超级管理员',
-    tenantId: 1, tenantName: '集团总部', roles: ['SYSTEM_ADMIN'], expiresIn: 7200,
+    token: 'mock-jwt-token',
+    refreshToken: 'mock-refresh-token',
+    expiresIn: 7200,
+    user: {
+      id: 1,
+      tenantId: 1,
+      username: 'admin',
+      realName: '超级管理员',
+      tenantName: '集团总部',
+      roles: [{ roleCode: 'SYSTEM_ADMIN', roleName: '系统管理员' }],
+    },
+    forceChangePassword: false,
   })),
 
   // ====== Token 刷新 ======
@@ -35,8 +52,16 @@ export const handlers = [
       return ok({
         token: 'mock-jwt-token-' + Date.now(),
         refreshToken: 'mock-refresh-token-' + Date.now(),
-        userId: 1, username: 'admin', realName: '超级管理员',
-        tenantId: 1, tenantName: '集团总部', roles: ['SYSTEM_ADMIN'], expiresIn: 7200,
+        expiresIn: 7200,
+        user: {
+          id: 1,
+          tenantId: 1,
+          username: 'admin',
+          realName: '超级管理员',
+          tenantName: '集团总部',
+          roles: [{ roleCode: 'SYSTEM_ADMIN', roleName: '系统管理员' }],
+        },
+        forceChangePassword: false,
       });
     }
     return HttpResponse.json({ errorCode: '1001', errorMsg: 'refreshToken 无效', data: null }, { status: 401 });

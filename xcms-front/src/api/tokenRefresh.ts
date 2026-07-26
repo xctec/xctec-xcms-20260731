@@ -19,6 +19,10 @@ function doRefresh(): Promise<boolean> {
   return authApi
     .refreshToken(refreshToken)
     .then((res) => {
+      if (!res.token || !res.refreshToken) {
+        clearAuth();
+        return false;
+      }
       setTokens({ token: res.token, refreshToken: res.refreshToken, expiresIn: res.expiresIn });
       return true;
     })
