@@ -27,7 +27,10 @@ import com.df4j.xctec.xcms.identity.api.enums.RoleScope;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -63,14 +66,29 @@ public class AuthServiceImpl implements AuthService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
+    @Lazy
+    @Autowired
+    private AuthServiceImpl self;
+
     @Override
-    @Transactional
     public LoginResult login(LoginRequest request) {
+        // 登录端点被 TenantInterceptor 排除（无 token），需在进入事务前确定并设置租户上下文：
+        // @TenantId 的当前租户由 Hibernate 会话在开启时经 CurrentTenantIdentifierResolver 捕获，
+        // 会话开启后中途 set 无法改变会话租户。故拆为非事务入口设置上下文 + 经代理调用 @Transactional doLogin。
         Long tenantId = request.getTenantId() != null ? request.getTenantId() : TenantContext.getTenantId();
         if (tenantId == null) {
             throw new BusinessException(ErrorCodes.TENANT_NOT_FOUND, "无法确定租户");
         }
         TenantContext.set(tenantId);
+        try {
+            return self.doLogin(request, tenantId);
+        } finally {
+            TenantContext.clear();
+        }
+    }
+
+    @Transactional
+    public LoginResult doLogin(LoginRequest request, Long tenantId) {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new BusinessException(ErrorCodes.AUTH_INVALID_CREDENTIALS));
         LocalDateTime now = LocalDateTime.now();
@@ -79,13 +97,8 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException("1007", "账号已被锁定，请于锁定时间结束后重试");
         }
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            // 记录失败次数，连续失败达到阈值则锁定 30 分钟
-            user.setLoginFailCount(user.getLoginFailCount() + 1);
-            if (user.getLoginFailCount() >= MAX_LOGIN_FAIL_ATTEMPTS) {
-                user.setLockUntil(now.plusMinutes(LOGIN_LOCK_MINUTES));
-                user.setStatus(UserStatus.LOCKED);
-            }
-            userRepository.save(user);
+            // 失败计数/锁定用独立事务提交，避免被 doLogin 抛出 BusinessException 后的事务回滚吞掉
+            self.recordLoginFailure(user.getId());
             throw new BusinessException(ErrorCodes.AUTH_INVALID_CREDENTIALS);
         }
         // 登录成功：清零失败计数并解除锁定
@@ -134,8 +147,24 @@ public class AuthServiceImpl implements AuthService {
         return result;
     }
 
+    /**
+     * 登录失败计数/锁定。独立事务（REQUIRES_NEW）提交，确保即使 doLogin 因密码错误抛出
+     * BusinessException 触发外层事务回滚，失败计数与锁定状态仍持久化，暴力破解防护生效。
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordLoginFailure(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCodes.AUTH_INVALID_CREDENTIALS));
+        user.setLoginFailCount(user.getLoginFailCount() + 1);
+        if (user.getLoginFailCount() >= MAX_LOGIN_FAIL_ATTEMPTS) {
+            user.setLockUntil(now.plusMinutes(LOGIN_LOCK_MINUTES));
+            user.setStatus(UserStatus.LOCKED);
+        }
+        userRepository.save(user);
+    }
+
     @Override
-    @Transactional
     public LoginResult ssoCallback(String code, String state) {
         // 1. state 三段式：tenantId:serverCode:csrfToken，校验并解析租户（防 CSRF/重放）
         if (!StringUtils.hasText(state)) {
@@ -150,7 +179,19 @@ public class AuthServiceImpl implements AuthService {
         String serverCode = stateParts[1];
         ssoService.validateSsoState(serverCode, stateParts[2]);
         TenantContext.set(tenantId);
+        try {
+            return self.doSsoCallback(code, serverCode, tenantId);
+        } finally {
+            TenantContext.clear();
+        }
+    }
 
+    /**
+     * SSO 回调主体（事务）。须由 {@link #ssoCallback} 在设置好 TenantContext 后经 self 代理调用，
+     * 使事务开启时会话捕获到正确租户（同 login/doLogin 模式，规避 @TenantId 会话期冻结）。
+     */
+    @Transactional
+    public LoginResult doSsoCallback(String code, String serverCode, Long tenantId) {
         SsoProvider p = ssoProviderRepository.findByServerCodeAndEnabled(serverCode, true)
                 .orElseThrow(() -> new BusinessException(ErrorCodes.BUSINESS_ERROR, "SSO 服务不可用: " + serverCode));
         if (!"OAUTH2".equals(p.getProtocol()) && !"OIDC".equals(p.getProtocol())) {
