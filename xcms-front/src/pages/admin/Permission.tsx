@@ -158,7 +158,7 @@ export default function Permission() {
       {assignOpen && selectedRole != null && (
         <AssignPermissionModal
           roleId={selectedRole}
-          current={permissions.map((p) => p.id!)}
+          current={permissions}
           onClose={() => setAssignOpen(false)}
           onSuccess={() => {
             setAssignOpen(false);
@@ -170,6 +170,9 @@ export default function Permission() {
   );
 }
 
+// 跨表权限 id 可能重复，用 `permType:id` 复合 key 唯一标识一条权限，避免选择/渲染冲突。
+const permKey = (p: PermissionDTO) => `${p.permType ?? ''}:${p.id}`;
+
 function AssignPermissionModal({
   roleId,
   current,
@@ -177,7 +180,7 @@ function AssignPermissionModal({
   onSuccess,
 }: {
   roleId: number;
-  current: number[];
+  current: PermissionDTO[];
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -185,14 +188,17 @@ function AssignPermissionModal({
     queryKey: ['all-permissions'],
     queryFn: () => authzApi.listPermissions(),
   });
-  const [checked, setChecked] = useState<number[]>(current);
+  const [checked, setChecked] = useState<string[]>(current.map(permKey));
 
-  const toggle = (id: number) => {
-    setChecked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const toggle = (key: string) => {
+    setChecked((prev) => (prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]));
   };
 
   const handleSave = async () => {
-    await authzApi.assignPermissions(roleId, checked);
+    const items = all
+      .filter((p) => checked.includes(permKey(p)))
+      .map((p) => ({ permId: p.id!, permType: p.permType }));
+    await authzApi.assignPermissions(roleId, items);
     toast.success('权限已分配');
     onSuccess();
   };
@@ -201,8 +207,8 @@ function AssignPermissionModal({
     <Modal open onClose={onClose} title="分配权限">
       <div className="max-h-[60vh] space-y-2 overflow-auto">
         {all.map((p) => (
-          <label key={p.id} className="flex items-center gap-2 text-sm">
-            <Checkbox checked={checked.includes(p.id!)} onChange={() => toggle(p.id!)} />
+          <label key={permKey(p)} className="flex items-center gap-2 text-sm">
+            <Checkbox checked={checked.includes(permKey(p))} onChange={() => toggle(permKey(p))} />
             <span>{p.permName}</span>
             <span className="text-gray-400">（{p.permCode}）</span>
           </label>

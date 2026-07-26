@@ -5,6 +5,7 @@ import com.df4j.xctec.xcms.identity.api.dto.LoginRequest;
 import com.df4j.xctec.xcms.identity.api.dto.LoginResult;
 import com.df4j.xctec.xcms.identity.api.dto.SessionDTO;
 import com.df4j.xctec.xcms.identity.api.dto.TokenInfo;
+import com.df4j.xctec.xcms.identity.api.dto.UserDTO;
 import com.df4j.xctec.xcms.identity.api.enums.UserStatus;
 import com.df4j.xctec.xcms.identity.api.event.UserLoginEvent;
 import com.df4j.xctec.xcms.identity.domain.User;
@@ -17,6 +18,8 @@ import com.df4j.xctec.xcms.kernel.context.TenantContext;
 import com.df4j.xctec.xcms.kernel.event.DomainEventPublisher;
 import com.df4j.xctec.xcms.kernel.exception.BusinessException;
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
+import com.df4j.xctec.xcms.tenant.api.TenantService;
+import com.df4j.xctec.xcms.tenant.api.dto.TenantDTO;
 import com.df4j.xctec.xcms.identity.domain.SsoBinding;
 import com.df4j.xctec.xcms.identity.domain.SsoProvider;
 import com.df4j.xctec.xcms.identity.repository.SsoBindingRepository;
@@ -63,6 +66,7 @@ public class AuthServiceImpl implements AuthService {
     private final SsoBindingRepository ssoBindingRepository;
     private final SsoService ssoService;
     private final RoleService roleService;
+    private final TenantService tenantService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
@@ -145,7 +149,7 @@ public class AuthServiceImpl implements AuthService {
         result.setToken(session.getToken());
         result.setRefreshToken(session.getRefreshToken());
         result.setExpiresIn(SESSION_TTL_SECONDS);
-        result.setUser(userMapper.toDTO(user));
+        result.setUser(buildUserDTO(user));
         result.setForceChangePassword(user.getPasswordChangedAt() == null);
         return result;
     }
@@ -279,7 +283,7 @@ public class AuthServiceImpl implements AuthService {
         result.setToken(session.getToken());
         result.setRefreshToken(session.getRefreshToken());
         result.setExpiresIn(SESSION_TTL_SECONDS);
-        result.setUser(userMapper.toDTO(user));
+        result.setUser(buildUserDTO(user));
         result.setForceChangePassword(user.getPasswordChangedAt() == null);
         return result;
     }
@@ -377,7 +381,7 @@ public class AuthServiceImpl implements AuthService {
         result.setToken(session.getToken());
         result.setRefreshToken(session.getRefreshToken());
         result.setExpiresIn(SESSION_TTL_SECONDS);
-        result.setUser(userMapper.toDTO(user));
+        result.setUser(buildUserDTO(user));
         return result;
     }
 
@@ -392,6 +396,25 @@ public class AuthServiceImpl implements AuthService {
                 .findFirst()
                 .map(this::toDto)
                 .orElse(null);
+    }
+
+    /**
+     * 构建带租户名的用户 DTO。UserMapper 无法映射跨模块的 tenantName，
+     * 此处经 TenantService 回填；租户查询失败不阻断登录，tenantName 留空。
+     */
+    private UserDTO buildUserDTO(User user) {
+        UserDTO dto = userMapper.toDTO(user);
+        if (user.getTenantId() != null) {
+            try {
+                TenantDTO tenant = tenantService.getTenantById(user.getTenantId());
+                if (tenant != null) {
+                    dto.setTenantName(tenant.getTenantName());
+                }
+            } catch (Exception ignored) {
+                // 租户查询失败不阻断登录
+            }
+        }
+        return dto;
     }
 
     private String resolveClientIp() {

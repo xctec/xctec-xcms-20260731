@@ -20,9 +20,11 @@ export const authzApi = {
   // 后端已补：POST /admin/permission/list 返回 ApiResponse<List<PermissionDTO>>（见 PermissionController.listAllPermissions）
   listPermissions: (): Promise<PermissionDTO[]> =>
     http.post<unknown, Unwrap<Schemas['ApiResponseListPermissionDTO']>>('/admin/permission/list', {}),
-  assignPermissions: (roleId: number, permissionIds: number[]) =>
+  // 权限项跨表（操作权限表 + 菜单表）id 可能重复，故 assign 需同时带 permType，
+  // 后端据 (permId, permType) 精确落库，避免仅凭 id 误判权限来源。
+  assignPermissions: (roleId: number, permissions: { permId: number; permType?: string }[]) =>
     http.post<unknown, Unwrap<Schemas['ApiResponseVoid']>>('/admin/role-permission/assign', {
       roleId,
-      permissions: permissionIds.map((id) => ({ permId: id })),
+      permissions,
     }),
 };

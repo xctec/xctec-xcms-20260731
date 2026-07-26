@@ -223,7 +223,7 @@ export const handlers = [
   http.post('/admin/role-permission/assign', async ({ request }) => {
     const { roleId, permissions } = (await request.json()) as {
       roleId: number;
-      permissions: { permId: number }[];
+      permissions: { permId: number; permType?: string }[];
     };
     const permissionIds = (permissions ?? []).map((p) => p.permId);
     mockRolePermissions[roleId] = permissionIds || [];
