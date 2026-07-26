@@ -5,6 +5,13 @@ spring:
     # 默认使用 h2（内存库，create-drop），可无需外部依赖直接启动。
     # 生产/联调请切换为 mysql： -Dspring.profiles.active=mysql
     active: h2
+  jpa:
+    properties:
+      hibernate:
+        # 单库多租户：@TenantId 作为列隔离（DISCRIMINATOR），
+        # 而非独立数据源（DATABASE）。显式声明以覆盖 Spring Boot 因
+        # CurrentTenantIdentifierResolver 自动推断出的 DATABASE 模式。
+        multiTenancy: DISCRIMINATOR
   jackson:
     default-property-inclusion: non_null
     date-format: yyyy-MM-dd HH:mm:ss
@@ -12,8 +19,6 @@ spring:
 
 server:
   port: 8080
-  servlet:
-    context-path: /api
 
 management:
   endpoints:

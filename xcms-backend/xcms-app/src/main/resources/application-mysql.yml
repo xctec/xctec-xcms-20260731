@@ -14,3 +14,10 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: false
+
+xcms:
+  identity:
+    jwt:
+      # 生产/联调环境必须通过环境变量注入密钥；未设置 XCMS_JWT_SECRET 将启动失败，
+      # 防止误用硬编码默认值导致密钥泄露。
+      secret: ${XCMS_JWT_SECRET}
