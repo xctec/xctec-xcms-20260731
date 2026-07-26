@@ -18,9 +18,6 @@ import com.df4j.xctec.xcms.kernel.common.PageResult;
 import com.df4j.xctec.xcms.kernel.common.dto.CodeRequest;
 import com.df4j.xctec.xcms.kernel.common.dto.IdRequest;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,16 +35,11 @@ import java.util.List;
 @RequestMapping("/admin/user")
 @Tag(name = "用户管理 User", description = "管理面：用户创建/查询/状态变更/改密/角色分配")
 @RequiredArgsConstructor
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "未认证或令牌失效", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"1201\",\"errorMsg\":\"未认证或令牌已失效，请重新登录\",\"data\":null}")))
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无访问权限", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"1203\",\"errorMsg\":\"无访问该资源的权限\",\"data\":null}")))
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "服务器内部错误", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"5000\",\"errorMsg\":\"服务器内部错误，请稍后重试或联系管理员\",\"data\":null}")))
 public class UserController {
 
     private final UserService userService;
     private final RoleService roleService;
 
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "创建成功，返回新用户信息", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"0\",\"errorMsg\":\"success\",\"data\":{\"id\":1,\"username\":\"zhangsan\",\"status\":\"ACTIVE\",\"deptId\":10,\"roleIds\":[1,2]}}")))
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "参数校验失败（如用户名/邮箱重复或必填缺失）", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"1000\",\"errorMsg\":\"参数校验失败：用户名已存在\",\"data\":null}")))
     @Operation(summary = "创建用户", description = "在指定租户下创建用户账号。")
     @PostMapping("/register")
     public ApiResponse<UserDTO> registerUser(@RequestBody UserCreateRequest request) {
@@ -67,8 +59,6 @@ public class UserController {
         return ApiResponse.success();
     }
 
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "成功返回用户详情", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"0\",\"errorMsg\":\"success\",\"data\":{\"id\":1,\"username\":\"zhangsan\",\"nickname\":\"张三\",\"status\":\"ACTIVE\",\"deptId\":10,\"roleIds\":[1,2],\"email\":\"zhangsan@xctec.com\"}}")))
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "用户不存在", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"1004\",\"errorMsg\":\"用户不存在\",\"data\":null}")))
     @Operation(summary = "查询用户详情", description = "按 id 查询用户（走列级脱敏执行链路）。")
     @PostMapping("/get")
     @MaskResource("user")
@@ -83,7 +73,6 @@ public class UserController {
         return ApiResponse.success(userService.getByUsername(request.getCode()));
     }
 
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "成功返回分页用户列表", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"0\",\"errorMsg\":\"success\",\"data\":{\"list\":[{\"id\":1,\"username\":\"zhangsan\",\"status\":\"ACTIVE\"}],\"total\":100,\"page\":1,\"size\":20}}")))
     @Operation(summary = "分页查询用户", description = "按条件分页查询用户列表。")
     @PostMapping("/list")
     public ApiResponse<PageResult<UserDTO>> listUsers(@RequestBody UserQuery query) {

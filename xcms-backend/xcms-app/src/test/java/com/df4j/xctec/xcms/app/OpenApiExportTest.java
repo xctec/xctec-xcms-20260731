@@ -28,6 +28,15 @@ class OpenApiExportTest {
         ObjectMapper om = new ObjectMapper();
         JsonNode doc = om.readValue(json, JsonNode.class);
 
+        // 导出 openapi.json 供前端生成类型
+        try {
+            java.io.File dump = new java.io.File("openapi.json");
+            java.nio.file.Files.writeString(dump.toPath(), json);
+            System.out.println("[OpenApiExportTest] dumped openapi.json to " + dump.getAbsolutePath());
+        } catch (Exception e) {
+            System.out.println("[OpenApiExportTest] dump failed: " + e);
+        }
+
         // 安全方案
         JsonNode schemes = doc.path("components").path("securitySchemes");
         assertFalse(schemes.isEmpty(), "应声明 Bearer 安全方案");
@@ -150,17 +159,22 @@ class OpenApiExportTest {
         assertFalse(tenantTypeSchema == null, "TenantType 枚举应出现在文档中");
         assertTrue(tenantTypeSchema.path("description").asText().contains("组织型"), "TenantType @Schema 描述应包含取值含义（组织型）");
 
-        // 关键接口 @ApiResponse 分级示例
+        // 关键接口 200 响应类型化：移除 @ApiResponse 注解后由返回类型自动推导
         JsonNode loginOp = paths.path("/api/auth/login").path("post");
         assertFalse(loginOp.isMissingNode(), "应存在登录接口");
-        JsonNode loginResp = loginOp.path("responses");
-        assertTrue(loginResp.has("200"), "登录接口应有 200 响应");
-        assertTrue(loginResp.has("401"), "登录接口应有 401 响应（类级统一错误示例）");
-        assertTrue(loginResp.has("403"), "登录接口应有 403 响应（类级统一错误示例）");
-        assertTrue(loginResp.has("500"), "登录接口应有 500 响应（类级统一错误示例）");
-        assertTrue(treeContainsText(loginResp.path("200"), "Bearer"), "登录 200 响应示例应包含令牌信息（tokenType=Bearer）");
-        System.out.println("[OpenApiExportTest] login responses=" + loginResp.size()
-                + ", 200 example with token=" + treeContainsText(loginResp.path("200"), "token"));
+        String login200Ref = response200Ref(loginOp);
+        assertTrue(login200Ref.endsWith("/ApiResponseLoginResult"),
+                "登录 200 应引用 ApiResponseLoginResult（实际=" + login200Ref + "）");
+        JsonNode loginData = schemas.path("ApiResponseLoginResult").path("properties").path("data");
+        assertTrue(loginData.path("$ref").asText("").endsWith("/LoginResult"),
+                "ApiResponseLoginResult.data 应引用 LoginResult");
+        assertFalse(schemas.path("LoginResult").path("properties").path("token").isMissingNode(),
+                "LoginResult 应含 token 字段");
+        assertTrue(response200Ref(paths.path("/admin/user/list").path("post")).endsWith("/ApiResponsePageResultUserDTO"),
+                "user/list 200 应引用 ApiResponsePageResultUserDTO");
+        assertTrue(response200Ref(paths.path("/admin/tenant/get").path("post")).endsWith("/ApiResponseTenantDTO"),
+                "tenant/get 200 应引用 ApiResponseTenantDTO");
+        System.out.println("[OpenApiExportTest] login 200 typed=" + login200Ref);
 
         System.out.println("[OpenApiExportTest] paths=" + paths.size()
                 + ", tags=" + tags.size()
@@ -242,5 +256,17 @@ class OpenApiExportTest {
             }
         }
         return false;
+    }
+
+    private static String response200Ref(JsonNode op) {
+        JsonNode content = op.path("responses").path("200").path("content");
+        for (var it = content.fields(); it.hasNext(); ) {
+            JsonNode sch = it.next().getValue().path("schema");
+            String ref = sch.path("$ref").asText("");
+            if (!ref.isEmpty()) {
+                return ref;
+            }
+        }
+        return "";
     }
 }

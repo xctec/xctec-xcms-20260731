@@ -12,9 +12,6 @@ import com.df4j.xctec.xcms.kernel.exception.BusinessException;
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
@@ -43,16 +40,10 @@ import java.nio.charset.StandardCharsets;
 @RequestMapping("/file")
 @Tag(name = "文件存储 File", description = "文件上传/查询/列表/删除/下载")
 @RequiredArgsConstructor
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "未认证或令牌失效", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"1201\",\"errorMsg\":\"未认证或令牌已失效，请重新登录\",\"data\":null}")))
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无访问权限", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"1203\",\"errorMsg\":\"无访问该资源的权限\",\"data\":null}")))
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "服务器内部错误", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"5000\",\"errorMsg\":\"服务器内部错误，请稍后重试或联系管理员\",\"data\":null}")))
 public class FileController {
 
     private final FileStorageService fileStorageService;
 
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "上传成功，返回文件元信息", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"0\",\"errorMsg\":\"success\",\"data\":{\"id\":1001,\"fileName\":\"report.pdf\",\"size\":20480,\"url\":\"/api/v1/file/download/1001\"}}")))
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "上传失败（文件为空或格式不支持）", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"1000\",\"errorMsg\":\"上传失败：文件为空或不支持的格式\",\"data\":null}")))
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "413", description = "文件超过大小限制", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"1413\",\"errorMsg\":\"上传文件超过大小限制\",\"data\":null}")))
     @Operation(summary = "上传文件", description = "上传文件并返回文件元信息")
     @PostMapping("/upload")
     public ApiResponse<FileDTO> upload(@Parameter(description = "上传的文件（multipart/form-data）", required = true) @RequestParam("file") MultipartFile multipart) {
@@ -87,8 +78,6 @@ public class FileController {
         return ApiResponse.success();
     }
 
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "成功，返回文件二进制流（application/octet-stream）")
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "文件不存在", content = @Content(schema = @Schema(implementation = ApiResponse.class), examples = @ExampleObject(value = "{\"errorCode\":\"1004\",\"errorMsg\":\"文件不存在\",\"data\":null}")))
     @Operation(summary = "下载文件", description = "按 ID 流式下载文件二进制内容")
     @GetMapping("/download/{id}")
     public ResponseEntity<Resource> download(@Parameter(description = "文件ID") @PathVariable("id") Long id) {
