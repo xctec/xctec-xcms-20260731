@@ -56,10 +56,10 @@ export const handlers = [
   }),
 
   // ====== Menu ======
-  http.post('/api/menu/user-menus', async ({ request }) => {
-    const body = (await request.json().catch(() => ({}))) as { face?: string };
-    return ok(body.face === 'portal' ? mockPortalMenus : mockAdminMenus);
-  }),
+  // 管理面菜单（对应后端 /admin/permission/menus）
+  http.post('/admin/permission/menus', () => ok(mockAdminMenus)),
+  // 门户菜单（对应后端 /portal/menus）
+  http.post('/portal/menus', () => ok(mockPortalMenus)),
   http.post('/admin/menu/all', () => ok(mockAdminMenus)),
 
   // ====== Tenant ======

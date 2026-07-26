@@ -1,5 +1,6 @@
 import { http } from './http';
 import type { MenuDTO, RouteMenuItem } from '@/types/menu';
+import { useAuthStore } from '@/stores/auth';
 
 export type MenuFace = 'admin' | 'portal';
 
@@ -25,10 +26,24 @@ export function toRouteMenu(dto: MenuDTO): RouteMenuItem {
 const toRouteMenus = (dtos: MenuDTO[]): RouteMenuItem[] => dtos.map(toRouteMenu);
 
 export const menuApi = {
-  /** 获取当前用户在某端面下的菜单树（已按权限过滤，前端再二次校验） */
-  getUserMenus: (face: MenuFace) =>
-    http.post<unknown, MenuDTO[]>('/api/menu/user-menus', { face }).then(toRouteMenus),
-  /** 获取所有菜单（管理面菜单管理用） */
-  getAllMenus: () =>
-    http.post<unknown, MenuDTO[]>('/admin/menu/all', {}).then(toRouteMenus),
+  /**
+   * 获取当前用户在某端面下的菜单树（已按权限过滤，前端再二次校验）。
+   * 后端按端面分两个端点：
+   *  - admin（管理后台）：/admin/permission/menus，需 userId + scope=ADMIN
+   *  - portal（业务前台）：/portal/menus，当前用户由 TenantContext 解析，scope=BUSINESS
+   */
+  getUserMenus: async (face: MenuFace): Promise<RouteMenuItem[]> => {
+    if (face === 'admin') {
+      const userId = useAuthStore.getState().userId ?? undefined;
+      const dtos = await http.post<unknown, MenuDTO[]>('/admin/permission/menus', {
+        userId,
+        scope: 'ADMIN',
+      });
+      return toRouteMenus(dtos);
+    }
+    const dtos = await http.post<unknown, MenuDTO[]>('/portal/menus', {
+      scope: 'BUSINESS',
+    });
+    return toRouteMenus(dtos);
+  },
 };
