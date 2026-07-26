@@ -16,6 +16,7 @@ import type { Column } from '@/components/ui';
 import { toast } from '@/components/ui';
 import { roleApi } from '@/api/identity';
 import { authzApi } from '@/api/authorization';
+import { Can } from '@/components/auth/Can';
 import type { PermissionDTO, RoleDTO } from '@/types/authorization';
 
 const SCOPE_OPTIONS = [
@@ -39,8 +40,8 @@ export default function Permission() {
     queryKey: ['role-list', page, keyword],
     queryFn: () => roleApi.list({ page, size, keyword: keyword || undefined }),
   });
-  const roles = (data ?? []) as RoleDTO[];
-  const total = roles.length;
+  const roles = (data?.list ?? []) as RoleDTO[];
+  const total = data?.total ?? 0;
 
   const { data: permissions = [], isFetching: permLoading } = useQuery({
     queryKey: ['role-permissions', selectedRole],
@@ -114,9 +115,11 @@ export default function Permission() {
         <div className="space-y-4">
           <TableCard>
             <div className="mb-3 flex justify-end">
-              <Button disabled={selectedRole == null} onClick={() => setAssignOpen(true)}>
-                分配权限
-              </Button>
+              <Can permission="role:permission">
+                <Button disabled={selectedRole == null} onClick={() => setAssignOpen(true)}>
+                  分配权限
+                </Button>
+              </Can>
             </div>
             {selectedRole == null ? (
               <div className="py-8 text-center text-sm text-gray-400">请选择左侧角色</div>
@@ -142,7 +145,9 @@ export default function Permission() {
                   onChange={(v) => setScopeType(String(v))}
                 />
                 <div className="flex justify-end">
-                  <Button onClick={handleSaveScope}>保存数据范围</Button>
+                  <Can permission="role:data-scope">
+                    <Button onClick={handleSaveScope}>保存数据范围</Button>
+                  </Can>
                 </div>
               </div>
             )}
@@ -207,7 +212,9 @@ function AssignPermissionModal({
         <Button type="button" variant="ghost" onClick={onClose}>
           取消
         </Button>
-        <Button onClick={handleSave}>保存</Button>
+        <Can permission="role:permission">
+          <Button onClick={handleSave}>保存</Button>
+        </Can>
       </div>
     </Modal>
   );

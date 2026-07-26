@@ -17,6 +17,7 @@ import {
 } from '@/components/ui';
 import type { Column } from '@/components/ui';
 import { useConfirm } from '@/common/confirm';
+import { Can } from '@/components/auth/Can';
 import { toast } from '@/components/ui';
 import { userApi } from '@/api/identity';
 import type { UserDTO } from '@/types/user';
@@ -99,20 +100,26 @@ export default function UserList() {
       align: 'center',
       render: (r) => (
         <>
-          <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
-            编辑
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => handleReset(r)}>
-            重置密码
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-danger-500"
-            onClick={() => handleDelete(r)}
-          >
-            删除
-          </Button>
+          <Can permission="user:edit">
+            <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
+              编辑
+            </Button>
+          </Can>
+          <Can permission="user:reset-pwd">
+            <Button size="sm" variant="ghost" onClick={() => handleReset(r)}>
+              重置密码
+            </Button>
+          </Can>
+          <Can permission="user:delete">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-danger-500"
+              onClick={() => handleDelete(r)}
+            >
+              删除
+            </Button>
+          </Can>
         </>
       ),
     },
@@ -123,7 +130,11 @@ export default function UserList() {
       <PageHeader
         title="用户管理"
         description="管理系统用户"
-        actions={<Button onClick={openCreate}>+ 新建用户</Button>}
+        actions={
+          <Can permission="user:create">
+            <Button onClick={openCreate}>+ 新建用户</Button>
+          </Can>
+        }
       />
       <TableCard>
         <FilterBar>

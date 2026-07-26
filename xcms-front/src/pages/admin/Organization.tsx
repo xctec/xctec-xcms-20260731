@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   PageHeader,
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui';
 import type { Column, TreeNode } from '@/components/ui';
 import { useConfirm } from '@/common/confirm';
+import { Can } from '@/components/auth/Can';
 import { toast } from '@/components/ui';
 import { orgApi } from '@/api/organization';
 import type { DepartmentTreeDTO, UserPositionDTO, UserGroupDTO } from '@/types/organization';
@@ -81,14 +82,16 @@ export default function Organization() {
       title: '操作',
       align: 'center',
       render: (r) => (
-        <Button
-          size="sm"
-          variant="ghost"
-          className="text-danger-500"
-          onClick={() => handleDeletePosition(r)}
-        >
-          删除
-        </Button>
+        <Can permission="org:edit">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-danger-500"
+            onClick={() => handleDeletePosition(r)}
+          >
+            删除
+          </Button>
+        </Can>
       ),
     },
   ];
@@ -103,14 +106,16 @@ export default function Organization() {
       title: '操作',
       align: 'center',
       render: (r) => (
-        <Button
-          size="sm"
-          variant="ghost"
-          className="text-danger-500"
-          onClick={() => handleDeleteGroup(r)}
-        >
-          删除
-        </Button>
+        <Can permission="org:edit">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-danger-500"
+            onClick={() => handleDeleteGroup(r)}
+          >
+            删除
+          </Button>
+        </Can>
       ),
     },
   ];
@@ -120,7 +125,11 @@ export default function Organization() {
       <PageHeader
         title="组织架构"
         description="管理部门、岗位与用户组"
-        actions={<Button onClick={() => setDeptModal(true)}>+ 新建部门</Button>}
+        actions={
+          <Can permission="org:dept:create">
+            <Button onClick={() => setDeptModal(true)}>+ 新建部门</Button>
+          </Can>
+        }
       />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
       <TableCard>
@@ -136,9 +145,11 @@ export default function Organization() {
           <TableCard>
             <div className="mb-3 flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">岗位</span>
-              <Button disabled={selectedDept == null} onClick={() => setPositionModal(true)}>
-                + 新建岗位
-              </Button>
+              <Can permission="org:position:create">
+                <Button disabled={selectedDept == null} onClick={() => setPositionModal(true)}>
+                  + 新建岗位
+                </Button>
+              </Can>
             </div>
             {selectedDept == null ? (
               <div className="py-8 text-center text-sm text-gray-400">请选择左侧部门</div>
@@ -156,7 +167,9 @@ export default function Organization() {
           <TableCard>
             <div className="mb-3 flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">用户组</span>
-              <Button onClick={() => setGroupModal(true)}>+ 新建用户组</Button>
+              <Can permission="org:group:create">
+                <Button onClick={() => setGroupModal(true)}>+ 新建用户组</Button>
+              </Can>
             </div>
             <Table
               rowKey={(r) => r.id ?? 0}
@@ -170,6 +183,7 @@ export default function Organization() {
 
       {deptModal && (
         <DeptFormModal
+          treeData={tree}
           onClose={() => setDeptModal(false)}
           onSuccess={() => {
             setDeptModal(false);
@@ -202,7 +216,19 @@ export default function Organization() {
 }
 
 type DeptFormValues = { deptName: string; deptCode: string; parentId: string; sortOrder: string };
-function DeptFormModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+function DeptFormModal({ treeData, onClose, onSuccess }: { treeData: DepartmentTreeDTO[]; onClose: () => void; onSuccess: () => void }) {
+  const deptOptions = useMemo(() => {
+    const opts: { value: string; label: string }[] = [{ value: '0', label: '根部门' }];
+    const walk = (nodes: DepartmentTreeDTO[], depth: number) => {
+      for (const n of nodes ?? []) {
+        opts.push({ value: String(n.id ?? 0), label: `${'　'.repeat(depth)}${n.deptName}` });
+        if (n.children?.length) walk(n.children, depth + 1);
+      }
+    };
+    walk(treeData ?? [], 0);
+    return opts;
+  }, [treeData]);
+
   const form = useForm<DeptFormValues>(
     { deptName: '', deptCode: '', parentId: '0', sortOrder: '0' },
     {
@@ -232,7 +258,11 @@ function DeptFormModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
         </FormItem>
         <FormItem label="上级部门">
           <Select value={form.values.parentId} onChange={(e) => form.setField('parentId', e.target.value)}>
-            <option value="0">根部门</option>
+            {deptOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </Select>
         </FormItem>
         <FormItem label="排序">

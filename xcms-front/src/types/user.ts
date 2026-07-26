@@ -1,17 +1,7 @@
-// 用户实体类型。
-// 生成的 components['schemas']['UserDTO'] 在当前生成结果里解析为 never，
-// 故此处用干净的本地接口作为页面/ Mock 的契约来源。
-export interface UserDTO {
-  id?: number;
-  tenantId?: number;
-  username?: string;
-  realName?: string;
-  employeeNo?: string;
-  email?: string;
-  phone?: string;
-  avatar?: string | null;
-  status?: string;
-  lastLoginAt?: string;
-  lastLoginIp?: string;
-  roles?: { roleCode?: string; roleName?: string }[];
-}
+import type { Schemas } from '@/types/api-helpers';
+
+/**
+ * 用户 DTO：直接复用 OpenAPI 生成的契约类型（components.schemas.UserDTO）。
+ * 0.2 已统一 Unwrap 模式，Schemas['UserDTO'] 为有效类型（非 never），无需手写，避免契约漂移。
+ */
+export type UserDTO = Schemas['UserDTO'];

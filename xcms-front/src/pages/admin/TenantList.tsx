@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   PageHeader,
@@ -18,8 +18,9 @@ import {
 } from '@/components/ui';
 import type { Column } from '@/components/ui';
 import { useConfirm } from '@/common/confirm';
+import { Can } from '@/components/auth/Can';
 import { tenantApi } from '@/api/tenant';
-import type { TenantDTO, TenantCreateRequest } from '@/types/tenant';
+import type { TenantDTO, TenantCreateRequest, TenantTreeDTO } from '@/types/tenant';
 
 const TYPE_LABEL: Record<string, string> = {
   ORGANIZATION: '组织型',
@@ -96,17 +97,21 @@ export default function TenantList() {
       align: 'center',
       render: (r) => (
         <>
-          <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
-            编辑
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-danger-500"
-            onClick={() => handleDelete(r)}
-          >
-            删除
-          </Button>
+          <Can permission="tenant:edit">
+            <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
+              编辑
+            </Button>
+          </Can>
+          <Can permission="tenant:delete">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-danger-500"
+              onClick={() => handleDelete(r)}
+            >
+              删除
+            </Button>
+          </Can>
         </>
       ),
     },
@@ -117,7 +122,11 @@ export default function TenantList() {
       <PageHeader
         title="租户管理"
         description="管理集团下的租户"
-        actions={<Button onClick={openCreate}>+ 新建租户</Button>}
+        actions={
+          <Can permission="tenant:create">
+            <Button onClick={openCreate}>+ 新建租户</Button>
+          </Can>
+        }
       />
       <FilterBar>
         <Input
@@ -162,6 +171,7 @@ type TenantFormValues = {
   tenantCode: string;
   tenantType: string;
   status: string;
+  parentId?: number;
 };
 
 function TenantFormModal({
@@ -173,12 +183,30 @@ function TenantFormModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const { data: treeData } = useQuery({
+    queryKey: ['tenantTreeOptions'],
+    queryFn: () => tenantApi.getTree(),
+  });
+
+  const parentOptions = useMemo(() => {
+    const opts: { value: number; label: string }[] = [{ value: 0, label: '根（平台租户）' }];
+    const walk = (nodes: TenantTreeDTO[], depth: number) => {
+      for (const n of nodes ?? []) {
+        opts.push({ value: n.id ?? 0, label: `${'　'.repeat(depth)}${n.tenantName}` });
+        if (n.children?.length) walk(n.children, depth + 1);
+      }
+    };
+    walk(treeData ?? [], 0);
+    return opts;
+  }, [treeData]);
+
   const form = useForm<TenantFormValues>(
     {
       tenantName: editing?.tenantName ?? '',
       tenantCode: editing?.tenantCode ?? '',
       tenantType: editing?.tenantType ?? 'ORGANIZATION',
       status: editing?.status ?? 'ACTIVE',
+      parentId: editing?.parentId ?? 0,
     },
     {
       tenantName: [{ required: '请输入租户名称' }],
@@ -202,7 +230,7 @@ function TenantFormModal({
         tenantCode: values.tenantCode,
         tenantName: values.tenantName,
         tenantType: values.tenantType as TenantCreateRequest['tenantType'],
-        parentId: 1,
+        parentId: values.parentId ?? 0,
       });
       toast.success('创建成功');
     }
@@ -233,6 +261,18 @@ function TenantFormModal({
             <option value="PROJECT">项目型</option>
             <option value="EXTERNAL">外部型</option>
             <option value="PLATFORM">平台型</option>
+          </Select>
+        </FormItem>
+        <FormItem label="上级租户">
+          <Select
+            value={String(form.values.parentId ?? 0)}
+            onChange={(e) => form.setField('parentId', Number(e.target.value))}
+          >
+            {parentOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </Select>
         </FormItem>
         <FormItem label="状态">

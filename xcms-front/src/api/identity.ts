@@ -15,7 +15,7 @@ export const userApi = {
 
 export const roleApi = {
   list: (params?: Schemas['RoleQuery']) =>
-    http.post<unknown, Unwrap<Schemas['ApiResponseListRoleDTO']>>('/admin/role/list', params ?? {}),
+    http.post<unknown, Unwrap<Schemas['ApiResponsePageResultRoleDTO']>>('/admin/role/list', params ?? {}),
   get: (id: number) => http.post<unknown, Unwrap<Schemas['ApiResponseRoleDTO']>>('/admin/role/get', { id }),
   create: (data: Schemas['RoleCreateRequest']) =>
     http.post<unknown, Unwrap<Schemas['ApiResponseRoleDTO']>>('/admin/role/create', data),
