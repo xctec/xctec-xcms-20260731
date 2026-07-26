@@ -75,6 +75,29 @@ class OpenApiExportTest {
         assertFalse(pwdDesc.isMissingNode(), "LoginRequest.password 应有 @Schema 描述");
         System.out.println("[OpenApiExportTest] LoginRequest.password desc=" + pwdDesc.asText());
 
+        // 非核心 DTO 字段级 @Schema 也生效（以 AuditLogDTO 为代表）
+        JsonNode auditDto = schemas.path("AuditLogDTO");
+        assertFalse(auditDto.isMissingNode(), "应存在 AuditLogDTO schema");
+        JsonNode eventIdDesc = auditDto.path("properties").path("eventId").path("description");
+        assertFalse(eventIdDesc.isMissingNode(), "AuditLogDTO.eventId 应有 @Schema 描述");
+        System.out.println("[OpenApiExportTest] AuditLogDTO.eventId desc=" + eventIdDesc.asText());
+
+        // ErrorCodes 错误码文档化：统一响应 errorCode 字段富描述
+        boolean errorCodeDoc = false;
+        for (var sit = schemas.fields(); sit.hasNext(); ) {
+            var se = sit.next();
+            if (se.getKey().startsWith("ApiResponse")) {
+                JsonNode ec = se.getValue().path("properties").path("errorCode").path("description");
+                if (!ec.isMissingNode() && ec.asText().contains("错误码")) {
+                    errorCodeDoc = true;
+                    String head = ec.asText().length() > 40 ? ec.asText().substring(0, 40) : ec.asText();
+                    System.out.println("[OpenApiExportTest] ApiResponse.errorCode desc head=" + head);
+                    break;
+                }
+            }
+        }
+        assertTrue(errorCodeDoc, "ApiResponse.errorCode 应文档化 ErrorCodes 错误码体系");
+
         System.out.println("[OpenApiExportTest] paths=" + paths.size()
                 + ", tags=" + tags.size()
                 + ", opsWithSummary=" + withSummary + ", publicEndpoints=" + publicEndpoints);
