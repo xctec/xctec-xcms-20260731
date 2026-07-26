@@ -2,6 +2,7 @@ package com.df4j.xctec.xcms.auth.api;
 
 import com.df4j.xctec.xcms.auth.api.dto.BusinessVisibilityAuth;
 import com.df4j.xctec.xcms.auth.api.dto.MenuDTO;
+import com.df4j.xctec.xcms.auth.api.dto.PermissionDTO;
 import com.df4j.xctec.xcms.auth.api.enums.MenuScope;
 
 import java.util.List;
