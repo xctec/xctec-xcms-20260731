@@ -127,7 +127,7 @@ public class SeedDataService {
             log.info("[Seed] 已为管理员分配角色: {}", ADMIN_ROLE_CODE);
         }
 
-        log.info("[Seed] 默认登录凭据 => tenantId={}, username={}, password={}",
-                tenantId, ADMIN_USERNAME, ADMIN_PASSWORD);
+        log.info("[Seed] 默认登录账号就绪: tenantId={}, username={}（初始密码见部署文档，不记录于日志）",
+                tenantId, ADMIN_USERNAME);
     }
 }
