@@ -2,6 +2,7 @@ package com.df4j.xctec.xcms.task.domain;
 
 import com.df4j.xctec.xcms.kernel.entity.BaseEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
@@ -27,7 +28,8 @@ public class TaskAsync extends BaseEntity {
     @Column(name = "task_type", nullable = false, length = 64)
     private String taskType;
 
-    @Column(name = "payload", nullable = false, columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "payload", nullable = false)
     private String payload;
 
     @Column(name = "status", nullable = false, length = 20)
@@ -48,6 +50,7 @@ public class TaskAsync extends BaseEntity {
     @Column(name = "retry_count", nullable = false)
     private int retryCount = 0;
 
-    @Column(name = "error_msg", columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "error_msg")
     private String errorMsg;
 }

@@ -71,6 +71,59 @@ CREATE TABLE msg_user_setting (
 );
 
 -- ============================================================
+-- XCMS DDL: 07 - Message Center (实体表)
+-- ============================================================
+
+-- 消息主体表（租户隔离，对应实体 Message）
+CREATE TABLE msg_message (
+    id              BIGINT          NOT NULL,
+    tenant_id       BIGINT          NOT NULL,
+    msg_code        VARCHAR(64),
+    title           VARCHAR(255)    NOT NULL,
+    content         VARCHAR(2000),
+    sender_id       BIGINT,
+    msg_type        VARCHAR(16)     NOT NULL DEFAULT 'NOTICE',
+    priority        VARCHAR(16)     NOT NULL DEFAULT 'NORMAL',
+    status          VARCHAR(16)     NOT NULL DEFAULT 'SENT',
+    send_time       TIMESTAMP,
+    created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pk_msg_message PRIMARY KEY (id)
+);
+CREATE INDEX idx_msg_message_tenant ON msg_message (tenant_id);
+CREATE INDEX idx_msg_message_sender ON msg_message (tenant_id, sender_id);
+
+-- 消息接收人表（租户隔离，对应实体 MessageRecipient）
+CREATE TABLE msg_recipient (
+    id              BIGINT          NOT NULL,
+    tenant_id       BIGINT          NOT NULL,
+    message_id      BIGINT          NOT NULL,
+    recipient_id    BIGINT          NOT NULL,
+    is_read         BOOLEAN         NOT NULL DEFAULT FALSE,
+    read_time       TIMESTAMP,
+    status          VARCHAR(16)     NOT NULL DEFAULT 'ACTIVE',
+    created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pk_msg_recipient PRIMARY KEY (id),
+    CONSTRAINT uk_msg_recipient UNIQUE (tenant_id, message_id, recipient_id)
+);
+CREATE INDEX idx_msg_recipient_recipient ON msg_recipient (tenant_id, recipient_id);
+
+-- 消息附件表（租户隔离，对应实体 MessageAttachment）
+CREATE TABLE msg_attachment (
+    id              BIGINT          NOT NULL,
+    tenant_id       BIGINT          NOT NULL,
+    message_id      BIGINT          NOT NULL,
+    file_id         BIGINT          NOT NULL,
+    file_name       VARCHAR(255),
+    file_size       BIGINT,
+    created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pk_msg_attachment PRIMARY KEY (id),
+    CONSTRAINT uk_msg_attachment UNIQUE (tenant_id, message_id, file_id)
+);
+
+-- ============================================================
 -- XCMS DDL: 08 - Configuration
 -- ============================================================
 
@@ -83,6 +136,7 @@ CREATE TABLE cfg_param (
     param_type      VARCHAR(20)     NOT NULL DEFAULT 'STRING',
     description     VARCHAR(512),
     editable        BOOLEAN         NOT NULL DEFAULT TRUE,
+    created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_cfg_param PRIMARY KEY (id),
     CONSTRAINT uk_cfg_param_key UNIQUE (tenant_id, param_key)
@@ -96,6 +150,7 @@ CREATE TABLE cfg_feature_flag (
     enabled         BOOLEAN         NOT NULL DEFAULT TRUE,
     config          TEXT,           -- JSON
     description     VARCHAR(512),
+    created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_cfg_feature_flag PRIMARY KEY (id),
     CONSTRAINT uk_cfg_feature UNIQUE (tenant_id, feature_code)
@@ -110,6 +165,7 @@ CREATE TABLE cfg_dictionary (
     description     VARCHAR(512),
     status          VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE',
     created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_cfg_dictionary PRIMARY KEY (id),
     CONSTRAINT uk_cfg_dict_code UNIQUE (tenant_id, dict_code)
 );
@@ -124,6 +180,8 @@ CREATE TABLE cfg_dictionary_item (
     sort_order      INT             NOT NULL DEFAULT 0,
     parent_id       BIGINT,
     status          VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE',
+    created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_cfg_dict_item PRIMARY KEY (id),
     CONSTRAINT uk_cfg_dict_item UNIQUE (tenant_id, dict_id, item_code)
 );
@@ -141,6 +199,8 @@ CREATE TABLE cfg_code_rule (
     reset_cycle     VARCHAR(20)     NOT NULL DEFAULT 'NONE', -- NONE/DAILY/MONTHLY/YEARLY
     current_seq     BIGINT          NOT NULL DEFAULT 0,
     status          VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE',
+    created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_cfg_code_rule PRIMARY KEY (id),
     CONSTRAINT uk_cfg_code_rule UNIQUE (tenant_id, rule_code)
 );
@@ -167,6 +227,7 @@ CREATE TABLE file_metadata (
     share_expire    TIMESTAMP,
     status          VARCHAR(20)     NOT NULL DEFAULT 'NORMAL', -- NORMAL/DELETED
     created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at      TIMESTAMP,
     CONSTRAINT pk_file_metadata PRIMARY KEY (id)
 );
@@ -203,96 +264,38 @@ CREATE TABLE file_storage_config (
 -- ============================================================
 -- XCMS DDL: 10 - Task Scheduling
 -- ============================================================
-
--- 定时任务表
-CREATE TABLE task_schedule (
-    id              BIGINT          NOT NULL,
-    tenant_id       BIGINT,         -- NULL=系统级
-    task_name       VARCHAR(128)    NOT NULL,
-    task_code       VARCHAR(128)    NOT NULL,
-    task_type       VARCHAR(20)     NOT NULL, -- CRON/FIXED_RATE/FIXED_DELAY
-    cron_expression VARCHAR(128),
-    fixed_rate      BIGINT,         -- 毫秒
-    handler_class   VARCHAR(256)    NOT NULL,
-    handler_params  TEXT,           -- JSON
-    status          VARCHAR(20)     NOT NULL DEFAULT 'ENABLED', -- ENABLED/DISABLED
-    last_exec_at    TIMESTAMP,
-    next_exec_at    TIMESTAMP,
-    description     VARCHAR(512),
-    created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT pk_task_schedule PRIMARY KEY (id),
-    CONSTRAINT uk_task_code UNIQUE (tenant_id, task_code)
-);
-
--- 执行日志表
-CREATE TABLE task_execution_log (
-    id              BIGINT          NOT NULL,
-    tenant_id       BIGINT          NOT NULL,
-    task_id         BIGINT          NOT NULL,
-    start_time      TIMESTAMP       NOT NULL,
-    end_time        TIMESTAMP,
-    status          VARCHAR(20)     NOT NULL DEFAULT 'RUNNING', -- RUNNING/SUCCESS/FAILED
-    result          TEXT,
-    error_msg       TEXT,
-    retry_count     INT             NOT NULL DEFAULT 0,
-    CONSTRAINT pk_task_exec_log PRIMARY KEY (id)
-);
-CREATE INDEX idx_task_log_task ON task_execution_log (tenant_id, task_id);
-CREATE INDEX idx_task_log_status ON task_execution_log (status);
-
--- 异步任务表
-CREATE TABLE task_async (
-    id              BIGINT          NOT NULL,
-    tenant_id       BIGINT          NOT NULL,
-    task_type       VARCHAR(64)     NOT NULL,
-    payload         TEXT            NOT NULL,   -- JSON
-    status          VARCHAR(20)     NOT NULL DEFAULT 'PENDING', -- PENDING/RUNNING/SUCCESS/FAILED
-    priority        INT             NOT NULL DEFAULT 0,
-    scheduled_at    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    started_at      TIMESTAMP,
-    completed_at    TIMESTAMP,
-    retry_count     INT             NOT NULL DEFAULT 0,
-    error_msg       TEXT,
-    CONSTRAINT pk_task_async PRIMARY KEY (id)
-);
-CREATE INDEX idx_task_async_status ON task_async (tenant_id, status, scheduled_at);
+-- 注意：task_schedule / task_execution_log / task_async / task_lock 的 DDL
+--       统一在 07-task-scheduling.sql 维护，本文件不再重复定义。
 
 -- ============================================================
 -- XCMS DDL: 11 - Audit
 -- ============================================================
 
--- 审计日志表
+-- 审计日志表（对应实体 AuditLog，租户隔离）
 CREATE TABLE audit_log (
     id                  BIGINT          NOT NULL,
-    tenant_id           BIGINT          NOT NULL,   -- 操作发生的租户
-    audit_type          VARCHAR(30)     NOT NULL,   -- MANAGEMENT/CROSS_TENANT/LOGIN/DATA_ACCESS/BUSINESS_VISIBLE
-    user_id             BIGINT,
-    user_name           VARCHAR(64),
-    user_tenant_id      BIGINT,                     -- 操作人所属租户
-    target_tenant_id    BIGINT,                     -- 目标租户（跨租户时）
-    module              VARCHAR(64),
-    action              VARCHAR(30)     NOT NULL,   -- CREATE/UPDATE/DELETE/READ/EXPORT/LOGIN/LOGOUT
-    resource_type       VARCHAR(64),
-    resource_id         VARCHAR(128),
-    description         VARCHAR(512),
-    request_url         VARCHAR(512),
-    request_method      VARCHAR(10),
-    request_params      TEXT,                       -- 脱敏后
-    response_status     INT,
+    tenant_id           BIGINT          NOT NULL,
+    event_id            VARCHAR(64),                -- 事件唯一ID
+    biz_module          VARCHAR(64),
+    event_type          VARCHAR(64),
+    biz_id              VARCHAR(64),
+    action              VARCHAR(128),
+    operator_id         BIGINT,
+    operator_name       VARCHAR(64),
     ip                  VARCHAR(64),
-    user_agent          VARCHAR(512),
-    token_id            BIGINT,                     -- 业务可见授权令牌ID
-    extra               TEXT,                       -- JSON
+    success             BOOLEAN         NOT NULL DEFAULT TRUE,
+    error_msg           VARCHAR(512),
+    detail              VARCHAR(2000),
+    duration_ms         BIGINT,
+    occur_time          TIMESTAMP,
     created_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT pk_audit_log PRIMARY KEY (id)
+    updated_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pk_audit_log PRIMARY KEY (id),
+    CONSTRAINT uk_audit_event_id UNIQUE (event_id)
 );
 CREATE INDEX idx_audit_tenant ON audit_log (tenant_id);
-CREATE INDEX idx_audit_type ON audit_log (audit_type);
-CREATE INDEX idx_audit_user ON audit_log (user_tenant_id, user_id);
-CREATE INDEX idx_audit_module ON audit_log (tenant_id, module);
-CREATE INDEX idx_audit_created ON audit_log (created_at);
-CREATE INDEX idx_audit_target ON audit_log (target_tenant_id);
+CREATE INDEX idx_audit_operator ON audit_log (tenant_id, operator_id);
+CREATE INDEX idx_audit_occur_time ON audit_log (occur_time);
 
 -- 审计策略表（系统级）
 CREATE TABLE audit_policy (
@@ -304,13 +307,4 @@ CREATE TABLE audit_policy (
     retention_days  INT             NOT NULL DEFAULT 365,
     enabled         BOOLEAN         NOT NULL DEFAULT TRUE,
     CONSTRAINT pk_audit_policy PRIMARY KEY (id)
-);
-
--- 调度器集群选主锁（系统级，单行）
-CREATE TABLE task_lock (
-    lock_key        VARCHAR(64)     NOT NULL,
-    owner_id        VARCHAR(128)    NOT NULL,
-    acquired_at     TIMESTAMP       NOT NULL,
-    expires_at      TIMESTAMP       NOT NULL,
-    CONSTRAINT pk_task_lock PRIMARY KEY (lock_key)
 );

@@ -2,6 +2,7 @@ package com.df4j.xctec.xcms.operation.domain;
 
 import com.df4j.xctec.xcms.kernel.entity.BaseEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
@@ -31,7 +32,8 @@ public class MetricValue extends BaseEntity {
     @Column(name = "metric_value", nullable = false, precision = 24, scale = 6)
     private BigDecimal value;
 
-    @Column(name = "tags", columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "tags")
     private String tags;
 
     @Column(name = "source", length = 64)

@@ -2,6 +2,7 @@ package com.df4j.xctec.xcms.config.domain;
 
 import com.df4j.xctec.xcms.kernel.entity.BaseEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -21,7 +22,8 @@ public class ConfigParam extends BaseEntity {
     @Column(name = "param_key", nullable = false, unique = true)
     private String paramKey;
 
-    @Column(name = "param_value", columnDefinition = "text")
+    @Lob
+    @Column(name = "param_value")
     private String paramValue;
 
     @Column(name = "param_type")

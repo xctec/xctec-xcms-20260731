@@ -27,6 +27,8 @@ CREATE TABLE ops_metric_snapshot (
     tags         TEXT,
     source       VARCHAR(64),
     collect_time TIMESTAMP       NOT NULL,
+    created_at   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_ops_metric_snapshot PRIMARY KEY (id)
 );
 CREATE INDEX idx_ops_snapshot_key_time ON ops_metric_snapshot (metric_key, collect_time);
@@ -61,6 +63,8 @@ CREATE TABLE ops_health_check_log (
     latency_ms  INT,
     message     VARCHAR(1024),
     check_time  TIMESTAMP       NOT NULL,
+    created_at  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_ops_health_check_log PRIMARY KEY (id)
 );
 CREATE INDEX idx_ops_hc_log_check ON ops_health_check_log (check_id, check_time);
@@ -81,6 +85,8 @@ CREATE TABLE ops_operation_log (
     error_msg    VARCHAR(1024),
     duration_ms  BIGINT,
     occur_time   TIMESTAMP       NOT NULL,
+    created_at   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_ops_operation_log PRIMARY KEY (id)
 );
 CREATE INDEX idx_ops_op_log_time ON ops_operation_log (occur_time);
@@ -117,6 +123,8 @@ CREATE TABLE ops_alert_record (
     triggered_at TIMESTAMP       NOT NULL,
     status       VARCHAR(16)     NOT NULL DEFAULT 'OPEN',
     resolved_at  TIMESTAMP,
+    created_at   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_ops_alert_record PRIMARY KEY (id)
 );
 CREATE INDEX idx_ops_alert_rec_time ON ops_alert_record (triggered_at);

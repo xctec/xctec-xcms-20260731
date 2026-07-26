@@ -2,6 +2,7 @@ package com.df4j.xctec.xcms.tenant.domain;
 
 import com.df4j.xctec.xcms.kernel.entity.BaseEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -27,7 +28,8 @@ public class TenantConfig extends BaseEntity {
     @Column(name = "config_key", nullable = false, length = 128)
     private String configKey;
 
-    @Column(name = "config_value", length = 4096)
+    @Lob
+    @Column(name = "config_value")
     private String configValue;
 
     @Column(name = "config_type", nullable = false, length = 20)

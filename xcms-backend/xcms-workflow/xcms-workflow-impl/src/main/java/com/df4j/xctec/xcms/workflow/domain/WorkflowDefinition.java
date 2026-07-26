@@ -2,6 +2,7 @@ package com.df4j.xctec.xcms.workflow.domain;
 
 import com.df4j.xctec.xcms.kernel.entity.TenantEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -47,10 +48,12 @@ public class WorkflowDefinition extends TenantEntity {
     @Column(name = "status", length = 16, nullable = false)
     private String status = "DRAFT";
 
-    @Column(name = "bpmn_xml", columnDefinition = "longtext", nullable = false)
+    @Lob
+    @Column(name = "bpmn_xml", nullable = false)
     private String bpmnXml;
 
-    @Column(name = "form_config", columnDefinition = "longtext")
+    @Lob
+    @Column(name = "form_config")
     private String formConfig;
 
     @Column(name = "description", length = 512)

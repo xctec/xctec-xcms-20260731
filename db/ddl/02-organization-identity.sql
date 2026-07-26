@@ -14,6 +14,9 @@ CREATE TABLE org_department (
     manager_id      BIGINT,
     sort_order      INT             NOT NULL DEFAULT 0,
     status          VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE',
+    description     VARCHAR(255),
+    created_by      BIGINT,
+    updated_by      BIGINT,
     created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at      TIMESTAMP,
@@ -57,6 +60,7 @@ CREATE TABLE org_user_position (
     created_by      BIGINT,
     deleted_at      TIMESTAMP,
     created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_org_user_position PRIMARY KEY (id),
     CONSTRAINT uk_org_user_pos UNIQUE (tenant_id, user_id, position_id)
 );
@@ -85,7 +89,10 @@ CREATE TABLE org_user_group_member (
     tenant_id       BIGINT          NOT NULL,
     group_id        BIGINT          NOT NULL,
     user_id         BIGINT          NOT NULL,
+    created_by      BIGINT,
+    deleted_at      TIMESTAMP,
     created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_org_group_member PRIMARY KEY (id),
     CONSTRAINT uk_org_group_member UNIQUE (tenant_id, group_id, user_id)
 );
@@ -112,6 +119,11 @@ CREATE TABLE identity_user (
     last_login_at       TIMESTAMP,
     last_login_ip       VARCHAR(64),
     password_changed_at TIMESTAMP,
+    gender              VARCHAR(10),
+    user_type           VARCHAR(20),
+    created_by          BIGINT,
+    updated_by          BIGINT,
+    remark              VARCHAR(255),
     created_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at          TIMESTAMP,
@@ -133,6 +145,9 @@ CREATE TABLE identity_role (
     description     VARCHAR(512),
     parent_id       BIGINT,
     status          VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE',
+    created_by      BIGINT,
+    updated_by      BIGINT,
+    deleted_at      TIMESTAMP,
     created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_identity_role PRIMARY KEY (id),
@@ -152,6 +167,8 @@ CREATE TABLE identity_user_role (
     granted_by      BIGINT,
     granted_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expires_at      TIMESTAMP,
+    created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_identity_user_role PRIMARY KEY (id),
     CONSTRAINT uk_identity_user_role UNIQUE (tenant_id, user_id, role_id, scope_type, scope_value)
 );
@@ -173,6 +190,8 @@ CREATE TABLE identity_session (
     expire_at       TIMESTAMP       NOT NULL,
     last_active_at  TIMESTAMP,
     status          VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE', -- ACTIVE/EXPIRED/REVOKED
+    created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_identity_session PRIMARY KEY (id),
     CONSTRAINT uk_identity_session_token UNIQUE (token)
 );

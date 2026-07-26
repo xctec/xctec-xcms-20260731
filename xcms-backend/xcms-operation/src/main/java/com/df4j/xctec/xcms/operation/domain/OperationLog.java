@@ -2,6 +2,7 @@ package com.df4j.xctec.xcms.operation.domain;
 
 import com.df4j.xctec.xcms.kernel.entity.BaseEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
@@ -43,7 +44,8 @@ public class OperationLog extends BaseEntity {
     @Column(name = "ip", length = 64)
     private String ip;
 
-    @Column(name = "detail", columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "detail")
     private String detail;
 
     @Column(name = "result", nullable = false, length = 16)
