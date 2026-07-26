@@ -115,3 +115,20 @@ CREATE INDEX idx_perm_cross_auth_tenant ON perm_cross_tenant_auth (tenant_id);
 CREATE INDEX idx_perm_cross_auth_target ON perm_cross_tenant_auth (target_tenant_id);
 CREATE INDEX idx_perm_cross_auth_user ON perm_cross_tenant_auth (user_id);
 CREATE INDEX idx_perm_cross_auth_status ON perm_cross_tenant_auth (status);
+
+-- 跨租户可见资源目录表
+CREATE TABLE perm_cross_tenant_resource (
+    id                  BIGINT          NOT NULL AUTO_INCREMENT,
+    tenant_id           BIGINT          NOT NULL,   -- 归属租户
+    resource_type       VARCHAR(64),                -- 资源类型，如 DATA/MODULE/API
+    resource_key        VARCHAR(128)    NOT NULL,   -- 资源标识
+    resource_name       VARCHAR(128),
+    description         VARCHAR(512),
+    status              VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE',
+    deleted_at          TIMESTAMP       NULL,       -- 软删除时间
+    created_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pk_perm_cross_tenant_resource PRIMARY KEY (id),
+    CONSTRAINT uk_cross_res_key UNIQUE (tenant_id, resource_key)
+);
+CREATE INDEX idx_cross_res_type ON perm_cross_tenant_resource (resource_type);

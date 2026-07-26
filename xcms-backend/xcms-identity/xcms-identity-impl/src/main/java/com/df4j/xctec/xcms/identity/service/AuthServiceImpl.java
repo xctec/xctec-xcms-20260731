@@ -17,6 +17,12 @@ import com.df4j.xctec.xcms.kernel.context.TenantContext;
 import com.df4j.xctec.xcms.kernel.event.DomainEventPublisher;
 import com.df4j.xctec.xcms.kernel.exception.BusinessException;
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
+import com.df4j.xctec.xcms.identity.domain.SsoBinding;
+import com.df4j.xctec.xcms.identity.domain.SsoProvider;
+import com.df4j.xctec.xcms.identity.repository.SsoBindingRepository;
+import com.df4j.xctec.xcms.identity.repository.SsoProviderRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +30,11 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -42,6 +53,10 @@ public class AuthServiceImpl implements AuthService {
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final DomainEventPublisher eventPublisher;
+    private final SsoProviderRepository ssoProviderRepository;
+    private final SsoBindingRepository ssoBindingRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final HttpClient httpClient = HttpClient.newHttpClient();
 
     @Override
     @Transactional
@@ -115,8 +130,150 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public LoginResult ssoCallback(String code, String state) {
-        throw new BusinessException(ErrorCodes.BUSINESS_ERROR, "SSO 暂未启用");
+        String serverCode = state != null && state.contains(":") ? state.substring(0, state.indexOf(":")) : state;
+        if (!StringUtils.hasText(serverCode)) {
+            throw new BusinessException(ErrorCodes.BUSINESS_ERROR, "无效的 SSO state");
+        }
+        SsoProvider p = ssoProviderRepository.findByServerCodeAndEnabledTrue(serverCode, true)
+                .orElseThrow(() -> new BusinessException(ErrorCodes.BUSINESS_ERROR, "SSO 服务不可用: " + serverCode));
+        if (!"OAUTH2".equals(p.getProtocol()) && !"OIDC".equals(p.getProtocol())) {
+            throw new BusinessException(ErrorCodes.BUSINESS_ERROR, "暂不支持的 SSO 协议: " + p.getProtocol());
+        }
+        String accessToken = exchangeToken(p, code);
+        JsonNode ui = fetchUserInfo(p, accessToken);
+        String idpUserIdField = p.getIdpUserIdField() != null ? p.getIdpUserIdField() : "sub";
+        String usernameField = p.getUsernameField() != null ? p.getUsernameField() : "email";
+        String emailField = p.getEmailField() != null ? p.getEmailField() : "email";
+        String nameField = p.getNameField() != null ? p.getNameField() : "name";
+
+        String idpOpenId = ui.path(idpUserIdField).asText();
+        String username = ui.path(usernameField).asText();
+        String email = ui.hasNonNull(emailField) ? ui.path(emailField).asText() : null;
+        String name = ui.hasNonNull(nameField) ? ui.path(nameField).asText() : null;
+        if (!StringUtils.hasText(username)) {
+            username = idpOpenId;
+        }
+
+        Long tenantId = p.getTenantId() != null ? p.getTenantId() : TenantContext.getTenantId();
+        if (tenantId == null) {
+            throw new BusinessException(ErrorCodes.TENANT_NOT_FOUND, "无法确定租户");
+        }
+        TenantContext.set(tenantId);
+
+        User user = ssoBindingRepository.findByProviderIdAndIdpOpenId(p.getId(), idpOpenId)
+                .flatMap(b -> userRepository.findById(b.getUserId())).orElse(null);
+        if (user == null) {
+            if (!p.isAutoCreate()) {
+                throw new BusinessException(ErrorCodes.BUSINESS_ERROR, "未找到 SSO 绑定账号且未开启自动创建");
+            }
+            user = User.builder()
+                    .username(username)
+                    .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                    .realName(name)
+                    .email(email)
+                    .status(UserStatus.ACTIVE)
+                    .userType("SSO")
+                    .build();
+            user.setTenantId(tenantId);
+            user = userRepository.save(user);
+        }
+
+        SsoBinding binding = ssoBindingRepository.findByProviderIdAndIdpOpenId(p.getId(), idpOpenId).orElse(null);
+        if (binding == null) {
+            binding = SsoBinding.builder()
+                    .providerId(p.getId()).userId(user.getId()).idpOpenId(idpOpenId)
+                    .idpUsername(username).tenantId(tenantId).build();
+        }
+        binding.setLastLoginAt(LocalDateTime.now());
+        ssoBindingRepository.save(binding);
+
+        LocalDateTime now = LocalDateTime.now();
+        String loginIp = resolveClientIp();
+        UserSession session = UserSession.builder()
+                .userId(user.getId())
+                .token(jwtTokenProvider.generateAccessToken(user.getId(), tenantId, user.getUsername()))
+                .refreshToken(jwtTokenProvider.generateRefreshToken(user.getId(), tenantId, user.getUsername()))
+                .sessionId(UUID.randomUUID().toString().replace("-", ""))
+                .deviceType("SSO")
+                .loginIp(loginIp)
+                .loginAt(now)
+                .expireAt(now.plusSeconds(SESSION_TTL_SECONDS))
+                .lastActiveAt(now)
+                .status("ACTIVE")
+                .build();
+        session.setTenantId(tenantId);
+        sessionRepository.save(session);
+
+        user.setLastLoginAt(now);
+        user.setLastLoginIp(loginIp);
+        userRepository.save(user);
+
+        UserLoginEvent loginEvent = new UserLoginEvent();
+        loginEvent.setUserId(user.getId());
+        loginEvent.setTenantId(tenantId);
+        loginEvent.setIp(loginIp);
+        loginEvent.setDeviceType("SSO");
+        loginEvent.setLoginAt(now);
+        loginEvent.setSuccess(true);
+        eventPublisher.publish(loginEvent);
+
+        LoginResult result = new LoginResult();
+        result.setToken(session.getToken());
+        result.setRefreshToken(session.getRefreshToken());
+        result.setExpiresIn(SESSION_TTL_SECONDS);
+        result.setUser(userMapper.toDTO(user));
+        result.setForceChangePassword(user.getPasswordChangedAt() == null);
+        return result;
+    }
+
+    private String exchangeToken(SsoProvider p, String code) {
+        try {
+            String body = "grant_type=authorization_code"
+                    + "&code=" + encode(code)
+                    + "&client_id=" + encode(p.getClientId())
+                    + "&client_secret=" + encode(p.getClientSecret())
+                    + "&redirect_uri=" + encode(p.getRedirectUri());
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(p.getTokenUrl()))
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .timeout(java.time.Duration.ofSeconds(10))
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+            HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            JsonNode node = objectMapper.readTree(resp.body());
+            if (node.has("access_token")) {
+                return node.get("access_token").asText();
+            }
+            if (node.has("id_token")) {
+                return node.get("id_token").asText();
+            }
+            throw new BusinessException(ErrorCodes.BUSINESS_ERROR, "SSO 换取令牌失败: " + resp.body());
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCodes.BUSINESS_ERROR, "SSO 换取令牌异常: " + e.getMessage());
+        }
+    }
+
+    private JsonNode fetchUserInfo(SsoProvider p, String accessToken) {
+        try {
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(p.getUserInfoUrl()))
+                    .header("Authorization", "Bearer " + accessToken)
+                    .timeout(java.time.Duration.ofSeconds(10))
+                    .GET()
+                    .build();
+            HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            return objectMapper.readTree(resp.body());
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCodes.BUSINESS_ERROR, "SSO 获取用户信息异常: " + e.getMessage());
+        }
+    }
+
+    private String encode(String v) {
+        return v == null ? "" : java.net.URLEncoder.encode(v, StandardCharsets.UTF_8);
     }
 
     @Override
