@@ -7,8 +7,9 @@ import java.time.LocalDateTime;
 @Data
 public class AuditLogDTO {
     private Long id;
+    private String eventId;
     private String bizModule;
-    private String bizType;
+    private String eventType;
     private String bizId;
     private String action;
     private Long operatorId;

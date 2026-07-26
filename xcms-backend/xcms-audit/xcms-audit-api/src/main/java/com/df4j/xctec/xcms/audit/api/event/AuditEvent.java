@@ -20,10 +20,11 @@ import java.time.LocalDateTime;
 public class AuditEvent implements DomainEvent, Serializable {
 
     private Long tenantId;
+    private String eventId;
     private Long operatorId;
     private String operatorName;
     private String bizModule;
-    private String bizType;
+    private String eventType;
     private String bizId;
     private String action;
     private String ip;

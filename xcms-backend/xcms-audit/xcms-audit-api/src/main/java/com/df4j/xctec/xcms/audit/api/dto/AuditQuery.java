@@ -4,8 +4,9 @@ import lombok.Data;
 
 @Data
 public class AuditQuery {
+    private String eventId;
     private String bizModule;
-    private String bizType;
+    private String eventType;
     private Long operatorId;
     private Boolean success;
     private String bizId;

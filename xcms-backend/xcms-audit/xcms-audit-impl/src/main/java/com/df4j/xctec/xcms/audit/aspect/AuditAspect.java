@@ -10,97 +10,147 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
- * 审计切面。拦截标注 {@link AuditLog} 的方法，自动发布 {@link AuditEvent}，
- * 由审计监听器负责落库。模块无需直接依赖审计实现，仅声明注解即可。
+ * 审计切面。拦截标注 {@link AuditLog} 的方法，发布 {@link AuditEvent} 由审计模块落库。
+ * 操作者身份优先取 SecurityContext 中已认证用户，回退到 TenantContext（异步/非请求线程场景）。
  */
 @Slf4j
 @Aspect
 @Component
 @RequiredArgsConstructor
+@Order(10)
 public class AuditAspect {
 
     private final ApplicationEventPublisher eventPublisher;
 
     @Around("@annotation(auditLog)")
-    public Object around(ProceedingJoinPoint joinPoint, AuditLog auditLog) throws Throwable {
+    public Object audit(ProceedingJoinPoint pjp, AuditLog auditLog) throws Throwable {
         long start = System.currentTimeMillis();
-        String ip = resolveClientIp();
-        Long operatorId = TenantContext.getCurrentUserId();
         boolean success = true;
         String errorMsg = null;
-        Throwable thrown = null;
-        Object result = null;
         try {
-            result = joinPoint.proceed();
+            return pjp.proceed();
         } catch (Throwable t) {
             success = false;
             errorMsg = t.getMessage();
-            thrown = t;
-        }
-
-        String detail = null;
-        if (auditLog.recordArgs()) {
+            throw t;
+        } finally {
             try {
-                detail = java.util.Arrays.toString(joinPoint.getArgs());
-            } catch (Exception ignored) {
+                publish(pjp, auditLog, success, errorMsg, System.currentTimeMillis() - start);
+            } catch (Exception e) {
+                log.warn("发布审计事件失败: {}", e.getMessage());
             }
         }
-
-        AuditEvent event = AuditEvent.builder()
-                .tenantId(TenantContext.getTenantId())
-                .operatorId(operatorId)
-                .bizModule(auditLog.module())
-                .bizType(auditLog.type())
-                .bizId(resolveBizId(joinPoint))
-                .action(auditLog.action())
-                .ip(ip)
-                .success(success)
-                .errorMsg(errorMsg)
-                .detail(detail)
-                .durationMs(System.currentTimeMillis() - start)
-                .occurTime(LocalDateTime.now())
-                .build();
-        eventPublisher.publishEvent(event);
-
-        if (thrown != null) {
-            if (auditLog.ignoreExceptions()) {
-                throw thrown;
-            }
-            // 不忽略异常时仅记录，不重复抛出（避免吞掉原始异常栈）
-            throw thrown;
-        }
-        return result;
     }
 
-    private String resolveClientIp() {
+    private void publish(ProceedingJoinPoint pjp, AuditLog auditLog, boolean success, String errorMsg, long durationMs) {
+        MethodSignature sig = (MethodSignature) pjp.getSignature();
+        Method method = sig.getMethod();
+
+        AuditEvent.AuditEventBuilder builder = AuditEvent.builder()
+                .tenantId(TenantContext.getTenantId())
+                .eventId(UUID.randomUUID().toString())
+                .eventType(auditLog.type())
+                .bizModule(auditLog.module())
+                .bizId(resolveBizId(pjp))
+                .action(method.getName())
+                .operatorId(resolveOperatorId())
+                .operatorName(resolveOperatorName())
+                .ip(resolveIp())
+                .success(success)
+                .errorMsg(truncate(errorMsg, 500))
+                .detail(truncate(auditLog.type(), 2000))
+                .durationMs(durationMs)
+                .occurTime(LocalDateTime.now());
+        // 通过 Spring 应用事件发布，交由审计模块监听落库
+        publishEvent(builder.build());
+    }
+
+    private void publishEvent(AuditEvent event) {
+        eventPublisher.publishEvent(event);
+    }
+
+    private Long resolveOperatorId() {
+        Long fromTenant = TenantContext.getCurrentUserId();
+        if (fromTenant != null) {
+            return fromTenant;
+        }
+        // 回退：尝试从 Spring Security 的 SecurityContext 读取真实登录用户（运行时反射，避免硬依赖 spring-security）
+        try {
+            Class<?> holder = Class.forName("org.springframework.security.core.context.SecurityContextHolder");
+            Object ctx = holder.getMethod("getContext").invoke(null);
+            if (ctx != null) {
+                Object auth = ctx.getClass().getMethod("getAuthentication").invoke(ctx);
+                if (auth != null) {
+                    Object principal = auth.getClass().getMethod("getPrincipal").invoke(auth);
+                    if (principal instanceof Long l) {
+                        return l;
+                    }
+                    if (principal instanceof String s && !s.isBlank() && s.chars().allMatch(Character::isDigit)) {
+                        return Long.parseLong(s);
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // 忽略：无 Spring Security 场景
+        }
+        return null;
+    }
+
+    private String resolveOperatorName() {
+        try {
+            Class<?> holder = Class.forName("org.springframework.security.core.context.SecurityContextHolder");
+            Object ctx = holder.getMethod("getContext").invoke(null);
+            if (ctx != null) {
+                Object auth = ctx.getClass().getMethod("getAuthentication").invoke(ctx);
+                if (auth != null) {
+                    Object name = auth.getClass().getMethod("getName").invoke(auth);
+                    if (name instanceof String s && !s.isBlank()) {
+                        return s;
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // 忽略
+        }
+        return null;
+    }
+
+    private String resolveIp() {
         try {
             ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attrs != null && attrs.getRequest() != null) {
                 return attrs.getRequest().getRemoteAddr();
             }
         } catch (Exception ignored) {
+            // 非 Web 上下文（如定时任务）
         }
         return null;
     }
 
-    private String resolveBizId(ProceedingJoinPoint joinPoint) {
-        // 约定：若方法第一个参数类型为 Long，则作为 bizId
-        Object[] args = joinPoint.getArgs();
-        if (args != null && args.length > 0 && args[0] instanceof Long) {
-            return String.valueOf(args[0]);
+    private String resolveBizId(ProceedingJoinPoint pjp) {
+        Object[] args = pjp.getArgs();
+        if (args != null) {
+            for (Object arg : args) {
+                if (arg instanceof Long) {
+                    return String.valueOf(arg);
+                }
+            }
         }
         return null;
     }
 
-    @SuppressWarnings("unused")
-    private String currentMethod(ProceedingJoinPoint joinPoint) {
-        return ((MethodSignature) joinPoint.getSignature()).getName();
+    private String truncate(String s, int max) {
+        if (s == null) return null;
+        return s.length() > max ? s.substring(0, max) : s;
     }
 }

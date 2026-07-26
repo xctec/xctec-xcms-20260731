@@ -17,7 +17,6 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -30,11 +29,14 @@ public class AuditServiceImpl implements AuditService {
     public PageResult<AuditLogDTO> query(AuditQuery query) {
         Specification<AuditLog> spec = (root, cq, cb) -> {
             List<jakarta.persistence.criteria.Predicate> ps = new ArrayList<>();
+            if (StringUtils.hasText(query.getEventId())) {
+                ps.add(cb.equal(root.get("eventId"), query.getEventId()));
+            }
             if (StringUtils.hasText(query.getBizModule())) {
                 ps.add(cb.equal(root.get("bizModule"), query.getBizModule()));
             }
-            if (StringUtils.hasText(query.getBizType())) {
-                ps.add(cb.equal(root.get("bizType"), query.getBizType()));
+            if (StringUtils.hasText(query.getEventType())) {
+                ps.add(cb.equal(root.get("eventType"), query.getEventType()));
             }
             if (query.getOperatorId() != null) {
                 ps.add(cb.equal(root.get("operatorId"), query.getOperatorId()));
@@ -58,8 +60,9 @@ public class AuditServiceImpl implements AuditService {
     private AuditLogDTO toDto(AuditLog m) {
         AuditLogDTO dto = new AuditLogDTO();
         dto.setId(m.getId());
+        dto.setEventId(m.getEventId());
         dto.setBizModule(m.getBizModule());
-        dto.setBizType(m.getBizType());
+        dto.setEventType(m.getEventType());
         dto.setBizId(m.getBizId());
         dto.setAction(m.getAction());
         dto.setOperatorId(m.getOperatorId());

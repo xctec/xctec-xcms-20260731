@@ -25,8 +25,9 @@ public class AuditEventListener {
     public void onAuditEvent(AuditEvent event) {
         try {
             AuditLog log = new AuditLog();
+            log.setEventId(event.getEventId());
             log.setBizModule(event.getBizModule());
-            log.setBizType(event.getBizType());
+            log.setEventType(event.getEventType());
             log.setBizId(event.getBizId());
             log.setAction(event.getAction());
             log.setOperatorId(event.getOperatorId());

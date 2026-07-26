@@ -10,7 +10,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * 审计日志。租户隔离。
+ * 审计日志（对应 DDL 表 audit_log）。租户隔离。
  */
 @Entity
 @Table(name = "audit_log")
@@ -18,11 +18,14 @@ import java.time.LocalDateTime;
 @Setter
 public class AuditLog extends TenantEntity {
 
+    @Column(name = "event_id", length = 64, unique = true)
+    private String eventId;
+
     @Column(name = "biz_module", length = 64)
     private String bizModule;
 
-    @Column(name = "biz_type", length = 64)
-    private String bizType;
+    @Column(name = "event_type", length = 64)
+    private String eventType;
 
     @Column(name = "biz_id", length = 64)
     private String bizId;
