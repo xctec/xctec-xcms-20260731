@@ -1,7 +1,9 @@
 import { http } from './http';
+import { Schemas, Unwrap } from '@/types/api-helpers';
 
 export const messageApi = {
-  list: (params: { page: number; size: number; msgType?: string }) => http.post('/api/message/list', params),
-  read: (ids: number[]) => http.post('/api/message/read', { ids }),
-  delete: (ids: number[]) => http.post('/api/message/delete', { ids }),
+  list: (params: Schemas['MessageQuery']) =>
+    http.post<unknown, Unwrap<Schemas['ApiResponsePageResultMessageDTO']>>('/api/message/list', params),
+  read: (ids: number[]) => http.post<unknown, Unwrap<Schemas['ApiResponseVoid']>>('/api/message/read', { ids }),
+  delete: (ids: number[]) => http.post<unknown, Unwrap<Schemas['ApiResponseVoid']>>('/api/message/delete', { ids }),
 };

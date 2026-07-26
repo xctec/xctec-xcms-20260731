@@ -1,6 +1,9 @@
 import { http } from './http';
+import { Schemas, Unwrap } from '@/types/api-helpers';
 
 export const auditApi = {
-  list: (params: { page: number; size: number; module?: string; action?: string }) => http.post('/admin/audit/list', params),
-  export: (params: Record<string, unknown>) => http.post('/admin/audit/export', params),
+  list: (params: Schemas['AuditQuery']) =>
+    http.post<unknown, Unwrap<Schemas['ApiResponsePageResultAuditLogDTO']>>('/admin/audit/list', params),
+  export: (params: Record<string, unknown>) =>
+    http.post('/admin/audit/export', params, { responseType: 'blob' }),
 };
