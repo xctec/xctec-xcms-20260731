@@ -1,8 +1,10 @@
 package com.df4j.xctec.xcms.operation.service;
 
 import com.df4j.xctec.xcms.kernel.context.TenantContext;
+import com.df4j.xctec.xcms.operation.api.MetricProvider;
 import com.df4j.xctec.xcms.operation.api.MetricService;
 import com.df4j.xctec.xcms.operation.api.dto.MetricDTO;
+import com.df4j.xctec.xcms.operation.api.dto.MetricSample;
 import com.df4j.xctec.xcms.operation.api.dto.MetricValueDTO;
 import com.df4j.xctec.xcms.operation.domain.Metric;
 import com.df4j.xctec.xcms.operation.domain.MetricValue;
@@ -10,6 +12,7 @@ import com.df4j.xctec.xcms.operation.repository.MetricRepository;
 import com.df4j.xctec.xcms.operation.repository.MetricValueRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +30,8 @@ public class MetricServiceImpl implements MetricService {
 
     private final MetricRepository metricRepository;
     private final MetricValueRepository metricValueRepository;
+    /** 各业务模块注册的指标采集扩展点 */
+    private final ObjectProvider<MetricProvider> metricProviders;
 
     @Override
     @Transactional
@@ -51,6 +56,35 @@ public class MetricServiceImpl implements MetricService {
         Long tenantId = TenantContext.getTenantId();
         recordInternal(tenantId, "jvm.memory.used.heap", new BigDecimal(usedHeap).divide(new BigDecimal(1024 * 1024), 2, RoundingMode.HALF_UP), "MB", "system");
         recordInternal(tenantId, "jvm.threads.count", new BigDecimal(threads), "", "system");
+
+        // 遍历各业务模块注册的 MetricProvider，统一采集跨模块指标
+        for (MetricProvider provider : metricProviders) {
+            try {
+                List<MetricSample> samples = provider.collectMetrics();
+                if (samples == null) {
+                    continue;
+                }
+                for (MetricSample s : samples) {
+                    if (s == null || s.getMetricKey() == null || s.getValue() == null) {
+                        continue;
+                    }
+                    ensureDefinition(tenantId, s.getMetricKey(),
+                            s.getUnit() != null ? s.getUnit() : "",
+                            s.getCategory() != null ? s.getCategory() : "business");
+                    MetricValue v = new MetricValue();
+                    v.setTenantId(tenantId);
+                    v.setMetricKey(s.getMetricKey());
+                    v.setMetricName(s.getMetricName() != null ? s.getMetricName() : s.getMetricKey());
+                    v.setValue(s.getValue());
+                    v.setTags(s.getTags());
+                    v.setSource(provider.getProviderName());
+                    v.setCollectTime(LocalDateTime.now());
+                    metricValueRepository.save(v);
+                }
+            } catch (Exception ex) {
+                log.warn("[ops] metric provider collect failed: {}", provider.getProviderName(), ex);
+            }
+        }
         log.debug("[ops] metrics collected");
     }
 
