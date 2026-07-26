@@ -2,6 +2,7 @@ package com.df4j.xctec.xcms.task.domain;
 
 import com.df4j.xctec.xcms.kernel.entity.BaseEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
@@ -40,10 +41,12 @@ public class TaskExecutionLog extends BaseEntity {
     @Column(name = "status", nullable = false, length = 20)
     private String status = "RUNNING";
 
-    @Column(name = "result", columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "result")
     private String result;
 
-    @Column(name = "error_msg", columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "error_msg")
     private String errorMsg;
 
     @Column(name = "retry_count", nullable = false)

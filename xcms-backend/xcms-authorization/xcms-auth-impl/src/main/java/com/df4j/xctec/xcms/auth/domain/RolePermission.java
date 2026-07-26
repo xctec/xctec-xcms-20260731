@@ -2,6 +2,7 @@ package com.df4j.xctec.xcms.auth.domain;
 
 import com.df4j.xctec.xcms.kernel.entity.TenantEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -30,6 +31,7 @@ public class RolePermission extends TenantEntity {
     @Column(name = "perm_type", length = 20)
     private String permType;
 
-    @Column(name = "scope_config", length = 2000)
+    @Lob
+    @Column(name = "scope_config")
     private String scopeConfig;
 }

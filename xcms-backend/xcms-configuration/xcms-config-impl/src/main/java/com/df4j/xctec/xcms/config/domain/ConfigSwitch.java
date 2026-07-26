@@ -2,6 +2,7 @@ package com.df4j.xctec.xcms.config.domain;
 
 import com.df4j.xctec.xcms.kernel.entity.BaseEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -24,7 +25,8 @@ public class ConfigSwitch extends BaseEntity {
     @Column(name = "enabled", nullable = false)
     private boolean enabled;
 
-    @Column(name = "config", columnDefinition = "text")
+    @Lob
+    @Column(name = "config")
     private String config;
 
     @Column(name = "description")

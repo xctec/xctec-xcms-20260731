@@ -2,6 +2,7 @@ package com.df4j.xctec.xcms.task.domain;
 
 import com.df4j.xctec.xcms.kernel.entity.BaseEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
@@ -51,7 +52,8 @@ public class TaskSchedule extends BaseEntity {
     @Column(name = "handler_class", nullable = false, length = 256)
     private String handlerName;
 
-    @Column(name = "handler_params", columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "handler_params")
     private String handlerParams;
 
     @Column(name = "status", nullable = false, length = 20)

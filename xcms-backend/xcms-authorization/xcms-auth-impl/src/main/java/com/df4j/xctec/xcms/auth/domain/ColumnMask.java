@@ -2,6 +2,7 @@ package com.df4j.xctec.xcms.auth.domain;
 
 import com.df4j.xctec.xcms.kernel.entity.TenantEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -31,7 +32,8 @@ public class ColumnMask extends TenantEntity {
     @Column(name = "mask_rule", length = 64)
     private String maskRule;
 
-    @Column(name = "role_ids", length = 500)
+    @Lob
+    @Column(name = "role_ids")
     private String roleIds;
 
     @Column(name = "status", length = 20)

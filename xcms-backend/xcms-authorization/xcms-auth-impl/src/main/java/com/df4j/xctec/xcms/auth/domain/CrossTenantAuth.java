@@ -2,6 +2,7 @@ package com.df4j.xctec.xcms.auth.domain;
 
 import com.df4j.xctec.xcms.kernel.entity.BaseEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
@@ -36,7 +37,8 @@ public class CrossTenantAuth extends BaseEntity {
     @Column(name = "user_name", length = 64)
     private String userName;
 
-    @Column(name = "data_scope", length = 2000)
+    @Lob
+    @Column(name = "data_scope")
     private String dataScope;
 
     @Column(name = "token", length = 512)

@@ -1,6 +1,7 @@
 package com.df4j.xctec.xcms.auth.domain;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -39,6 +40,7 @@ public class DataRuleRole {
     @Column(name = "role_id", nullable = false)
     private Long roleId;
 
-    @Column(name = "scope_value", length = 2000)
+    @Lob
+    @Column(name = "scope_value")
     private String scopeValue;
 }
