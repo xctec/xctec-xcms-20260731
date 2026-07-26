@@ -98,6 +98,32 @@ class OpenApiExportTest {
         }
         assertTrue(errorCodeDoc, "ApiResponse.errorCode 应文档化 ErrorCodes 错误码体系");
 
+        // 分页/排序参数文档化：PageQuery 基类字段进入查询 DTO schema
+        JsonNode userQuery = schemas.path("UserQuery");
+        assertFalse(userQuery.isMissingNode(), "应存在 UserQuery schema");
+        JsonNode pageDesc = userQuery.path("properties").path("page").path("description");
+        assertFalse(pageDesc.isMissingNode(), "UserQuery.page 应有 @Schema 描述（继承自 PageQuery）");
+        System.out.println("[OpenApiExportTest] UserQuery.page desc=" + pageDesc.asText());
+
+        // 请求参数级 @Parameter（路径变量 id）
+        boolean idParamDoc = false;
+        for (var pit = paths.fields(); pit.hasNext(); ) {
+            var pe = pit.next();
+            if (pe.getKey().contains("/file/download/")) {
+                JsonNode params = pe.getValue().path("get").path("parameters");
+                for (var paramIt = params.elements(); paramIt.hasNext(); ) {
+                    JsonNode p = paramIt.next();
+                    if ("id".equals(p.path("name").asText()) && !p.path("description").isMissingNode()) {
+                        idParamDoc = true;
+                        System.out.println("[OpenApiExportTest] /file/download/{id} id param desc=" + p.path("description").asText());
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        assertTrue(idParamDoc, "FileController.download 的 id 路径变量应文档化");
+
         System.out.println("[OpenApiExportTest] paths=" + paths.size()
                 + ", tags=" + tags.size()
                 + ", opsWithSummary=" + withSummary + ", publicEndpoints=" + publicEndpoints);

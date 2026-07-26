@@ -12,6 +12,7 @@ import com.df4j.xctec.xcms.kernel.common.ApiResponse;
 import com.df4j.xctec.xcms.kernel.common.dto.IdRequest;
 import com.df4j.xctec.xcms.kernel.context.TenantContext;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -74,8 +75,8 @@ public class SsoController {
     @Operation(summary = "SSO 授权回调", description = "IdP 重定向回调，携带 code/state 完成登录并返回令牌。公开端点，无需鉴权。")
     @SecurityRequirements
     @GetMapping("/callback")
-    public ApiResponse<LoginResult> callback(@RequestParam("code") String code,
-                                             @RequestParam("state") String state) {
+    public ApiResponse<LoginResult> callback(@Parameter(description = "IdP 授权码") @RequestParam("code") String code,
+                                             @Parameter(description = "OAuth state（防 CSRF，需与发起授权时一致）") @RequestParam("state") String state) {
         return ApiResponse.success(authService.ssoCallback(code, state));
     }
 }

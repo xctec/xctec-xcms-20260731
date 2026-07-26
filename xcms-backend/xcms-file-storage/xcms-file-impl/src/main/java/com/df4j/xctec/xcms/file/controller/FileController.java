@@ -11,6 +11,7 @@ import com.df4j.xctec.xcms.kernel.context.TenantContext;
 import com.df4j.xctec.xcms.kernel.exception.BusinessException;
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
@@ -45,7 +46,7 @@ public class FileController {
 
     @Operation(summary = "上传文件", description = "上传文件并返回文件元信息")
     @PostMapping("/upload")
-    public ApiResponse<FileDTO> upload(@RequestParam("file") MultipartFile multipart) {
+    public ApiResponse<FileDTO> upload(@Parameter(description = "上传的文件（multipart/form-data）", required = true) @RequestParam("file") MultipartFile multipart) {
         FileUploadCommand command = new FileUploadCommand();
         try {
             command.setContent(multipart.getBytes());
@@ -79,7 +80,7 @@ public class FileController {
 
     @Operation(summary = "下载文件", description = "按 ID 流式下载文件二进制内容")
     @GetMapping("/download/{id}")
-    public ResponseEntity<Resource> download(@PathVariable("id") Long id) {
+    public ResponseEntity<Resource> download(@Parameter(description = "文件ID") @PathVariable("id") Long id) {
         FileDTO dto = fileStorageService.getFileInfo(id);
         byte[] bytes = fileStorageService.download(id);
         ByteArrayResource resource = new ByteArrayResource(bytes);

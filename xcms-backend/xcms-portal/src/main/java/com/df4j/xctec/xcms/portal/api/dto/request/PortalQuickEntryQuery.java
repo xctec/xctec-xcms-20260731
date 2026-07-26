@@ -1,5 +1,6 @@
 package com.df4j.xctec.xcms.portal.api.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 /**
@@ -9,5 +10,6 @@ import lombok.Data;
 public class PortalQuickEntryQuery {
 
     /** 门户面：ADMIN / BUSINESS */
+    @Schema(description = "门户面（ADMIN/BUSINESS）")
     private String surface;
 }
