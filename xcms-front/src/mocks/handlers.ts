@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { mockTenants } from './data/tenants';
-import { mockMenus } from './data/menus';
+import { mockAdminMenus, mockPortalMenus } from './data/menus';
 
 const ok = <T>(data: T) => HttpResponse.json({ errorCode: '0', errorMsg: 'success', data });
 let tenants = [...mockTenants];
@@ -27,9 +27,27 @@ export const handlers = [
     tenantId: 1, tenantName: '集团总部', roles: ['SYSTEM_ADMIN'], expiresIn: 7200,
   })),
 
+  // ====== Token 刷新 ======
+  http.post('/api/auth/refresh', async ({ request }) => {
+    const body = (await request.json()) as { refreshToken?: string };
+    // 演示：携带有效 refreshToken 即视为刷新成功，返回全新令牌
+    if (body.refreshToken) {
+      return ok({
+        token: 'mock-jwt-token-' + Date.now(),
+        refreshToken: 'mock-refresh-token-' + Date.now(),
+        userId: 1, username: 'admin', realName: '超级管理员',
+        tenantId: 1, tenantName: '集团总部', roles: ['SYSTEM_ADMIN'], expiresIn: 7200,
+      });
+    }
+    return HttpResponse.json({ errorCode: '1001', errorMsg: 'refreshToken 无效', data: null }, { status: 401 });
+  }),
+
   // ====== Menu ======
-  http.post('/api/menu/user-menus', () => ok(mockMenus)),
-  http.post('/admin/menu/all', () => ok(mockMenus)),
+  http.post('/api/menu/user-menus', async ({ request }) => {
+    const body = (await request.json().catch(() => ({}))) as { face?: string };
+    return ok(body.face === 'portal' ? mockPortalMenus : mockAdminMenus);
+  }),
+  http.post('/admin/menu/all', () => ok(mockAdminMenus)),
 
   // ====== Tenant ======
   http.post('/admin/tenant/list-children', async ({ request }) => {

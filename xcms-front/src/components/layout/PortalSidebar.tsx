@@ -11,28 +11,20 @@ const iconMap: Record<string, typeof LayoutDashboard> = {
   LayoutDashboard, Workflow, Bell, FolderOpen, User,
 };
 
-const portalMenus = [
-  {
-    titleKey: '工作',
-    items: [
-      { icon: 'LayoutDashboard', labelKey: '工作台', path: '/portal/workbench' },
-      { icon: 'Workflow', labelKey: '流程中心', path: '/portal/workflow', badge: '5' },
-      { icon: 'Bell', labelKey: '消息中心', path: '/portal/message', badge: '3' },
-    ],
-  },
-  {
-    titleKey: '个人',
-    items: [
-      { icon: 'FolderOpen', labelKey: '文件管理', path: '/portal/file' },
-      { icon: 'User', labelKey: '个人中心', path: '/portal/profile' },
-    ],
-  },
-];
-
 export default function PortalSidebar() {
-  const { realName, tenantName } = useAuthStore();
+  const { portalMenus, hasPermission } = useAuthStore();
   const { sidebarCollapsed, toggleSidebar } = useAppStore();
   const collapsed = sidebarCollapsed;
+
+  const visibleGroups = portalMenus
+    .filter((g) => g.visible !== false)
+    .map((g) => ({
+      ...g,
+      children: (g.children ?? []).filter(
+        (item) => item.type !== 'BUTTON' && item.visible !== false && hasPermission(item.permission)
+      ),
+    }))
+    .filter((g) => g.children.length > 0);
 
   return (
     <aside
@@ -62,20 +54,15 @@ export default function PortalSidebar() {
       )}
 
       <nav className="flex-1 overflow-y-auto py-2">
-        {portalMenus.map((group, gi) => (
-          <div key={gi} className="mb-1">
-            {!collapsed && <div className="px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">{group.titleKey}</div>}
-            {group.items.map((item, i) => {
-              const Icon = iconMap[item.icon] || LayoutDashboard;
+        {visibleGroups.map((group) => (
+          <div key={group.key} className="mb-1">
+            {!collapsed && <div className="px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">{group.label}</div>}
+            {group.children.map((item) => {
+              const Icon = iconMap[item.icon || ''] || LayoutDashboard;
               return (
-                <NavLink key={i} to={item.path} className={({ isActive }) => clsx('flex h-9 items-center gap-3 border-l-2 px-4 text-[13px] transition-colors duration-150', isActive ? 'border-primary-500 bg-primary-50 font-medium text-primary-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-700')}>
+                <NavLink key={item.key} to={item.path || '#'} className={({ isActive }) => clsx('flex h-9 items-center gap-3 border-l-2 px-4 text-[13px] transition-colors duration-150', isActive ? 'border-primary-500 bg-primary-50 font-medium text-primary-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-700')}>
                   <Icon size={16} className="flex-shrink-0" />
-                  {!collapsed && (
-                    <>
-                      <span className="flex-1 text-left">{item.labelKey}</span>
-                      {item.badge && <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">{item.badge}</span>}
-                    </>
-                  )}
+                  {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
                 </NavLink>
               );
             })}

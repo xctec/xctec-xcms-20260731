@@ -1,6 +1,16 @@
-import axios, { type AxiosResponse } from 'axios';
+import axios, {
+  type AxiosError,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from 'axios';
 import type { ApiResponse } from '@/types/common';
 import { useAuthStore } from '@/stores/auth';
+import { refreshTokens } from './tokenRefresh';
+
+const REFRESH_URL = '/api/auth/refresh';
+const LOGIN_URL = '/api/auth/login';
+
+type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
 const http = axios.create({
   baseURL: '/',
@@ -8,15 +18,24 @@ const http = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// 请求拦截器
-http.interceptors.request.use((config) => {
+// 请求拦截器：注入令牌 / 租户，并在访问令牌即将过期时主动刷新
+http.interceptors.request.use(async (config) => {
+  const state = useAuthStore.getState();
+  if (
+    state.token &&
+    config.url !== REFRESH_URL &&
+    config.url !== LOGIN_URL &&
+    state.isAboutToExpire()
+  ) {
+    await refreshTokens();
+  }
   const { token, tenantId } = useAuthStore.getState();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   if (tenantId) config.headers['X-Tenant-Id'] = String(tenantId);
   return config;
 });
 
-// 响应拦截器
+// 响应拦截器：解包 data；401 触发刷新并重试，刷新失败则清除登录态跳登录
 http.interceptors.response.use(
   (response: AxiosResponse<ApiResponse<unknown>>) => {
     const body = response.data;
@@ -26,10 +45,32 @@ http.interceptors.response.use(
     // 解包：返回 data 字段
     return body.data as never;
   },
-  (error) => {
-    if (error.response?.status === 401) {
+  async (error: AxiosError) => {
+    const status = error.response?.status;
+    const config = error.config as RetryableConfig | undefined;
+
+    const canRetry =
+      status === 401 &&
+      config &&
+      !config._retry &&
+      config.url !== REFRESH_URL &&
+      config.url !== LOGIN_URL;
+
+    if (canRetry) {
+      config._retry = true;
+      const ok = await refreshTokens();
+      if (ok) {
+        const token = useAuthStore.getState().token;
+        if (token) config.headers.Authorization = `Bearer ${token}`;
+        return http(config);
+      }
+    }
+
+    if (status === 401 && config?.url !== LOGIN_URL) {
       useAuthStore.getState().clearAuth();
-      window.location.href = '/login';
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

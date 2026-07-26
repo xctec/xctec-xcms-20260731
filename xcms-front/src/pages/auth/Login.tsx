@@ -3,12 +3,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '@/api/auth';
+import { menuApi } from '@/api/menu';
 import { useAuthStore } from '@/stores/auth';
 
 export default function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { setAuth } = useAuthStore();
+  const { setAuth, setMenus } = useAuthStore();
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('admin123');
   const [showPwd, setShowPwd] = useState(false);
@@ -22,6 +23,15 @@ export default function LoginPage() {
     try {
       const result = await authApi.login({ username, password });
       setAuth(result);
+      try {
+        const [adminMenus, portalMenus] = await Promise.all([
+          menuApi.getUserMenus('admin'),
+          menuApi.getUserMenus('portal'),
+        ]);
+        setMenus(adminMenus, portalMenus);
+      } catch {
+        // 菜单拉取失败不阻断登录，使用空菜单
+      }
       navigate('/admin');
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败');

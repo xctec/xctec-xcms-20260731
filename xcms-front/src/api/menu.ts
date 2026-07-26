@@ -1,9 +1,10 @@
 import { http } from './http';
-import { Schemas, Unwrap } from '@/types/api-helpers';
+import type { RouteMenuItem } from '@/types/menu';
+
+export type MenuFace = 'admin' | 'portal';
 
 export const menuApi = {
-  /** 获取当前用户可见的菜单树 */
-  getUserMenus: () => http.post<unknown, Unwrap<Schemas['ApiResponseListMenuDTO']>>('/api/menu/user-menus', {}),
-  /** 获取所有菜单（管理面菜单管理用） */
-  getAllMenus: () => http.post<unknown, Unwrap<Schemas['ApiResponseListMenuDTO']>>('/admin/menu/all', {}),
+  /** 获取当前用户在某端面下的菜单树（已按权限过滤，前端再二次校验） */
+  getUserMenus: (face: MenuFace) =>
+    http.post<unknown, RouteMenuItem[]>('/api/menu/user-menus', { face }),
 };

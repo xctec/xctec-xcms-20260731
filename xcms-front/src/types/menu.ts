@@ -23,5 +23,7 @@ export interface RouteMenuItem {
   sort: number;
   visible: boolean;
   permission?: string;
+  /** 菜单类型：目录 / 菜单 / 按钮（按钮仅用于驱动按钮级权限，不渲染为导航项） */
+  type?: 'DIRECTORY' | 'MENU' | 'BUTTON';
   children?: RouteMenuItem[];
 }

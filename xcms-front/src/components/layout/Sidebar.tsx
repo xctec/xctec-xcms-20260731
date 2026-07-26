@@ -3,60 +3,32 @@ import { useTranslation } from 'react-i18next';
 import {
   Building2, Network, Users, Shield, Bell, Settings,
   Search, ChevronLeft, User, BarChart3, FileText, FolderOpen,
-  Workflow, Clock, Network as NetIcon,
+  Workflow, Clock, LayoutDashboard,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
 import clsx from 'clsx';
 
 const iconMap: Record<string, typeof Building2> = {
-  Building2, Network, Users, Shield, Bell, Settings, BarChart3, FileText, FolderOpen, Workflow, Clock,
+  Building2, Network, Users, Shield, Bell, Settings, BarChart3, FileText,
+  FolderOpen, Workflow, Clock, LayoutDashboard, User,
 };
 
-// 菜单数据（后续由 menuApi.getUserMenus() 动态获取）
-const mockMenus = [
-  {
-    titleKey: '租户与组织',
-    items: [
-      { icon: 'Building2', labelKey: '租户管理', path: '/admin/tenant', badge: '9' },
-      { icon: 'Network', labelKey: '组织架构', path: '/admin/organization' },
-      { icon: 'Users', labelKey: '用户管理', path: '/admin/user' },
-    ],
-  },
-  {
-    titleKey: '安全与权限',
-    items: [
-      { icon: 'Shield', labelKey: '权限管理', path: '/admin/permission' },
-    ],
-  },
-  {
-    titleKey: '业务流程',
-    items: [
-      { icon: 'Workflow', labelKey: '流程管理', path: '/admin/workflow' },
-    ],
-  },
-  {
-    titleKey: '运营',
-    items: [
-      { icon: 'BarChart3', labelKey: '运营看板', path: '/admin/operation' },
-      { icon: 'Bell', labelKey: '消息中心', path: '/admin/message', badge: '3' },
-      { icon: 'FolderOpen', labelKey: '文件管理', path: '/admin/file' },
-    ],
-  },
-  {
-    titleKey: '系统',
-    items: [
-      { icon: 'Settings', labelKey: '配置管理', path: '/admin/config' },
-      { icon: 'Clock', labelKey: '任务调度', path: '/admin/task' },
-      { icon: 'FileText', labelKey: '审计日志', path: '/admin/audit' },
-    ],
-  },
-];
-
 export default function Sidebar() {
-  const { realName, tenantName } = useAuthStore();
+  const { menus, hasPermission } = useAuthStore();
   const { sidebarCollapsed, toggleSidebar } = useAppStore();
   const collapsed = sidebarCollapsed;
+
+  // 仅展示有权限且可见的菜单项；整组无可见项时隐藏分组
+  const visibleGroups = menus
+    .filter((g) => g.visible !== false)
+    .map((g) => ({
+      ...g,
+      children: (g.children ?? []).filter(
+        (item) => item.type !== 'BUTTON' && item.visible !== false && hasPermission(item.permission)
+      ),
+    }))
+    .filter((g) => g.children.length > 0);
 
   return (
     <aside
@@ -95,17 +67,17 @@ export default function Sidebar() {
 
       {/* Menu */}
       <nav className="flex-1 overflow-y-auto py-2">
-        {mockMenus.map((group, gi) => (
-          <div key={gi} className="mb-1">
+        {visibleGroups.map((group) => (
+          <div key={group.key} className="mb-1">
             {!collapsed && (
-              <div className="px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">{group.titleKey}</div>
+              <div className="px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">{group.label}</div>
             )}
-            {group.items.map((item, i) => {
-              const Icon = iconMap[item.icon] || Building2;
+            {group.children.map((item) => {
+              const Icon = iconMap[item.icon || ''] || Building2;
               return (
                 <NavLink
-                  key={i}
-                  to={item.path}
+                  key={item.key}
+                  to={item.path || '#'}
                   className={({ isActive }) =>
                     clsx(
                       'flex h-9 items-center gap-3 border-l-2 px-4 text-[13px] transition-colors duration-150',
@@ -116,14 +88,7 @@ export default function Sidebar() {
                   }
                 >
                   <Icon size={16} className="flex-shrink-0" />
-                  {!collapsed && (
-                    <>
-                      <span className="flex-1 text-left">{item.labelKey}</span>
-                      {item.badge && (
-                        <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">{item.badge}</span>
-                      )}
-                    </>
-                  )}
+                  {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
                 </NavLink>
               );
             })}

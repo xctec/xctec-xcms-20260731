@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Pagination } from '@/components/ui/Pagination';
 import { PageHeader, FilterBar, TableCard } from '@/components/ui/PageHeader';
+import { Can } from '@/components/auth/Can';
 
 const mockUsers = [
   { id: 1, username: 'admin', realName: '超级管理员', email: 'admin@xcms.com', phone: '13800000001', dept: '集团总部', role: '系统管理员', status: 'ACTIVE', createdAt: '2025-01-15' },
@@ -27,8 +28,14 @@ export default function UserListPage() {
     <div>
       <PageHeader title="用户管理" description="管理系统用户、角色分配、状态管理" actions={
         <>
-          <Button variant="secondary" icon={Download}>导出</Button>
-          <Button variant="primary" icon={Plus}>新建用户</Button>
+          {/* 按钮级权限：无 user:export 权限时不渲染（演示隐藏） */}
+          <Can permission="user:export">
+            <Button variant="secondary" icon={Download}>导出</Button>
+          </Can>
+          {/* 按钮级权限：拥有 user:create 才展示新建按钮 */}
+          <Can permission="user:create">
+            <Button variant="primary" icon={Plus}>新建用户</Button>
+          </Can>
         </>
       } />
       <TableCard>
@@ -64,7 +71,9 @@ export default function UserListPage() {
                   <td className="px-4 text-[11px] text-gray-400">{u.createdAt}</td>
                   <td className="px-4 text-right">
                     <button className="text-xs font-medium text-primary-500">编辑</button>
-                    <button className="ml-2 text-xs text-gray-400">重置密码</button>
+                    <Can permission="user:reset-pwd">
+                      <button className="ml-2 text-xs text-gray-400">重置密码</button>
+                    </Can>
                     <button className="ml-2 text-gray-400 hover:text-gray-600"><MoreHorizontal size={14} /></button>
                   </td>
                 </tr>
