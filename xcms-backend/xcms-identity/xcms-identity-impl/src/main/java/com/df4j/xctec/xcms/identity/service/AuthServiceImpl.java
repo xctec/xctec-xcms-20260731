@@ -27,6 +27,8 @@ import com.df4j.xctec.xcms.identity.api.enums.RoleScope;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -63,14 +65,29 @@ public class AuthServiceImpl implements AuthService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
+    @Lazy
+    @Autowired
+    private AuthServiceImpl self;
+
     @Override
-    @Transactional
     public LoginResult login(LoginRequest request) {
+        // 登录端点被 TenantInterceptor 排除（无 token），需在进入事务前确定并设置租户上下文：
+        // @TenantId 的当前租户由 Hibernate 会话在开启时经 CurrentTenantIdentifierResolver 捕获，
+        // 会话开启后中途 set 无法改变会话租户。故拆为非事务入口设置上下文 + 经代理调用 @Transactional doLogin。
         Long tenantId = request.getTenantId() != null ? request.getTenantId() : TenantContext.getTenantId();
         if (tenantId == null) {
             throw new BusinessException(ErrorCodes.TENANT_NOT_FOUND, "无法确定租户");
         }
         TenantContext.set(tenantId);
+        try {
+            return self.doLogin(request, tenantId);
+        } finally {
+            TenantContext.clear();
+        }
+    }
+
+    @Transactional
+    public LoginResult doLogin(LoginRequest request, Long tenantId) {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new BusinessException(ErrorCodes.AUTH_INVALID_CREDENTIALS));
         LocalDateTime now = LocalDateTime.now();

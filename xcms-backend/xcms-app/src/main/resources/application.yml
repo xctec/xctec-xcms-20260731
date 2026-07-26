@@ -6,6 +6,9 @@ spring:
     # 生产/联调请切换为 mysql： -Dspring.profiles.active=mysql
     active: h2
   jpa:
+    # 关闭 OSIV：避免在请求入口（租户上下文尚未确定时）提前开启 Hibernate 会话，
+    # 导致 @TenantId 会话租户被冻结为默认 0，从而使登录等需在事务内设置租户的场景查不到数据。
+    open-in-view: false
     properties:
       hibernate:
         # 单库多租户：@TenantId 作为列隔离（DISCRIMINATOR），
