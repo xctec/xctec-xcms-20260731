@@ -19,6 +19,9 @@ const FOCUSABLE =
 export function Drawer({ open, onClose, title, width = 400, children, footer }: DrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const prevFocus = useRef<HTMLElement | null>(null);
+  // 持有最新 onClose，避免 effect 依赖它导致每次渲染重跑（焦点跳动）
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -36,7 +39,7 @@ export function Drawer({ open, onClose, title, width = 400, children, footer }: 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key === 'Tab') {
@@ -63,7 +66,7 @@ export function Drawer({ open, onClose, title, width = 400, children, footer }: 
       document.body.style.overflow = prevOverflow;
       prevFocus.current?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   return (
