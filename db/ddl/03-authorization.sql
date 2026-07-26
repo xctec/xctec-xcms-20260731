@@ -43,6 +43,7 @@ CREATE TABLE perm_role_permission (
     perm_id         BIGINT          NOT NULL,
     scope_config    TEXT,           -- JSON, 数据权限配置
     created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_perm_role_perm PRIMARY KEY (id),
     CONSTRAINT uk_perm_role_perm UNIQUE (tenant_id, role_id, perm_type, perm_id)
 );
@@ -89,6 +90,7 @@ CREATE TABLE perm_column_mask (
     role_ids        TEXT,           -- JSON数组
     status          VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE',
     created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_perm_column_mask PRIMARY KEY (id),
     CONSTRAINT uk_perm_column_mask UNIQUE (tenant_id, resource_type, field_name)
 );
@@ -99,6 +101,7 @@ CREATE TABLE perm_cross_tenant_auth (
     tenant_id           BIGINT          NOT NULL,   -- 发起租户
     target_tenant_id    BIGINT          NOT NULL,   -- 目标租户
     user_id             BIGINT          NOT NULL,   -- 授权用户
+    user_name           VARCHAR(64),                -- 授权用户姓名
     data_scope          TEXT            NOT NULL,   -- JSON, 数据范围
     token               VARCHAR(512)    NOT NULL,
     valid_from          TIMESTAMP       NOT NULL,
@@ -108,6 +111,7 @@ CREATE TABLE perm_cross_tenant_auth (
     approved_at         TIMESTAMP,
     reason              VARCHAR(512),
     created_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_perm_cross_tenant_auth PRIMARY KEY (id),
     CONSTRAINT uk_perm_cross_tenant_token UNIQUE (token)
 );

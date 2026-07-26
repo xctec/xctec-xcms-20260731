@@ -14,6 +14,7 @@ CREATE TABLE wf_category (
     sort_order      INT             NOT NULL DEFAULT 0,
     status          VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE',
     created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_wf_category PRIMARY KEY (id),
     CONSTRAINT uk_wf_category_code UNIQUE (tenant_id, category_code)
 );
@@ -61,6 +62,8 @@ CREATE TABLE wf_node_config (
     timeout_hours       INT,                        -- 超时小时数
     timeout_action      VARCHAR(30),                -- REMIND/AUTO_PASS/AUTO_REJECT
     sort_order          INT             NOT NULL DEFAULT 0,
+    created_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_wf_node_config PRIMARY KEY (id),
     CONSTRAINT uk_wf_node_config UNIQUE (tenant_id, template_id, node_id)
 );
@@ -70,8 +73,8 @@ CREATE INDEX idx_wf_node_config_template ON wf_node_config (tenant_id, template_
 CREATE TABLE wf_cross_tenant_task_auth (
     id                  BIGINT          NOT NULL,
     tenant_id           BIGINT          NOT NULL,   -- 流程归属租户
-    process_instance_id VARCHAR(128)    NOT NULL,   -- Flowable流程实例ID
-    task_id             VARCHAR(128)    NOT NULL,   -- Flowable任务ID
+    process_instance_id BIGINT          NOT NULL,   -- 流程实例ID(wf_instance.id)
+    task_id             BIGINT          NOT NULL,   -- 任务ID(wf_task.id)
     assignee_user_id    BIGINT          NOT NULL,   -- 被分配用户
     assignee_tenant_id  BIGINT          NOT NULL,   -- 被分配用户所属租户
     node_config_id      BIGINT,                     -- 节点配置ID
@@ -79,9 +82,57 @@ CREATE TABLE wf_cross_tenant_task_auth (
     token               VARCHAR(512)    NOT NULL,   -- 授权令牌
     status              VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE', -- ACTIVE/USED/EXPIRED/REVOKED
     created_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expires_at          TIMESTAMP,
     CONSTRAINT pk_wf_cross_task_auth PRIMARY KEY (id),
     CONSTRAINT uk_wf_cross_task_token UNIQUE (token)
 );
 CREATE INDEX idx_wf_cross_task_assignee ON wf_cross_tenant_task_auth (assignee_tenant_id, assignee_user_id);
 CREATE INDEX idx_wf_cross_task_process ON wf_cross_tenant_task_auth (tenant_id, process_instance_id);
+
+-- 流程实例表（租户隔离，关联 Flowable 运行时实例）
+CREATE TABLE wf_instance (
+    id                  BIGINT          NOT NULL,
+    tenant_id           BIGINT          NOT NULL,
+    flow_instance_id    VARCHAR(64),                -- Flowable 流程实例ID
+    instance_code       VARCHAR(64),
+    def_key             VARCHAR(64),                -- 流程定义KEY
+    business_key        VARCHAR(64),
+    title               VARCHAR(255),
+    initiator_id        BIGINT,
+    initiator_name      VARCHAR(64),
+    status              VARCHAR(16)     NOT NULL DEFAULT 'RUNNING',
+    start_time          TIMESTAMP,
+    end_time            TIMESTAMP,
+    attachment_file_id  BIGINT,
+    created_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pk_wf_instance PRIMARY KEY (id)
+);
+CREATE INDEX idx_wf_instance_tenant ON wf_instance (tenant_id);
+CREATE INDEX idx_wf_instance_flow ON wf_instance (tenant_id, flow_instance_id);
+CREATE INDEX idx_wf_instance_status ON wf_instance (tenant_id, status);
+
+-- 流程任务/待办表（租户隔离，关联 Flowable 任务）
+CREATE TABLE wf_task (
+    id                  BIGINT          NOT NULL,
+    tenant_id           BIGINT          NOT NULL,
+    flow_task_id        VARCHAR(64),                -- Flowable 任务ID
+    instance_id         BIGINT,                     -- wf_instance.id
+    flow_instance_id    VARCHAR(64),
+    task_key            VARCHAR(64),
+    task_name           VARCHAR(128),
+    assignee_id         BIGINT,
+    candidate_group     VARCHAR(64),
+    status              VARCHAR(16)     NOT NULL DEFAULT 'PENDING',
+    claim_time          TIMESTAMP,
+    complete_time       TIMESTAMP,
+    comment             VARCHAR(512),
+    form_data           TEXT,                       -- JSON 表单数据
+    created_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pk_wf_task PRIMARY KEY (id)
+);
+CREATE INDEX idx_wf_task_tenant ON wf_task (tenant_id);
+CREATE INDEX idx_wf_task_instance ON wf_task (tenant_id, instance_id);
+CREATE INDEX idx_wf_task_assignee ON wf_task (tenant_id, assignee_id, status);
