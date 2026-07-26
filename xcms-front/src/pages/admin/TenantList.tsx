@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Download, RefreshCw, Building2, MoreHorizontal, ChevronRight, Trash2, Edit, Power } from 'lucide-react';
 import { tenantApi } from '@/api/tenant';
-import type { TenantDTO, TenantStatus } from '@/types/tenant';
+import type { TenantDTO, TenantStatus, TenantType } from '@/types/tenant';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Pagination } from '@/components/ui/Pagination';
@@ -30,12 +30,12 @@ export default function TenantListPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['tenants', { page, keyword, statusFilter }],
-    queryFn: () => tenantApi.list({ parentId: 0, page, size: 10 }),
+    queryFn: () => tenantApi.list({ parentId: 0, query: { page, size: 10 } }),
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: { tenantCode: string; tenantName: string; tenantType: string; parentId: number | null }) =>
-      tenantApi.create({ tenantCode: data.tenantCode, tenantName: data.tenantName, tenantType: data.tenantType as 'ORGANIZATION', parentId: data.parentId }),
+    mutationFn: (data: { tenantCode: string; tenantName: string; tenantType: string; parentId: number }) =>
+      tenantApi.create({ tenantCode: data.tenantCode, tenantName: data.tenantName, tenantType: data.tenantType as TenantType, parentId: data.parentId }),
     onSuccess: () => { toast.success('租户创建成功'); setCreateOpen(false); queryClient.invalidateQueries({ queryKey: ['tenants'] }); setCreateForm({ tenantCode: '', tenantName: '', tenantType: 'ORGANIZATION', parentId: '' }); },
     onError: (err) => toast.error(err instanceof Error ? err.message : '创建失败'),
   });
@@ -60,7 +60,7 @@ export default function TenantListPage() {
 
   const handleCreate = () => {
     if (!createForm.tenantCode || !createForm.tenantName) { toast.error('请填写完整信息'); return; }
-    createMutation.mutate({ ...createForm, parentId: createForm.parentId ? Number(createForm.parentId) : null });
+    createMutation.mutate({ ...createForm, parentId: createForm.parentId ? Number(createForm.parentId) : 0 });
   };
 
   return (
@@ -115,11 +115,11 @@ export default function TenantListPage() {
                       <td className="px-4 text-center text-gray-500">{t.level}</td>
                       <td className="px-4 text-center text-gray-500">128</td>
                       <td className="px-4"><div className="flex items-center gap-2 min-w-[100px]"><div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden"><div className="h-full rounded-full bg-success-500" style={{ width: `${quotaPct}%` }} /></div><span className="text-[11px] text-gray-400 w-8">{quotaPct}%</span></div></td>
-                      <td className="px-4 text-center"><StatusBadge status={t.status} /></td>
+                      <td className="px-4 text-center"><StatusBadge status={t.status ?? ''} /></td>
                       <td className="px-4 text-[11px] text-gray-400">{t.createdAt}</td>
                       <td className="px-4 text-right relative">
                         <button className="text-xs font-medium text-primary-500 hover:text-primary-700" onClick={() => toast.info(`查看租户详情: ${t.tenantName}`)}>详情</button>
-                        <button onClick={() => setMenuTarget(menuTarget === t.id ? null : t.id)} className="ml-2 text-gray-400 hover:text-gray-600"><MoreHorizontal size={14} /></button>
+                        <button onClick={() => setMenuTarget(menuTarget === t.id ? null : (t.id ?? null))} className="ml-2 text-gray-400 hover:text-gray-600"><MoreHorizontal size={14} /></button>
                         {menuTarget === t.id && (
                           <div className="absolute right-4 top-10 z-20 w-32 rounded-lg border border-gray-200 bg-white py-1 shadow-lg animate-fade-in">
                             <button onClick={() => { toast.info(`编辑租户: ${t.tenantName}`); setMenuTarget(null); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"><Edit size={13} />编辑</button>
@@ -177,7 +177,7 @@ export default function TenantListPage() {
         width={400}
         footer={<>
           <Button variant="secondary" onClick={() => setDeleteTarget(null)}>取消</Button>
-          <Button variant="danger" onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)} loading={deleteMutation.isPending}>确认删除</Button>
+          <Button variant="danger" onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id!)} loading={deleteMutation.isPending}>确认删除</Button>
         </>}
       >
         <div className="flex items-center gap-3">

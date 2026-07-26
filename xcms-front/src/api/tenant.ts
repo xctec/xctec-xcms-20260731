@@ -1,13 +1,20 @@
 import { http } from './http';
-import type { TenantDTO, TenantCreateRequest, TenantListRequest } from '@/types/tenant';
-import type { PageResult } from '@/types/common';
+import type { Schemas, Unwrap } from '@/types/api-helpers';
+
+type S = Schemas;
 
 export const tenantApi = {
-  list: (params: TenantListRequest) =>
-    http.post<unknown, PageResult<TenantDTO>>('/admin/tenant/list-children', params),
-  create: (data: TenantCreateRequest) =>
-    http.post<unknown, TenantDTO>('/admin/tenant/create', data),
-  get: (id: number) => http.post<unknown, TenantDTO>('/admin/tenant/get', { id }),
-  delete: (id: number) => http.post<unknown, void>('/admin/tenant/delete', { id }),
-  getTree: () => http.post<unknown, TenantDTO[]>('/admin/tenant/tree', {}),
+  list: (params: S['TenantListChildrenRequest']) =>
+    http.post<unknown, Unwrap<S['ApiResponsePageResultTenantDTO']>>(
+      '/admin/tenant/list-children',
+      params,
+    ),
+  create: (data: S['TenantCreateRequest']) =>
+    http.post<unknown, Unwrap<S['ApiResponseTenantDTO']>>('/admin/tenant/create', data),
+  get: (id: number) =>
+    http.post<unknown, Unwrap<S['ApiResponseTenantDTO']>>('/admin/tenant/get', { id }),
+  delete: (id: number) =>
+    http.post<unknown, Unwrap<S['ApiResponseVoid']>>('/admin/tenant/delete', { id }),
+  getTree: () =>
+    http.post<unknown, Unwrap<S['ApiResponseListTenantTreeDTO']>>('/admin/tenant/tree', {}),
 };

@@ -1,28 +1,13 @@
-export type TenantStatus = 'ACTIVE' | 'SUSPENDED' | 'LOCKED' | 'MIGRATING' | 'ARCHIVED';
-export type TenantType = 'ORGANIZATION' | 'PROJECT' | 'EXTERNAL' | 'PLATFORM';
+/** 租户相关类型——从 OpenAPI 生成类型重导出，避免手写漂移 */
+import type { Schemas } from './api-helpers';
 
-export interface TenantDTO {
-  id: number;
-  tenantCode: string;
-  tenantName: string;
-  tenantType: TenantType;
-  parentId: number | null;
-  level: number;
-  path: string;
-  status: TenantStatus;
-  deploymentMode: string;
-  createdAt: string;
-}
+type S = Schemas;
 
-export interface TenantCreateRequest {
-  tenantCode: string;
-  tenantName: string;
-  tenantType: TenantType;
-  parentId: number | null;
-}
+export type TenantDTO = S['TenantDTO'];
+export type TenantTreeDTO = S['TenantTreeDTO'];
+export type TenantCreateRequest = S['TenantCreateRequest'];
+export type TenantListRequest = S['TenantListChildrenRequest'];
 
-export interface TenantListRequest {
-  parentId?: number;
-  page: number;
-  size: number;
-}
+// 枚举从 DTO 字段派生（生成类型里为内联 enum union，去 undefined）
+export type TenantStatus = NonNullable<S['TenantDTO']['status']>;
+export type TenantType = NonNullable<S['TenantDTO']['tenantType']>;
