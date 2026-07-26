@@ -39,6 +39,15 @@ public class TaskSchedule extends BaseEntity {
     @Column(name = "fixed_rate")
     private Long fixedRate;
 
+    @Column(name = "fixed_delay")
+    private Long fixedDelay;
+
+    @Column(name = "max_retry")
+    private Integer maxRetry;
+
+    @Column(name = "retry_interval")
+    private Long retryInterval;
+
     @Column(name = "handler_class", nullable = false, length = 256)
     private String handlerName;
 

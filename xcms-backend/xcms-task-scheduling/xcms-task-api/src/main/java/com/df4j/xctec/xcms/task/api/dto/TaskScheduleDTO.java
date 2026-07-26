@@ -13,6 +13,9 @@ public class TaskScheduleDTO {
     private String taskType;
     private String cronExpression;
     private Long fixedRate;
+    private Long fixedDelay;
+    private Integer maxRetry;
+    private Long retryInterval;
     private String handlerName;
     private String handlerParams;
     private String status;

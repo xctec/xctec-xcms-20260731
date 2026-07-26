@@ -1,9 +1,8 @@
 package com.df4j.xctec.xcms.task.engine;
 
 import com.df4j.xctec.xcms.kernel.context.TenantContext;
-import com.df4j.xctec.xcms.message.api.MessageService;
-import com.df4j.xctec.xcms.message.api.dto.request.SendMessageCommand;
 import com.df4j.xctec.xcms.task.api.TaskHandler;
+import com.df4j.xctec.xcms.task.api.event.TaskFailedEvent;
 import com.df4j.xctec.xcms.task.domain.TaskAsync;
 import com.df4j.xctec.xcms.task.domain.TaskExecutionLog;
 import com.df4j.xctec.xcms.task.domain.TaskSchedule;
@@ -14,6 +13,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.Trigger;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronExpression;
@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +62,7 @@ public class TaskSchedulerEngine {
     private final TaskExecutionLogRepository logRepository;
     private final TaskAsyncRepository asyncRepository;
     private final ObjectProvider<TaskHandler> handlers;
-    private final ObjectProvider<MessageService> messageService;
+    private final ApplicationEventPublisher eventPublisher;
 
     private final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
     private final Map<Long, ScheduledFuture<?>> futures = new ConcurrentHashMap<>();
@@ -75,13 +74,13 @@ public class TaskSchedulerEngine {
                                TaskExecutionLogRepository logRepository,
                                TaskAsyncRepository asyncRepository,
                                ObjectProvider<TaskHandler> handlers,
-                               ObjectProvider<MessageService> messageService) {
+                               ApplicationEventPublisher eventPublisher) {
         this.lockService = lockService;
         this.scheduleRepository = scheduleRepository;
         this.logRepository = logRepository;
         this.asyncRepository = asyncRepository;
         this.handlers = handlers;
-        this.messageService = messageService;
+        this.eventPublisher = eventPublisher;
     }
 
     @PostConstruct
@@ -213,7 +212,10 @@ public class TaskSchedulerEngine {
             t.setFixedRate(true);
             return t;
         } else if ("FIXED_DELAY".equals(s.getTaskType())) {
-            return new PeriodicTrigger(s.getFixedRate() == null ? 60000 : s.getFixedRate());
+            // 固定延迟：上次执行结束后等待 fixed_delay 再执行（PeriodicTrigger 默认即为 fixed-delay 语义）
+            long delay = s.getFixedDelay() != null ? s.getFixedDelay()
+                    : (s.getFixedRate() != null ? s.getFixedRate() : 60000);
+            return new PeriodicTrigger(delay);
         }
         return null;
     }
@@ -234,9 +236,11 @@ public class TaskSchedulerEngine {
             return;
         }
         Map<String, Object> params = parseParams(s.getHandlerParams());
-        int maxRetries = intOf(params.get("maxRetries"), 0);
+        // 优先使用实体上的重试配置（max_retry/retry_interval），未配置时回退到 handler_params
+        int maxRetries = s.getMaxRetry() != null ? s.getMaxRetry() : intOf(params.get("maxRetries"), 0);
         long timeoutMs = longOf(params.get("timeoutMs"), 0L);
-        long retryIntervalMs = longOf(params.get("retryIntervalMs"), 60_000L);
+        long retryIntervalMs = s.getRetryInterval() != null ? s.getRetryInterval()
+                : longOf(params.get("retryIntervalMs"), 60_000L);
         Long tenantId = s.getTenantId();
         TenantContext.TenantInfo original = tenantId != null ? TenantContext.switchTo(tenantId) : null;
         try {
@@ -308,21 +312,14 @@ public class TaskSchedulerEngine {
     }
 
     private void alert(TaskSchedule s, Exception e) {
-        MessageService svc = messageService.getIfAvailable();
-        if (svc == null) {
-            log.warn("[task] task failed and no MessageService available for alert: {}", s.getTaskCode());
-            return;
-        }
+        // 发布领域事件，由上层业务模块（如 message）监听并发送告警，
+        // 避免底层调度模块直接依赖 message-api（解除循环依赖）。
         try {
-            SendMessageCommand cmd = new SendMessageCommand();
-            cmd.setMsgType("NOTICE");
-            cmd.setTitle("定时任务执行失败: " + s.getTaskName());
-            cmd.setContent("任务[" + s.getTaskName() + "/" + s.getTaskCode() + "]执行失败: "
-                    + truncate(e.getMessage(), 500));
-            cmd.setRecipientIds(new ArrayList<>());
-            svc.send(cmd);
+            eventPublisher.publishEvent(new TaskFailedEvent(
+                    s.getId(), s.getTenantId(), s.getTaskCode(), s.getTaskName(),
+                    truncate(e.getMessage(), 500)));
         } catch (Exception ex) {
-            log.warn("[task] send alert failed", ex);
+            log.warn("[task] publish TaskFailedEvent failed", ex);
         }
     }
 
@@ -333,6 +330,10 @@ public class TaskSchedulerEngine {
             } catch (Exception e) {
                 return null;
             }
+        } else if ("FIXED_DELAY".equals(s.getTaskType())) {
+            long delay = s.getFixedDelay() != null ? s.getFixedDelay()
+                    : (s.getFixedRate() != null ? s.getFixedRate() : 60000);
+            return LocalDateTime.now().plus(Duration.ofMillis(delay));
         } else if (s.getFixedRate() != null) {
             return LocalDateTime.now().plus(Duration.ofMillis(s.getFixedRate().longValue()));
         }

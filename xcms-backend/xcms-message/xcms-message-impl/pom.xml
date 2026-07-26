@@ -26,6 +26,10 @@
         </dependency>
         <dependency>
             <groupId>com.df4j.xctec.xcms</groupId>
+            <artifactId>xcms-task-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.df4j.xctec.xcms</groupId>
             <artifactId>xcms-shared-kernel</artifactId>
         </dependency>
         <dependency>

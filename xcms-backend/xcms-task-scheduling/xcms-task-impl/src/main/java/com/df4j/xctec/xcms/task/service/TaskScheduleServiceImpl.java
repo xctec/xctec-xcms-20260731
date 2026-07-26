@@ -48,6 +48,9 @@ public class TaskScheduleServiceImpl implements TaskScheduleService {
         s.setTaskType(request.getTaskType());
         s.setCronExpression(request.getCronExpression());
         s.setFixedRate(request.getFixedRate());
+        s.setFixedDelay(request.getFixedDelay());
+        s.setMaxRetry(request.getMaxRetry());
+        s.setRetryInterval(request.getRetryInterval());
         s.setHandlerName(request.getHandlerName());
         s.setHandlerParams(request.getHandlerParams());
         s.setDescription(request.getDescription());
@@ -72,6 +75,15 @@ public class TaskScheduleServiceImpl implements TaskScheduleService {
         }
         if (request.getFixedRate() != null) {
             s.setFixedRate(request.getFixedRate());
+        }
+        if (request.getFixedDelay() != null) {
+            s.setFixedDelay(request.getFixedDelay());
+        }
+        if (request.getMaxRetry() != null) {
+            s.setMaxRetry(request.getMaxRetry());
+        }
+        if (request.getRetryInterval() != null) {
+            s.setRetryInterval(request.getRetryInterval());
         }
         if (request.getHandlerName() != null) {
             s.setHandlerName(request.getHandlerName());
@@ -176,8 +188,8 @@ public class TaskScheduleServiceImpl implements TaskScheduleService {
         if (reqTenant != null) {
             return reqTenant;
         }
-        Long ctx = TenantContext.getTenantId();
-        return ctx != null ? ctx : 0L;
+        // 系统级任务（如审计清理、指标采集）无租户上下文时应保留为 null，避免错误关联到 0 号租户
+        return TenantContext.getTenantId();
     }
 
     private TaskScheduleDTO toDto(TaskSchedule s) {
@@ -189,6 +201,9 @@ public class TaskScheduleServiceImpl implements TaskScheduleService {
         dto.setTaskType(s.getTaskType());
         dto.setCronExpression(s.getCronExpression());
         dto.setFixedRate(s.getFixedRate());
+        dto.setFixedDelay(s.getFixedDelay());
+        dto.setMaxRetry(s.getMaxRetry());
+        dto.setRetryInterval(s.getRetryInterval());
         dto.setHandlerName(s.getHandlerName());
         dto.setHandlerParams(s.getHandlerParams());
         dto.setStatus(s.getStatus());
