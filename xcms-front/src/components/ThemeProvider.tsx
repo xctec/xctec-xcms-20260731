@@ -12,9 +12,9 @@ const schemes = {
 } as const;
 
 const densityVars: Record<string, Record<string, string>> = {
-  compact: { '--row-h': '36px', '--btn-h': '28px', '--input-h': '28px', '--card-p': '12px', '--gap': '12px', '--fs': '12px', '--menu-h': '32px', '--bar-h': '48px' },
-  standard: { '--row-h': '44px', '--btn-h': '34px', '--input-h': '34px', '--card-p': '16px', '--gap': '16px', '--fs': '13px', '--menu-h': '36px', '--bar-h': '56px' },
-  comfortable: { '--row-h': '56px', '--btn-h': '40px', '--input-h': '40px', '--card-p': '24px', '--gap': '20px', '--fs': '14px', '--menu-h': '44px', '--bar-h': '64px' },
+  compact: { '--row-h': '36px', '--header-h': '32px', '--btn-h': '28px', '--btn-h-sm': '24px', '--input-h': '28px', '--card-p': '12px', '--card-radius': '8px', '--gap': '12px', '--gap-sm': '8px', '--fs': '12px', '--fs-sm': '11px', '--fs-xs': '10px', '--icon-size': '16px', '--icon-size-sm': '14px', '--menu-h': '32px', '--bar-h': '48px', '--sidebar-w': '200px' },
+  standard: { '--row-h': '44px', '--header-h': '38px', '--btn-h': '34px', '--btn-h-sm': '30px', '--input-h': '34px', '--card-p': '16px', '--card-radius': '10px', '--gap': '16px', '--gap-sm': '12px', '--fs': '13px', '--fs-sm': '12px', '--fs-xs': '11px', '--icon-size': '18px', '--icon-size-sm': '15px', '--menu-h': '36px', '--bar-h': '56px', '--sidebar-w': '240px' },
+  comfortable: { '--row-h': '56px', '--header-h': '44px', '--btn-h': '40px', '--btn-h-sm': '36px', '--input-h': '40px', '--card-p': '24px', '--card-radius': '12px', '--gap': '20px', '--gap-sm': '16px', '--fs': '14px', '--fs-sm': '13px', '--fs-xs': '12px', '--icon-size': '20px', '--icon-size-sm': '17px', '--menu-h': '44px', '--bar-h': '64px', '--sidebar-w': '260px' },
 };
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
