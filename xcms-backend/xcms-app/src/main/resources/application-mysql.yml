@@ -21,3 +21,10 @@ xcms:
       # 生产/联调环境必须通过环境变量注入密钥；未设置 XCMS_JWT_SECRET 将启动失败，
       # 防止误用硬编码默认值导致密钥泄露。
       secret: ${XCMS_JWT_SECRET}
+
+# 开发 profile 启用 OpenAPI 文档与 Swagger UI
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

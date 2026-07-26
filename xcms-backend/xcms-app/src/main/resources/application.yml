@@ -31,8 +31,10 @@ management:
 
 springdoc:
   api-docs:
-    enabled: true
+    # 默认关闭；开发 profile（h2/mysql）启用
+    enabled: false
   swagger-ui:
+    enabled: false
     path: /swagger-ui.html
 
 xcms:
