@@ -6,6 +6,6 @@ import lombok.Data;
 public class DeployCommand {
     private String defKey;
     private String defName;
-    private String category;
+    private Long categoryId;
     private String bpmnXml;
 }

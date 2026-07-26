@@ -7,7 +7,8 @@ public class WorkflowDefinitionDTO {
     private Long id;
     private String defKey;
     private String defName;
-    private String category;
+    private Long categoryId;
     private int version;
     private String status;
+    private String scope;
 }

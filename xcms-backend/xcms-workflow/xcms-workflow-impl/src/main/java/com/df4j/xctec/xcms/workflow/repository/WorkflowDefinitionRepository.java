@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface WorkflowDefinitionRepository extends JpaRepository<WorkflowDefinition, Long> {
-    Optional<WorkflowDefinition> findByDefKeyAndVersion(String defKey, int version);
+    Optional<WorkflowDefinition> findByProcDefKeyAndVersion(String procDefKey, int version);
 }

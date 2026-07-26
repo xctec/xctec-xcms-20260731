@@ -31,6 +31,7 @@ import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
 import org.flowable.engine.repository.Deployment;
+import org.flowable.engine.repository.DeploymentBuilder;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.task.api.Task;
@@ -43,8 +44,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 
 /**
  * 工作流服务实现（基于 Flowable）。整合：
@@ -74,10 +73,16 @@ public class WorkflowServiceImpl implements WorkflowService {
     @Override
     @Transactional
     public WorkflowDefinitionDTO deploy(DeployCommand command) {
-        Deployment deployment = repositoryService.createDeployment()
+        Long tenantId = TenantContext.getTenantId();
+        Long userId = TenantContext.getCurrentUserId();
+        permissionService.requirePermission(userId, "workflow:deploy");
+        DeploymentBuilder builder = repositoryService.createDeployment()
                 .addString((command.getDefKey() == null ? "process" : command.getDefKey()) + ".bpmn20.xml", command.getBpmnXml())
-                .name(command.getDefName())
-                .deploy();
+                .name(command.getDefName());
+        if (tenantId != null) {
+            builder.tenantId(String.valueOf(tenantId));
+        }
+        Deployment deployment = builder.deploy();
         ProcessDefinition pd = repositoryService.createProcessDefinitionQuery()
                 .deploymentId(deployment.getId())
                 .latestVersion()
@@ -87,13 +92,16 @@ public class WorkflowServiceImpl implements WorkflowService {
                 .orElseThrow(() -> new BusinessException(ErrorCodes.INTERNAL_ERROR, "流程定义解析失败"));
 
         WorkflowDefinition def = new WorkflowDefinition();
-        def.setDefKey(pd.getKey());
-        def.setDefName(pd.getName());
-        def.setCategory(command.getCategory());
+        def.setProcDefKey(pd.getKey());
+        def.setTemplateName(pd.getName());
+        def.setCategoryId(command.getCategoryId());
         def.setVersion(pd.getVersion());
-        def.setDeployedId(deployment.getId());
+        def.setProcDefId(pd.getId());
         def.setBpmnXml(command.getBpmnXml());
-        def.setStatus("ACTIVE");
+        def.setScope("TENANT");
+        def.setStatus("PUBLISHED");
+        def.setCreatedBy(userId);
+        def.setPublishedAt(LocalDateTime.now());
         return toDefDto(definitionRepository.save(def));
     }
 
@@ -108,9 +116,15 @@ public class WorkflowServiceImpl implements WorkflowService {
             fileStorageService.getFileInfo(command.getAttachmentFileId());
         }
 
+        Long tenantId = TenantContext.getTenantId();
         String instanceCode = configService.nextCode("WF");
         Map<String, Object> vars = command.getVariables() == null ? Map.of() : command.getVariables();
-        ProcessInstance pi = runtimeService.startProcessInstanceByKey(command.getDefKey(), command.getBusinessKey(), vars);
+        ProcessInstance pi;
+        if (tenantId != null) {
+            pi = runtimeService.startProcessInstanceByKeyAndTenantId(command.getDefKey(), command.getBusinessKey(), vars, String.valueOf(tenantId));
+        } else {
+            pi = runtimeService.startProcessInstanceByKey(command.getDefKey(), command.getBusinessKey(), vars);
+        }
 
         WorkflowInstance instance = new WorkflowInstance();
         instance.setFlowInstanceId(pi.getId());
@@ -133,6 +147,9 @@ public class WorkflowServiceImpl implements WorkflowService {
     @Transactional(readOnly = true)
     public PageResult<WorkflowTaskDTO> tasks(TaskQuery query) {
         Long uid = TenantContext.getCurrentUserId();
+        if (uid == null) {
+            throw new BusinessException(ErrorCodes.BAD_REQUEST, "缺少用户ID");
+        }
         int page = query.getPage() <= 0 ? 1 : query.getPage();
         int size = query.getSize() <= 0 ? 20 : query.getSize();
         Pageable pageable = PageRequest.of(page - 1, size);
@@ -146,6 +163,14 @@ public class WorkflowServiceImpl implements WorkflowService {
     public void complete(Long taskId, CompleteCommand command) {
         WorkflowTask task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new BusinessException(ErrorCodes.NOT_FOUND, "任务不存在: " + taskId));
+        Long uid = TenantContext.getCurrentUserId();
+        if (uid == null) {
+            throw new BusinessException(ErrorCodes.BAD_REQUEST, "缺少用户ID");
+        }
+        if (!uid.equals(task.getAssigneeId())
+                && !permissionService.checkPermission(uid, "workflow:task:complete:cross")) {
+            throw new BusinessException(ErrorCodes.PERMISSION_DENIED, "无权办理该任务");
+        }
         Map<String, Object> vars = command.getVariables() == null ? Map.of() : command.getVariables();
         taskService.complete(task.getFlowTaskId(), vars);
         task.setStatus("COMPLETED");
@@ -187,12 +212,21 @@ public class WorkflowServiceImpl implements WorkflowService {
     public WorkflowInstanceDTO instanceDetail(Long instanceId) {
         WorkflowInstance instance = instanceRepository.findById(instanceId)
                 .orElseThrow(() -> new BusinessException(ErrorCodes.NOT_FOUND, "流程实例不存在: " + instanceId));
+        Long uid = TenantContext.getCurrentUserId();
+        if (uid != null && !uid.equals(instance.getInitiatorId())
+                && !permissionService.checkPermission(uid, "workflow:instance:view:all")) {
+            throw new BusinessException(ErrorCodes.PERMISSION_DENIED, "无权查看该流程实例");
+        }
         return toInstanceDto(instance, true);
     }
 
     /** 同步 Flowable 当前任务到本地任务表，并通知办理人 */
     private void syncTasks(WorkflowInstance instance) {
-        List<Task> tasks = taskService.createTaskQuery().processInstanceId(instance.getFlowInstanceId()).list();
+        // 任务隔离由 tenant 绑定的流程实例保证（start 时已透传 tenantId），
+        // Flowable 7.0.1 的 TaskQuery 无 taskTenantId，按 processInstanceId 查询即已租户隔离。
+        List<Task> tasks = taskService.createTaskQuery()
+                .processInstanceId(instance.getFlowInstanceId())
+                .list();
         for (Task t : tasks) {
             if (taskRepository.findByFlowTaskId(t.getId()).isPresent()) {
                 continue;
@@ -251,11 +285,12 @@ public class WorkflowServiceImpl implements WorkflowService {
     private WorkflowDefinitionDTO toDefDto(WorkflowDefinition d) {
         WorkflowDefinitionDTO dto = new WorkflowDefinitionDTO();
         dto.setId(d.getId());
-        dto.setDefKey(d.getDefKey());
-        dto.setDefName(d.getDefName());
-        dto.setCategory(d.getCategory());
+        dto.setDefKey(d.getProcDefKey());
+        dto.setDefName(d.getTemplateName());
+        dto.setCategoryId(d.getCategoryId());
         dto.setVersion(d.getVersion());
         dto.setStatus(d.getStatus());
+        dto.setScope(d.getScope());
         return dto;
     }
 
