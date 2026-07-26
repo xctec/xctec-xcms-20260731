@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: xcms
+  profiles:
+    # 默认使用 h2（内存库，create-drop），可无需外部依赖直接启动。
+    # 生产/联调请切换为 mysql： -Dspring.profiles.active=mysql
+    active: h2
+  jackson:
+    default-property-inclusion: non_null
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+
+xcms:
+  web:
+    cors:
+      # 允许的前端源（生产请改为具体域名，多个用逗号分隔）
+      allowed-origins: "*"
+  identity:
+    jwt:
+      # 与 identity 模块保持一致；生产请通过环境变量覆盖
+      secret: ${XCMS_JWT_SECRET:xcms-jwt-default-secret-key-2026-07-25!}
+      access-ttl-seconds: 7200
+      refresh-ttl-seconds: 604800
