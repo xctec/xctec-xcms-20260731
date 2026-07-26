@@ -2,6 +2,7 @@ package com.df4j.xctec.xcms.workflow.service;
 
 import com.df4j.xctec.xcms.auth.api.PermissionService;
 import com.df4j.xctec.xcms.config.api.ConfigService;
+import com.df4j.xctec.xcms.config.api.dto.request.NextCodeRequest;
 import com.df4j.xctec.xcms.file.api.FileStorageService;
 import com.df4j.xctec.xcms.identity.api.UserService;
 import com.df4j.xctec.xcms.kernel.common.PageResult;
@@ -117,7 +118,9 @@ public class WorkflowServiceImpl implements WorkflowService {
         }
 
         Long tenantId = TenantContext.getTenantId();
-        String instanceCode = configService.nextCode("WF");
+        NextCodeRequest nextCodeReq = new NextCodeRequest();
+        nextCodeReq.setRuleCode("WF");
+        String instanceCode = configService.nextCode(nextCodeReq);
         Map<String, Object> vars = command.getVariables() == null ? Map.of() : command.getVariables();
         ProcessInstance pi;
         if (tenantId != null) {
