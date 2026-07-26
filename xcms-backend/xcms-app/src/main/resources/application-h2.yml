@@ -1,18 +1,18 @@
-# 本地开发 Profile（默认）。使用 H2 内存库，自动建表，无需外部数据库。
-# 注意：部分实体可能依赖 MySQL 特有类型，联调/生产请使用 mysql profile。
+# 本地开发 Profile（默认）。使用 H2 文件库（./data/xcms），数据持久化，无需外部数据库。
+# ddl-auto=update：自动更新表结构并保留已有数据。联调/生产请使用 mysql profile。
 spring:
   h2:
     console:
       enabled: true
       path: /h2-console
   datasource:
-    url: jdbc:h2:mem:xcms;DB_CLOSE_DELAY=-1;MODE=MySQL;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    url: jdbc:h2:file:./data/xcms;MODE=MySQL;CASE_INSENSITIVE_IDENTIFIERS=TRUE
     driver-class-name: org.h2.Driver
     username: sa
     password: ""
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
