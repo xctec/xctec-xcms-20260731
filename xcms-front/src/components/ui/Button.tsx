@@ -20,8 +20,8 @@ const variantCls: Record<Variant, string> = {
 };
 
 const sizeCls: Record<Size, string> = {
-  sm: 'h-7 px-2.5 text-xs gap-1',
-  md: 'h-8 px-4 text-[13px] gap-1.5',
+  sm: 'h-[var(--btn-h-sm)] px-2.5 text-[length:var(--fs-sm)] gap-1',
+  md: 'h-[var(--btn-h)] px-4 text-[length:var(--fs)] gap-1.5',
 };
 
 export function Button({ variant = 'primary', size = 'md', icon: Icon, loading, children, className, disabled, ...rest }: ButtonProps) {
