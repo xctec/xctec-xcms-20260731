@@ -17,11 +17,9 @@ export const authzApi = {
     http.post<unknown, DataScope>('/admin/authz/data-scope', { roleId }),
   updateDataScope: (roleId: number, scopeType: string, scopeValues: string[]) =>
     http.post<unknown, Unwrap<Schemas['ApiResponseVoid']>>('/admin/authz/data-scope/update', { roleId, scopeType, scopeValues }),
-  // TODO(后端待补): PermissionController 目前仅 user-permissions/check/menus，无「列举全部权限」接口。
-  // 待后端补充（建议 /admin/permission/list，返回 ApiResponse<List<PermissionDTO>>）后，URL 与返回类型需同步对齐。
-  // 当前保留 mock 端点 /admin/authz/permissions 以便开发联调。
+  // 后端已补：POST /admin/permission/list 返回 ApiResponse<List<PermissionDTO>>（见 PermissionController.listAllPermissions）
   listPermissions: (): Promise<PermissionDTO[]> =>
-    http.post<unknown, Unwrap<Schemas['ApiResponseListPermissionDTO']>>('/admin/authz/permissions', {}),
+    http.post<unknown, Unwrap<Schemas['ApiResponseListPermissionDTO']>>('/admin/permission/list', {}),
   assignPermissions: (roleId: number, permissionIds: number[]) =>
     http.post<unknown, Unwrap<Schemas['ApiResponseVoid']>>('/admin/role-permission/assign', {
       roleId,

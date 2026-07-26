@@ -3,6 +3,7 @@ package com.df4j.xctec.xcms.auth.controller;
 import com.df4j.xctec.xcms.auth.api.PermissionService;
 import com.df4j.xctec.xcms.auth.api.dto.CheckPermissionRequest;
 import com.df4j.xctec.xcms.auth.api.dto.MenuDTO;
+import com.df4j.xctec.xcms.auth.api.dto.PermissionDTO;
 import com.df4j.xctec.xcms.auth.api.dto.UserMenuRequest;
 import com.df4j.xctec.xcms.kernel.common.ApiResponse;
 import com.df4j.xctec.xcms.kernel.common.dto.IdRequest;
@@ -44,5 +45,11 @@ public class PermissionController {
     public ApiResponse<List<MenuDTO>> getUserMenus(@RequestBody UserMenuRequest request) {
         return ApiResponse.success(permissionService.getUserMenus(
                 request.getUserId(), com.df4j.xctec.xcms.auth.api.enums.MenuScope.valueOf(request.getScope())));
+    }
+
+    @Operation(summary = "列出全部权限", description = "返回系统全部权限（操作权限 + 菜单/按钮权限），供前端分配权限时全量选择。")
+    @PostMapping("/list")
+    public ApiResponse<List<PermissionDTO>> listAllPermissions() {
+        return ApiResponse.success(permissionService.listAllPermissions());
     }
 }

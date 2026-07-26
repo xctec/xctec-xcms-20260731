@@ -3552,6 +3552,8 @@ export interface components {
             id?: number;
             /** @description 菜单编码 */
             menuCode?: string;
+            /** @description 权限标识（按钮/菜单对应的真实权限码，用于前端鉴权；目录级可留空） */
+            permission?: string;
             /** @description 菜单名称 */
             menuName?: string;
             /** @description 菜单类型 */
@@ -4164,6 +4166,8 @@ export interface components {
              * @description 所属租户 ID
              */
             tenantId?: number;
+            /** @description 所属租户名称（登录/用户查询时回填，见后端 UserDTO.tenantName） */
+            tenantName?: string;
             /** @description 登录用户名 */
             username?: string;
             /** @description 真实姓名 */

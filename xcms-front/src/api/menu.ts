@@ -17,7 +17,8 @@ export function toRouteMenu(dto: MenuDTO): RouteMenuItem {
     component: '', // 组件由前端路由表决定，不来自后端
     sort: dto.sortOrder ?? 0,
     visible: dto.menuType !== 'HIDDEN',
-    permission: dto.menuCode,
+    // 权限码取自后端 MenuDTO.permission（按钮/菜单对应的真实权限码）；目录级 menuCode 仅作唯一标识
+    permission: dto.permission,
     type: dto.menuType as RouteMenuItem['type'],
     children: dto.children?.map(toRouteMenu),
   };

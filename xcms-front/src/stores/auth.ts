@@ -88,7 +88,7 @@ export const useAuthStore = create<AuthState>()(
           realName: data.user?.realName ?? null,
           tenantId: data.user?.tenantId ?? null,
           // 生成 UserDTO 暂未含 tenantName，兼容后端未来补充（mock 已带）
-          tenantName: (data.user as { tenantName?: string } | undefined)?.tenantName ?? null,
+          tenantName: data.user?.tenantName ?? null,
           roles: data.user?.roles?.map((r) => r.roleCode ?? '') ?? [],
         }),
       setTokens: ({ token, refreshToken, expiresIn }) =>

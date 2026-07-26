@@ -28,6 +28,9 @@ public class Menu {
     @Column(name = "menu_code", unique = true, nullable = false, length = 128)
     private String menuCode;
 
+    @Column(name = "permission", length = 128)
+    private String permission;
+
     @Column(name = "menu_name", nullable = false, length = 128)
     private String menuName;
 

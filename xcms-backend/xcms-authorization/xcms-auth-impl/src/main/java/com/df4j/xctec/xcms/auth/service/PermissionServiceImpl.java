@@ -118,6 +118,35 @@ public class PermissionServiceImpl implements PermissionService {
         return buildTree(visible);
     }
 
+    @Override
+    public List<PermissionDTO> listAllPermissions() {
+        List<PermissionDTO> result = new ArrayList<>();
+        // 操作类权限：来自 perm_operation
+        for (Permission p : permissionRepository.findAll()) {
+            PermissionDTO dto = new PermissionDTO();
+            dto.setId(p.getId());
+            dto.setPermCode(p.getPermCode());
+            dto.setPermName(p.getPermName());
+            dto.setPermType("OPERATION");
+            dto.setModule(p.getModule());
+            dto.setAction(p.getAction());
+            result.add(dto);
+        }
+        // 菜单/按钮类权限：来自 perm_menu，使用 menu.permission 作为权限码
+        for (Menu m : menuRepository.findAll()) {
+            if (m.getPermission() == null || m.getPermission().isBlank()) {
+                continue;
+            }
+            PermissionDTO dto = new PermissionDTO();
+            dto.setId(m.getId());
+            dto.setPermCode(m.getPermission());
+            dto.setPermName(m.getMenuName());
+            dto.setPermType("MENU");
+            result.add(dto);
+        }
+        return result;
+    }
+
     /**
      * 计算当前用户通过「MENU」类型角色权限可访问的菜单 id 集合。
      */
@@ -155,6 +184,7 @@ public class PermissionServiceImpl implements PermissionService {
             MenuDTO dto = new MenuDTO();
             dto.setId(m.getId());
             dto.setMenuCode(m.getMenuCode());
+        dto.setPermission(m.getPermission());
             dto.setMenuName(m.getMenuName());
             dto.setMenuType(m.getMenuType());
             dto.setPath(m.getPath());

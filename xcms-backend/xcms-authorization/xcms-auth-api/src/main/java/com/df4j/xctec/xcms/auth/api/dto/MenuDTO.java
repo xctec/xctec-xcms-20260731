@@ -13,6 +13,9 @@ public class MenuDTO {
     @Schema(description = "菜单编码")
     private String menuCode;
 
+    @Schema(description = "权限标识（按钮/菜单对应的真实权限码，用于前端鉴权；目录级可留空）")
+    private String permission;
+
     @Schema(description = "菜单名称")
     private String menuName;
 

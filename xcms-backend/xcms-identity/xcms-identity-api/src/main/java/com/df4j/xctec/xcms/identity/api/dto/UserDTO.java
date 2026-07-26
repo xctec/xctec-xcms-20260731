@@ -18,6 +18,9 @@ public class UserDTO {
     @Schema(description = "所属租户 ID")
     private Long tenantId;
 
+    @Schema(description = "所属租户名称（登录/用户查询时回填，需后端引入租户服务）")
+    private String tenantName;
+
     @Schema(description = "登录用户名")
     private String username;
 
