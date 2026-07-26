@@ -155,6 +155,7 @@ public class PermissionServiceImpl implements PermissionService {
             MenuDTO dto = new MenuDTO();
             dto.setId(m.getId());
             dto.setMenuCode(m.getMenuCode());
+        dto.setPermission(m.getPermission());
             dto.setMenuName(m.getMenuName());
             dto.setMenuType(m.getMenuType());
             dto.setPath(m.getPath());

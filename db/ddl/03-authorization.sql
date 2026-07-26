@@ -15,6 +15,7 @@ CREATE TABLE perm_menu (
     visible         BOOLEAN         NOT NULL DEFAULT TRUE,
     scope           VARCHAR(20)     NOT NULL DEFAULT 'BOTH', -- ADMIN/BUSINESS/BOTH
     status          VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE',
+    permission      VARCHAR(128),   -- 权限标识（按钮/菜单对应的真实权限码，供前端鉴权；目录级可留空）
     CONSTRAINT pk_perm_menu PRIMARY KEY (id),
     CONSTRAINT uk_perm_menu_code UNIQUE (menu_code)
 );

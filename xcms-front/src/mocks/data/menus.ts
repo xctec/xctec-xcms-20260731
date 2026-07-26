@@ -3,8 +3,8 @@ import type { MenuDTO } from '@/types/menu';
 /**
  * 演示数据：使用后端实体模型 MenuDTO（与后端契约一致），由 api/menu.ts 的 toRouteMenu 映射为前端路由模型。
  * 树形结构：顶层为分组（DIRECTORY），children 为菜单项（MENU）与按钮项（BUTTON，仅驱动按钮级权限）。
- * 按钮项的 menuCode 填权限码（如 user:create），菜单项的 menuCode 填菜单码（如 tenant）。
- * TODO: 后端 MenuDTO 补 permission 字段后，toRouteMenu 改为 permission: dto.permission。
+ * 按钮项的 menuCode 填权限码（如 user:create），同时 permission 填同一权限码，供 toRouteMenu 映射为鉴权码。
+ * 菜单项的 menuCode 填菜单码（如 tenant），permission 留空（目录/菜单不挂按钮级权限）。
  */
 const adminGroup = (id: number, code: string, name: string, icon: string, sort: number, children: MenuDTO[]): MenuDTO => ({
   id, menuCode: code, menuName: name, menuType: 'DIRECTORY', path: '', icon, sortOrder: sort, children,
@@ -15,7 +15,7 @@ const menu = (id: number, code: string, name: string, icon: string, path: string
 });
 
 const btn = (code: string, name: string): MenuDTO => ({
-  id: 0, menuCode: code, menuName: name, menuType: 'BUTTON', path: '', icon: '', sortOrder: 0, children: [],
+  id: 0, menuCode: code, menuName: name, menuType: 'BUTTON', path: '', icon: '', sortOrder: 0, children: [], permission: code,
 });
 
 export const mockAdminMenus: MenuDTO[] = [
