@@ -17,5 +17,8 @@ public interface PermissionService {
 
     List<MenuDTO> getUserMenus(Long userId, MenuScope scope);
 
+    /** 列出全部权限（OPERATION 操作权限 + MENU 菜单/按钮权限），供前端分配权限时全量选择 */
+    List<PermissionDTO> listAllPermissions();
+
     BusinessVisibilityAuth checkBusinessVisibility(Long userId, Long targetTenantId);
 }

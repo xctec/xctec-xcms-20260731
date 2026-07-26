@@ -229,8 +229,8 @@ export const handlers = [
     mockRolePermissions[roleId] = permissionIds || [];
     return ok(null);
   }),
-  // TODO(后端待补): listPermissions 依赖后端「列举全部权限」接口，当前仅 mock 支撑开发联调
-  http.post('/admin/authz/permissions', () => ok(mockPermissions)),
+  // 对齐后端 POST /admin/permission/list（列出全部权限，含操作权限 + 菜单/按钮权限）
+  http.post('/admin/permission/list', () => ok(mockPermissions)),
   http.post('/admin/authz/data-scope', async ({ request }) => {
     const { roleId } = (await request.json()) as { roleId: number };
     return ok(mockRoleDataScope[roleId] ?? { scopeType: 'ALL', scopeValues: [] });
