@@ -233,7 +233,7 @@ public class AuthServiceImpl implements AuthService {
             String body = "grant_type=authorization_code"
                     + "&code=" + encode(code)
                     + "&client_id=" + encode(p.getClientId())
-                    + "&client_secret=" + encode(p.getClientSecret())
+                    + "&client_secret=" + encode(com.df4j.xctec.xcms.identity.util.CryptoUtil.decrypt(p.getClientSecret()))
                     + "&redirect_uri=" + encode(p.getRedirectUri());
             HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(p.getTokenUrl()))

@@ -7,6 +7,7 @@ import com.df4j.xctec.xcms.identity.api.dto.request.SsoProviderCreateRequest;
 import com.df4j.xctec.xcms.identity.api.dto.request.SsoProviderUpdateRequest;
 import com.df4j.xctec.xcms.identity.domain.SsoProvider;
 import com.df4j.xctec.xcms.identity.repository.SsoProviderRepository;
+import com.df4j.xctec.xcms.identity.util.CryptoUtil;
 import com.df4j.xctec.xcms.kernel.exception.BusinessException;
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,7 @@ public class SsoServiceImpl implements SsoService {
     @Override
     @Transactional
     public SsoProviderDTO createProvider(SsoProviderCreateRequest request) {
-        if (providerRepository.existsByServerCode(request.getServerCode())) {
+        if (providerRepository.existsByTenantIdAndServerCode(request.getTenantId(), request.getServerCode())) {
             throw new BusinessException(ErrorCodes.ALREADY_EXISTS, "serverCode 已存在: " + request.getServerCode());
         }
         SsoProvider p = new SsoProvider();
@@ -58,7 +59,7 @@ public class SsoServiceImpl implements SsoService {
             p.setClientId(request.getClientId());
         }
         if (request.getClientSecret() != null) {
-            p.setClientSecret(request.getClientSecret());
+            p.setClientSecret(CryptoUtil.encrypt(request.getClientSecret()));
         }
         if (request.getAuthorizeUrl() != null) {
             p.setAuthorizeUrl(request.getAuthorizeUrl());
@@ -159,7 +160,7 @@ public class SsoServiceImpl implements SsoService {
         p.setServerName(serverName);
         p.setProtocol(protocol);
         p.setClientId(clientId);
-        p.setClientSecret(clientSecret);
+        p.setClientSecret(CryptoUtil.encrypt(clientSecret));
         p.setAuthorizeUrl(authorizeUrl);
         p.setTokenUrl(tokenUrl);
         p.setUserInfoUrl(userInfoUrl);

@@ -15,7 +15,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "sso_provider", indexes = {
-        @Index(name = "uk_sso_provider_code", columnList = "server_code", unique = true),
+        @Index(name = "uk_sso_provider_code", columnList = "tenant_id, server_code", unique = true),
         @Index(name = "idx_sso_provider_tenant", columnList = "tenant_id")
 })
 public class SsoProvider extends BaseEntity {

@@ -14,5 +14,5 @@ public interface SsoProviderRepository extends JpaRepository<SsoProvider, Long> 
 
     List<SsoProvider> findByTenantId(Long tenantId);
 
-    boolean existsByServerCode(String serverCode);
+    boolean existsByTenantIdAndServerCode(Long tenantId, String serverCode);
 }
