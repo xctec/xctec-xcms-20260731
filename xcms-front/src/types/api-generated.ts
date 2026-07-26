@@ -403,6 +403,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tenant/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 查找租户
+         * @description 免鉴权，仅返回启用状态租户的 id/编码/名称，最多 50 条
+         */
+        post: operations["lookup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sso/providers": {
         parameters: {
             query?: never;
@@ -3877,6 +3897,35 @@ export interface components {
              */
             total?: number;
         };
+        TenantLookupRequest: {
+            /** @description 关键字（模糊匹配租户编码/名称），为空则返回全部启用租户 */
+            keyword?: string;
+        };
+        ApiResponseListTenantLookupDTO: {
+            /**
+             * @description 错误码。"0"=成功；其他为业务/系统错误码：4xx 客户端错误（400 参数错误/401 未认证/403 无权限/404 资源不存在/409 资源冲突/422 参数校验失败）；5xx 服务端错误（500 内部错误）；1xxx 业务错误——100x 租户（1001 租户不存在/1002 租户停用/1003 租户锁定/1004 配额超限）、11xx 用户组织（1101 用户不存在/1102 用户已存在/1103 用户禁用/1104 角色不存在/1105 角色已存在/1106 部门不存在/1107 部门已存在/1108 岗位不存在/1109 用户组不存在）；12xx 认证权限（1202 数据权限拒绝/1203 凭证无效/1204 Token无效/1205 Token过期/1206 账号禁用）；4000 通用业务错误；20xx 跨租户（2001 跨租户拒绝/2002 业务可见性拒绝）
+             * @example 0
+             */
+            errorCode?: string;
+            /**
+             * @description 错误信息，成功时为 "success"
+             * @example success
+             */
+            errorMsg?: string;
+            /** @description 响应数据（泛型，可为 null） */
+            data?: components["schemas"]["TenantLookupDTO"][];
+        };
+        TenantLookupDTO: {
+            /**
+             * Format: int64
+             * @description 租户 ID
+             */
+            id?: number;
+            /** @description 租户编码 */
+            tenantCode?: string;
+            /** @description 租户名称 */
+            tenantName?: string;
+        };
         ApiResponseListSsoProviderDTO: {
             /**
              * @description 错误码。"0"=成功；其他为业务/系统错误码：4xx 客户端错误（400 参数错误/401 未认证/403 无权限/404 资源不存在/409 资源冲突/422 参数校验失败）；5xx 服务端错误（500 内部错误）；1xxx 业务错误——100x 租户（1001 租户不存在/1002 租户停用/1003 租户锁定/1004 配额超限）、11xx 用户组织（1101 用户不存在/1102 用户已存在/1103 用户禁用/1104 角色不存在/1105 角色已存在/1106 部门不存在/1107 部门已存在/1108 岗位不存在/1109 用户组不存在）；12xx 认证权限（1202 数据权限拒绝/1203 凭证无效/1204 Token无效/1205 Token过期/1206 账号禁用）；4000 通用业务错误；20xx 跨租户（2001 跨租户拒绝/2002 业务可见性拒绝）
@@ -4149,9 +4198,9 @@ export interface components {
             password?: string;
             /**
              * Format: int64
-             * @description 租户 ID，多租户登录时必填
+             * @description 租户 ID，必填（登录前由前端从租户选择/URL参数确定）
              */
-            tenantId?: number;
+            tenantId: number;
             /** @description 设备类型，如 web/app，用于登录态区分与审计 */
             deviceType?: string;
         };
@@ -7402,6 +7451,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseVoid"];
+                };
+            };
+        };
+    };
+    lookup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantLookupRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListTenantLookupDTO"];
                 };
             };
         };
