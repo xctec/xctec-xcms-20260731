@@ -37,8 +37,7 @@
              UI 运行时依赖在 xcms-app（runtime scope）。 -->
         <dependency>
             <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
-            <version>${springdoc.version}</version>
+            <artifactId>springdoc-openapi-starter-common</artifactId>
         </dependency>
     </dependencies>
     <build>
