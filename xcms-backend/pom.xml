@@ -47,10 +47,12 @@
         <querydsl-feign.version>7.5</querydsl-feign.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
-        <flowable.version>7.0.1</flowable.version>
+        <flowable.version>8.0.0</flowable.version>
         <jjwt.version>0.12.6</jjwt.version>
-        <springdoc.version>2.6.0</springdoc.version>
-        <flatten-plugin.version>1.6.0</flatten-plugin.version>
+        <springdoc.version>3.0.3</springdoc.version>
+        <flatten-plugin.version>1.7.0</flatten-plugin.version>
+        <flyway.version>10.20.0</flyway.version>
+        <postgresql.version>42.7.4</postgresql.version>
     </properties>
 
     <dependencyManagement>
@@ -234,6 +236,25 @@
                 <groupId>org.springdoc</groupId>
                 <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
                 <version>${springdoc.version}</version>
+            </dependency>
+
+            <!-- Flyway -->
+            <dependency>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-core</artifactId>
+                <version>${flyway.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-database-postgresql</artifactId>
+                <version>${flyway.version}</version>
+            </dependency>
+
+            <!-- PostgreSQL 驱动 -->
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${postgresql.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
