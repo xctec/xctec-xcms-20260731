@@ -1,6 +1,9 @@
 import { http } from '@/api/http';
 import { Schemas, Unwrap } from '@/types/api-helpers';
-import type { PermissionDTO, RoleDTO, DataScope } from '@/types/authorization';
+import type { PermissionDTO } from '@/types/authorization';
+
+export type DataRuleDTO = Schemas['DataRuleDTO'];
+export type DataRuleCreateRequest = Schemas['DataRuleCreateRequest'];
 
 /**
  * 角色权限 API：对齐后端 RolePermissionController（/admin/role-permission/*，全 POST）。
@@ -10,13 +13,8 @@ import type { PermissionDTO, RoleDTO, DataScope } from '@/types/authorization';
 export const authzApi = {
   getRolePermissions: (roleId: number) =>
     http.post<unknown, Unwrap<Schemas['ApiResponseListPermissionDTO']>>('/admin/role-permission/get', { id: roleId }),
-  // 数据范围：后端暂无 data-scope 端点（能力落在 /admin/data-rule/*），接口形态待产品确认
-  // data-scope 与 data-rule 的关系后，再决定前端改对接 data-rule 还是后端补 data-scope。
-  // api-generated 无对应 ApiResponse 生成类型，返回结构本地定义见 DataScope。
-  getDataScope: (roleId: number): Promise<DataScope> =>
-    http.post<unknown, DataScope>('/admin/authz/data-scope', { roleId }),
-  updateDataScope: (roleId: number, scopeType: string, scopeValues: string[]) =>
-    http.post<unknown, Unwrap<Schemas['ApiResponseVoid']>>('/admin/authz/data-scope/update', { roleId, scopeType, scopeValues }),
+  // AT-19：数据范围能力对接真实的 /admin/data-rule/* 端点（DataRuleController），
+  // 不再指向臆造的 /admin/authz/data-scope。预设范围经 dataRuleApi 映射为规则 CRUD + 角色绑定。
   // 后端已补：POST /admin/permission/list 返回 ApiResponse<List<PermissionDTO>>（见 PermissionController.listAllPermissions）
   listPermissions: (): Promise<PermissionDTO[]> =>
     http.post<unknown, Unwrap<Schemas['ApiResponseListPermissionDTO']>>('/admin/permission/list', {}),
@@ -27,4 +25,22 @@ export const authzApi = {
       roleId,
       permissions,
     }),
+};
+
+/**
+ * 数据规则 API（AT-19）：对齐后端 DataRuleController（/admin/data-rule/*，全 POST）。
+ * 角色"数据范围"预设由前端映射为规则 CRUD + 绑定（见 Permission.tsx）。
+ */
+export const dataRuleApi = {
+  list: (resourceType: string): Promise<DataRuleDTO[]> =>
+    http.post<unknown, Unwrap<Schemas['ApiResponseListDataRuleDTO']>>('/admin/data-rule/list', { resourceType }),
+  create: (data: DataRuleCreateRequest): Promise<DataRuleDTO> =>
+    http.post<unknown, Unwrap<Schemas['ApiResponseDataRuleDTO']>>('/admin/data-rule/create', data),
+  delete: (id: number) =>
+    http.post<unknown, Unwrap<Schemas['ApiResponseVoid']>>('/admin/data-rule/delete', { id }),
+  // 后端 DataRuleBindRequest 以 id 表示规则 ID
+  bind: (ruleId: number, roleId: number, scopeValue?: string) =>
+    http.post<unknown, Unwrap<Schemas['ApiResponseVoid']>>('/admin/data-rule/bind', { id: ruleId, roleId, scopeValue }),
+  unbind: (ruleId: number, roleId: number) =>
+    http.post<unknown, Unwrap<Schemas['ApiResponseVoid']>>('/admin/data-rule/unbind', { id: ruleId, roleId }),
 };

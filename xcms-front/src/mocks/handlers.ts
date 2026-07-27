@@ -3,7 +3,7 @@ import { mockTenants } from './data/tenants';
 import { mockAdminMenus, mockPortalMenus } from './data/menus';
 import { mockDepartments, mockPositions, mockGroups } from './data/organization';
 import { mockUsers } from './data/users';
-import { mockRoles, mockPermissions, mockRolePermissions, mockRoleDataScope } from './data/roles';
+import { mockRoles, mockPermissions, mockRolePermissions, mockDataRules, mockDataRuleBindings, nextDataRuleId } from './data/roles';
 
 const ok = <T>(data: T) => HttpResponse.json({ errorCode: '0', errorMsg: 'success', data });
 let tenants = [...mockTenants];
@@ -231,17 +231,32 @@ export const handlers = [
   }),
   // 对齐后端 POST /admin/permission/list（列出全部权限，含操作权限 + 菜单/按钮权限）
   http.post('/admin/permission/list', () => ok(mockPermissions)),
-  http.post('/admin/authz/data-scope', async ({ request }) => {
-    const { roleId } = (await request.json()) as { roleId: number };
-    return ok(mockRoleDataScope[roleId] ?? { scopeType: 'ALL', scopeValues: [] });
+  // ====== 数据规则（AT-19：对齐后端 DataRuleController /admin/data-rule/*） ======
+  http.post('/admin/data-rule/list', async ({ request }) => {
+    const { resourceType } = (await request.json()) as { resourceType?: string };
+    return ok(mockDataRules.filter((r) => !resourceType || r.resourceType === resourceType));
   }),
-  http.post('/admin/authz/update-scope', async ({ request }) => {
-    const { roleId, scopeType, scopeValues } = (await request.json()) as {
-      roleId: number;
-      scopeType: string;
-      scopeValues: string[];
-    };
-    mockRoleDataScope[roleId] = { scopeType, scopeValues: scopeValues || [] };
+  http.post('/admin/data-rule/create', async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const rule = { id: nextDataRuleId(), status: 'ACTIVE', ...body };
+    mockDataRules.push(rule as (typeof mockDataRules)[number]);
+    return ok(rule);
+  }),
+  http.post('/admin/data-rule/delete', async ({ request }) => {
+    const { id } = (await request.json()) as { id: number };
+    const idx = mockDataRules.findIndex((r) => r.id === id);
+    if (idx >= 0) mockDataRules.splice(idx, 1);
+    return ok(null);
+  }),
+  http.post('/admin/data-rule/bind', async ({ request }) => {
+    const { id, roleId } = (await request.json()) as { id: number; roleId: number };
+    mockDataRuleBindings.push({ ruleId: id, roleId });
+    return ok(null);
+  }),
+  http.post('/admin/data-rule/unbind', async ({ request }) => {
+    const { id, roleId } = (await request.json()) as { id: number; roleId: number };
+    const idx = mockDataRuleBindings.findIndex((b) => b.ruleId === id && b.roleId === roleId);
+    if (idx >= 0) mockDataRuleBindings.splice(idx, 1);
     return ok(null);
   }),
 ];
