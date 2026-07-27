@@ -178,6 +178,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         }
         departmentRepository.saveAll(subTree);
         DepartmentMovedEvent movedEvent = new DepartmentMovedEvent();
+        movedEvent.setTenantId(TenantContext.getTenantId());
         movedEvent.setDeptId(deptId);
         movedEvent.setOldParentId(oldParentId);
         movedEvent.setNewParentId(newParentId);

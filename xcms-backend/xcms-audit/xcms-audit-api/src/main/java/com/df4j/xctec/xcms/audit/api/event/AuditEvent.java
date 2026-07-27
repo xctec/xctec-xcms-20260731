@@ -1,12 +1,12 @@
 package com.df4j.xctec.xcms.audit.api.event;
 
-import com.df4j.xctec.xcms.kernel.event.DomainEvent;
+import com.df4j.xctec.xcms.kernel.event.BaseDomainEvent;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
@@ -17,7 +17,8 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AuditEvent implements DomainEvent, Serializable {
+@EqualsAndHashCode(callSuper = false)
+public class AuditEvent extends BaseDomainEvent {
 
     private Long tenantId;
     private String eventId;
@@ -39,9 +40,10 @@ public class AuditEvent implements DomainEvent, Serializable {
         return "audit." + (bizModule == null ? "unknown" : bizModule);
     }
 
+    /** 业务方显式指定则优先；未指定时回退基类自动生成的 UUID，保证去重 ID 始终非空 */
     @Override
     public String eventId() {
-        return eventId;
+        return eventId != null ? eventId : super.eventId();
     }
 
     @Override

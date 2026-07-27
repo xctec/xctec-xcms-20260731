@@ -38,4 +38,31 @@ public interface DomainEvent {
     default Long tenantId() {
         return null;
     }
+
+    /**
+     * 触发事件的用户。系统触发（定时任务、补偿等）为 {@code null}。
+     *
+     * @return 用户 ID，可为 null
+     */
+    default Long userId() {
+        return null;
+    }
+
+    /**
+     * 事件发生时刻。用于审计、乱序判断与消费端超时策略。
+     *
+     * @return 发生时刻，默认 null（建议经 {@link BaseDomainEvent} 自动填充）
+     */
+    default java.time.Instant occurredAt() {
+        return null;
+    }
+
+    /**
+     * 事件结构版本号，用于消费端兼容事件演进（新增字段递增版本）。
+     *
+     * @return 版本号，默认 1
+     */
+    default int version() {
+        return 1;
+    }
 }

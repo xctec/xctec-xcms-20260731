@@ -1,12 +1,12 @@
 package com.df4j.xctec.xcms.auth.api.event;
 
-import com.df4j.xctec.xcms.kernel.event.DomainEvent;
+import com.df4j.xctec.xcms.kernel.event.BaseDomainEvent;
 import lombok.Data;
-
-import java.io.Serializable;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class PermissionChangedEvent implements DomainEvent, Serializable {
+@EqualsAndHashCode(callSuper = false)
+public class PermissionChangedEvent extends BaseDomainEvent {
     private Long userId;
     private Long tenantId;
     private String changeType;
