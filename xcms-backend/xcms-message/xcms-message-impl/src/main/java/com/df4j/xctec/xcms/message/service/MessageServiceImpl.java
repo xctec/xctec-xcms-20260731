@@ -14,6 +14,7 @@ import com.df4j.xctec.xcms.message.api.dto.MessageDTO;
 import com.df4j.xctec.xcms.message.api.dto.request.MessageInboxQuery;
 import com.df4j.xctec.xcms.message.api.dto.request.MessageQuery;
 import com.df4j.xctec.xcms.message.api.dto.request.SendMessageCommand;
+import com.df4j.xctec.xcms.message.api.event.NotificationEvent;
 import com.df4j.xctec.xcms.message.domain.Message;
 import com.df4j.xctec.xcms.message.domain.MessageAttachment;
 import com.df4j.xctec.xcms.message.domain.MessageRecipient;
@@ -24,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,6 +50,7 @@ public class MessageServiceImpl implements MessageService {
     private final MessageAttachmentRepository messageAttachmentRepository;
     private final UserService userService;
     private final FileStorageService fileStorageService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -90,6 +93,24 @@ public class MessageServiceImpl implements MessageService {
                 messageAttachmentRepository.save(attachment);
             }
         }
+
+        // 发布站内通知事件（AT-21）：事务提交后由 SpringDomainEventBridge(AFTER_COMMIT) 触发，
+        // NotificationSsePushListener 经分发器向收件人在线连接推送 SSE。
+        if (command.getRecipientIds() != null && !command.getRecipientIds().isEmpty()) {
+            NotificationEvent evt = new NotificationEvent();
+            evt.setTenantId(TenantContext.getTenantId());
+            evt.setSenderId(senderId);
+            evt.setSenderName(resolveName(senderId));
+            evt.setRecipientIds(command.getRecipientIds());
+            evt.setMessageId(message.getId());
+            evt.setMsgCode(message.getMsgCode());
+            evt.setTitle(message.getTitle());
+            evt.setContent(message.getContent());
+            evt.setMsgType(message.getMsgType());
+            evt.setPriority(message.getPriority());
+            eventPublisher.publishEvent(evt);
+        }
+
         return toDto(message, false, recipientNames(message.getId()), attachments(message.getId()));
     }
 
