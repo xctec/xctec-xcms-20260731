@@ -16,6 +16,14 @@
 | [008](008-jpa-tenant-id.md) | JPA @TenantId 多租户 | Accepted |
 | [009](009-mapstruct-entity-mapping.md) | MapStruct Entity ↔ DTO 转换 | Accepted |
 | [010](010-all-post-api-style.md) | 全 POST API 风格 | Accepted |
+| [011](011-spring-security.md) | 鉴权体系迁移 Spring Security | Accepted |
+| [012](012-stateless-service-and-inter-service-call.md) | 无状态服务与微服务调用规范 | Accepted |
+| [013](013-data-permission-sink-and-data-rule.md) | 数据权限横切下沉与 data-rule 统一 | Accepted |
+| [014](014-event-driven-listener-and-outbox.md) | 事件驱动消费端抽象与事务性 Outbox | Accepted |
+| [015](015-tenant-init-event-contract.md) | 租户初始化事件契约化 | Accepted |
+| [016](016-async-task-multi-instance.md) | 异步任务多实例就绪（降优先级，暂缓） | Accepted |
+| [017](017-observability-prometheus.md) | 可观测性采用 Prometheus + Grafana + Alertmanager | Accepted |
+| [018](018-realtime-push-sse.md) | 实时推送采用 SSE + Redis pub/sub | Accepted |
 
 ## ADR Format
 
