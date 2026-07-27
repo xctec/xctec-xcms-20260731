@@ -1,7 +1,7 @@
 package com.df4j.xctec.xcms.auth.service;
 
-import com.df4j.xctec.xcms.auth.api.DataPermissionService;
 import com.df4j.xctec.xcms.auth.api.DataRuleService;
+import com.df4j.xctec.xcms.datapermission.api.DataPermissionService;
 import com.df4j.xctec.xcms.auth.api.dto.DataRuleCreateRequest;
 import com.df4j.xctec.xcms.auth.api.dto.DataRuleDTO;
 import com.df4j.xctec.xcms.auth.api.dto.DataRuleUpdateRequest;
@@ -92,7 +92,7 @@ public class DataRuleServiceImpl implements DataRuleService {
     }
 
     @Override
-    public com.df4j.xctec.xcms.auth.api.DataPermissionContext testPermission(Long userId, String resourceType) {
+    public com.df4j.xctec.xcms.datapermission.api.DataPermissionContext testPermission(Long userId, String resourceType) {
         return dataPermissionService.getDataPermissionContext(userId, resourceType);
     }
 

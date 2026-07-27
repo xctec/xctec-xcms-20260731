@@ -1,6 +1,6 @@
 package com.df4j.xctec.xcms.auth.controller;
 
-import com.df4j.xctec.xcms.auth.api.DataPermissionContext;
+import com.df4j.xctec.xcms.datapermission.api.DataPermissionContext;
 import com.df4j.xctec.xcms.auth.api.DataRuleService;
 import com.df4j.xctec.xcms.auth.api.dto.DataRuleCreateRequest;
 import com.df4j.xctec.xcms.auth.api.dto.DataRuleDTO;

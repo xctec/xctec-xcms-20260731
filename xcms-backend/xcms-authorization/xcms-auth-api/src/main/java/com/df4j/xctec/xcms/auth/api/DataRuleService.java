@@ -3,6 +3,7 @@ package com.df4j.xctec.xcms.auth.api;
 import com.df4j.xctec.xcms.auth.api.dto.DataRuleCreateRequest;
 import com.df4j.xctec.xcms.auth.api.dto.DataRuleDTO;
 import com.df4j.xctec.xcms.auth.api.dto.DataRuleUpdateRequest;
+import com.df4j.xctec.xcms.datapermission.api.DataPermissionContext;
 
 import java.util.List;
 

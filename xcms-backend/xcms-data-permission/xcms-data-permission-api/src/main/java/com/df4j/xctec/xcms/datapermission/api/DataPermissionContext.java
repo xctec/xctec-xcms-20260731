@@ -1,4 +1,4 @@
-package com.df4j.xctec.xcms.auth.api;
+package com.df4j.xctec.xcms.datapermission.api;
 
 import lombok.Data;
 
@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 数据权限上下文，包含用户在各维度的数据范围
+ * 数据权限上下文，包含用户在各维度的数据范围（AT-16：自 auth-api 迁入）
  */
 @Data
 public class DataPermissionContext {
