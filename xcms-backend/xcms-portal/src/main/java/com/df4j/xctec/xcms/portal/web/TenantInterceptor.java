@@ -1,56 +1,39 @@
 package com.df4j.xctec.xcms.portal.web;
 
-import com.df4j.xctec.xcms.identity.api.tenant.ResolvedTenant;
-import com.df4j.xctec.xcms.identity.api.tenant.TenantResolver;
 import com.df4j.xctec.xcms.kernel.context.TenantContext;
-import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.io.IOException;
-import java.util.Optional;
-
 /**
- * 租户上下文拦截器（统一入口 + 轻量鉴权层）。
+ * 租户上下文填充器（AT-07，ADR-016）。
  *
- * <p>从 {@code Authorization: Bearer <token>} 中取出 token，委托 {@link TenantResolver}
- * 解析租户与用户，写入 {@link TenantContext}，供 {@code @TenantId} 与审计日志使用。
+ * <p>认证与授权已上收至 Spring Security（SecurityFilterChain + JWT Resource Server），
+ * 本拦截器<b>不再承担鉴权</b>，仅从 {@link SecurityContextHolder} 读取已认证的 JWT，
+ * 将 tenantId/userId 填入 {@link TenantContext}，供 {@code @TenantId} 会话过滤与审计使用；
+ * 请求结束统一清理，防止线程复用导致的上下文泄漏。</p>
  *
- * <p>{@code WebConfig} 已将被排除的公开端点（登录/刷新/actuator/swagger 等）过滤在外，
- * 不会进入本拦截器；其余请求若缺少有效凭证或 token 无效/过期，将直接返回 401。</p>
+ * <p>无认证信息时直接放行：受保护路径在到达本拦截器前已被 Security 层以 401 拦截，
+ * 能走到这里的匿名请求必然是白名单路径。</p>
  */
 @Component
 public class TenantInterceptor implements HandlerInterceptor {
 
-    private final TenantResolver tenantResolver;
-
-    public TenantInterceptor(TenantResolver tenantResolver) {
-        this.tenantResolver = tenantResolver;
-    }
-
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
-        // 放行 CORS 预检请求（浏览器预检不带 Authorization）
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            return true;
-        }
-        String auth = request.getHeader("Authorization");
-        if (StringUtils.hasText(auth) && auth.startsWith("Bearer ")) {
-            String token = auth.substring(7).trim();
-            Optional<ResolvedTenant> resolved = tenantResolver.resolve(token);
-            if (resolved.isPresent()) {
-                ResolvedTenant t = resolved.get();
-                TenantContext.set(t.tenantId(), t.userId());
-                return true;
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
+            Long tenantId = jwt.getClaim("tenantId") instanceof Number n ? n.longValue() : null;
+            Long userId = parseLong(jwt.getSubject());
+            if (tenantId != null) {
+                TenantContext.set(tenantId, userId);
             }
-            writeUnauthorized(response, ErrorCodes.AUTH_TOKEN_INVALID, "Token 无效或已过期");
-            return false;
         }
-        writeUnauthorized(response, ErrorCodes.AUTH_TOKEN_INVALID, "缺少访问凭证");
-        return false;
+        return true;
     }
 
     @Override
@@ -58,9 +41,11 @@ public class TenantInterceptor implements HandlerInterceptor {
         TenantContext.clear();
     }
 
-    private void writeUnauthorized(HttpServletResponse response, String code, String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write("{\"code\":\"" + code + "\",\"message\":\"" + message + "\"}");
+    private Long parseLong(String value) {
+        try {
+            return value == null ? null : Long.valueOf(value);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 }

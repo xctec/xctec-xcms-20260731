@@ -1,63 +1,60 @@
 package com.df4j.xctec.xcms.app;
 
-import com.df4j.xctec.xcms.identity.api.tenant.ResolvedTenant;
-import com.df4j.xctec.xcms.identity.api.tenant.TenantResolver;
 import com.df4j.xctec.xcms.kernel.context.TenantContext;
 import com.df4j.xctec.xcms.portal.web.TenantInterceptor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
-import java.util.Optional;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
 
 /**
- * TenantInterceptor 单元测试（对应评审 P2.2 轻量鉴权层）。
+ * TenantInterceptor 单元测试（AT-07，ADR-016）。
  *
- * <p>验证：缺少凭证、token 无效/过期时直接返回 401；有效 token 时解析并写入
- * {@link TenantContext}。拦截器逻辑独立于完整 Spring 上下文，可稳定运行。</p>
+ * <p>认证已上收 Spring Security，拦截器退化为纯上下文填充器：
+ * 有认证信息时填充 {@link TenantContext}；无认证信息时放行且不写 401
+ * （401 由 Security 层负责）。</p>
  */
-@ExtendWith(MockitoExtension.class)
 class TenantInterceptorTest {
 
-    @Mock
-    private TenantResolver tenantResolver;
-
-    @InjectMocks
-    private TenantInterceptor interceptor;
+    private final TenantInterceptor interceptor = new TenantInterceptor();
 
     @AfterEach
     void tearDown() {
         TenantContext.clear();
+        SecurityContextHolder.clearContext();
     }
 
     @Test
-    void missingTokenReturns401() throws Exception {
+    void anonymousRequestPassesThroughWithout401() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         boolean result = interceptor.preHandle(request, response, new Object());
 
-        assertFalse(result);
-        assertEquals(401, response.getStatus());
+        assertTrue(result);
+        assertEquals(200, response.getStatus());
+        assertNull(TenantContext.getTenantId());
     }
 
     @Test
-    void validTokenSetsTenantContext() throws Exception {
+    void authenticatedJwtFillsTenantContext() {
+        Jwt jwt = new Jwt("token-value", Instant.now(), Instant.now().plusSeconds(60),
+                Map.of("alg", "HS256"),
+                Map.of("sub", "7", "tenantId", 101L, "username", "alice"));
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, List.of()));
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Bearer valid.jwt.token");
         MockHttpServletResponse response = new MockHttpServletResponse();
-        when(tenantResolver.resolve("valid.jwt.token"))
-                .thenReturn(Optional.of(new ResolvedTenant(101L, 7L)));
 
         boolean result = interceptor.preHandle(request, response, new Object());
 
@@ -67,15 +64,11 @@ class TenantInterceptorTest {
     }
 
     @Test
-    void invalidTokenReturns401() throws Exception {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Bearer bad.token");
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        when(tenantResolver.resolve("bad.token")).thenReturn(Optional.empty());
+    void afterCompletionClearsContext() {
+        TenantContext.set(101L, 7L);
 
-        boolean result = interceptor.preHandle(request, response, new Object());
+        interceptor.afterCompletion(new MockHttpServletRequest(), new MockHttpServletResponse(), new Object(), null);
 
-        assertFalse(result);
-        assertEquals(401, response.getStatus());
+        assertNull(TenantContext.getTenantId());
     }
 }
