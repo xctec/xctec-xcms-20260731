@@ -16,6 +16,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+
 /**
  * 监听租户创建事件，初始化默认角色与管理员。
  *
@@ -26,6 +28,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @RequiredArgsConstructor
 public class TenantUserInitializer implements DomainEventListener<TenantCreatedEvent> {
+
+    // AT-15：新租户 admin 初始密码随机生成，不再硬编码
+    private static final String UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    private static final String LOWER = "abcdefghijkmnpqrstuvwxyz";
+    private static final String DIGITS = "23456789";
+    private static final String SYMBOLS = "!@#$%^&*_-+=";
+    private static final String ALL_CHARS = UPPER + LOWER + DIGITS + SYMBOLS;
+    private static final int PASSWORD_LENGTH = 12;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
@@ -57,9 +68,11 @@ public class TenantUserInitializer implements DomainEventListener<TenantCreatedE
                         .build()));
 
         if (userRepository.findByUsername("admin").isEmpty()) {
+            // AT-15：随机初始密码；passwordChangedAt 保持 null，首登强制改密
+            String initialPassword = generateRandomPassword();
             User admin = User.builder()
                     .username("admin")
-                    .password(passwordEncoder.encode("admin123"))
+                    .password(passwordEncoder.encode(initialPassword))
                     .realName("系统管理员")
                     .status(UserStatus.ACTIVE)
                     .build();
@@ -70,12 +83,37 @@ public class TenantUserInitializer implements DomainEventListener<TenantCreatedE
                         .roleId(adminRole.getId())
                         .build());
             }
-            log.info("租户 {} 默认管理员 admin 初始化完成（初始密码: admin123，请尽快修改）", tenantId);
+            // 安全要求（AT-15）：日志不打印明文密码，密码经安全渠道下发
+            log.info("租户 {} 默认管理员 admin 初始化完成，初始密码已随机生成（不落日志），请通过安全渠道下发并提示首登改密", tenantId);
         }
     }
 
     @Override
     public Class<TenantCreatedEvent> eventType() {
         return TenantCreatedEvent.class;
+    }
+
+    /**
+     * 生成 12 位随机密码（AT-15）：SecureRandom，保证至少各含一个大写、小写、数字、符号；
+     * 字符集剔除易混淆字符（I/l/O/0/1）。
+     */
+    static String generateRandomPassword() {
+        char[] pwd = new char[PASSWORD_LENGTH];
+        // 前四位保证四类字符各至少一个
+        pwd[0] = UPPER.charAt(RANDOM.nextInt(UPPER.length()));
+        pwd[1] = LOWER.charAt(RANDOM.nextInt(LOWER.length()));
+        pwd[2] = DIGITS.charAt(RANDOM.nextInt(DIGITS.length()));
+        pwd[3] = SYMBOLS.charAt(RANDOM.nextInt(SYMBOLS.length()));
+        for (int i = 4; i < PASSWORD_LENGTH; i++) {
+            pwd[i] = ALL_CHARS.charAt(RANDOM.nextInt(ALL_CHARS.length()));
+        }
+        // Fisher-Yates 洗牌，避免固定模式
+        for (int i = PASSWORD_LENGTH - 1; i > 0; i--) {
+            int j = RANDOM.nextInt(i + 1);
+            char tmp = pwd[i];
+            pwd[i] = pwd[j];
+            pwd[j] = tmp;
+        }
+        return new String(pwd);
     }
 }

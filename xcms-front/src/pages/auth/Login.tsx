@@ -34,7 +34,12 @@ export default function LoginPage() {
       } catch {
         // 菜单拉取失败不阻断登录，使用空菜单
       }
-      navigate('/admin');
+      // AT-15：初始密码随机生成，首登（passwordChangedAt 为空）强制跳改密页
+      if (result.forceChangePassword) {
+        navigate('/portal/profile', { state: { forceChangePassword: true } });
+      } else {
+        navigate('/admin');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败');
     } finally {
