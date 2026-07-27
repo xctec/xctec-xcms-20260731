@@ -21,6 +21,10 @@
             <artifactId>xcms-shared-kernel</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.df4j.xctec.xcms</groupId>
+            <artifactId>xcms-identity-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>

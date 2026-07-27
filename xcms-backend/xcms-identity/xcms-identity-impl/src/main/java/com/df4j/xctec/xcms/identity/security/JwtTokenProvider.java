@@ -40,6 +40,23 @@ public class JwtTokenProvider {
         return buildToken(userId, tenantId, username, refreshTtlSeconds);
     }
 
+    /**
+     * 签发服务令牌（AT-11）：subject 为服务主体名，claim 标记 {@code token_type=service}，
+     * 供无用户态触发源（调度/MQ 消费者/服务间调用）携带调用业务接口。
+     */
+    public String issueServiceToken(Long tenantId, String serviceName, long ttlSeconds) {
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + ttlSeconds * 1000);
+        return Jwts.builder()
+                .subject(serviceName)
+                .claim("tenantId", tenantId)
+                .claim("token_type", "service")
+                .issuedAt(now)
+                .expiration(expiration)
+                .signWith(key)
+                .compact();
+    }
+
     private String buildToken(Long userId, Long tenantId, String username, long ttlSeconds) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + ttlSeconds * 1000);

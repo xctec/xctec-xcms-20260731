@@ -33,10 +33,22 @@ public class JwtPermissionAuthenticationConverter implements Converter<Jwt, Abst
         this.permissionService = permissionService;
     }
 
+    /** 服务令牌统一授予的角色权限（AT-11），供 @PreAuthorize 区分系统调用 */
+    static final String SERVICE_AUTHORITY = "ROLE_SERVICE";
+
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
-        Long userId = parseLong(jwt.getSubject());
         Long tenantId = jwt.getClaim("tenantId") instanceof Number n ? n.longValue() : null;
+        // 服务令牌（AT-11）：subject 为服务主体名，不查用户权限，授予 ROLE_SERVICE
+        if ("service".equals(jwt.getClaimAsString("token_type"))) {
+            String serviceName = jwt.getSubject();
+            if (tenantId != null) {
+                ActorContext.setService(tenantId, serviceName);
+            }
+            return new JwtAuthenticationToken(jwt,
+                    List.of(new SimpleGrantedAuthority(SERVICE_AUTHORITY)), serviceName);
+        }
+        Long userId = parseLong(jwt.getSubject());
         // 先填租户上下文再查权限：权限查询走 JPA，@TenantId 过滤依赖上下文
         if (tenantId != null) {
             ActorContext.setUser(tenantId, userId);

@@ -1,5 +1,6 @@
 package com.df4j.xctec.xcms.task.engine;
 
+import com.df4j.xctec.xcms.identity.api.ServiceTokenService;
 import com.df4j.xctec.xcms.kernel.context.ActorContext;
 import com.df4j.xctec.xcms.task.api.TaskHandler;
 import com.df4j.xctec.xcms.task.api.event.TaskFailedEvent;
@@ -53,6 +54,10 @@ public class TaskSchedulerEngine {
 
     /** 调度触发的服务主体标识（ADR-012：系统触发场景 principal 非 null） */
     private static final String SERVICE_PRINCIPAL = "system@task-scheduler";
+    /** 注入 handler params 的服务令牌键（AT-11）：handler 调用业务 HTTP 接口时携带，避免 401 */
+    static final String PARAM_SERVICE_TOKEN = "_serviceToken";
+    /** 服务令牌有效期（秒）：短期签发，每次任务执行前重签 */
+    private static final long SERVICE_TOKEN_TTL_SECONDS = 300;
     private static final String LEADER_KEY = "scheduler";
     private static final long LEASE_SECONDS = 30;
     private static final long LEADERSHIP_CHECK_MS = 10_000;
@@ -65,6 +70,8 @@ public class TaskSchedulerEngine {
     private final TaskAsyncRepository asyncRepository;
     private final ObjectProvider<TaskHandler> handlers;
     private final ApplicationEventPublisher eventPublisher;
+    /** 服务令牌签发端口（AT-11）：可选装配，未装配时降级为不注入令牌 */
+    private final ObjectProvider<ServiceTokenService> serviceTokenService;
 
     private final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
     private final Map<Long, ScheduledFuture<?>> futures = new ConcurrentHashMap<>();
@@ -76,13 +83,33 @@ public class TaskSchedulerEngine {
                                TaskExecutionLogRepository logRepository,
                                TaskAsyncRepository asyncRepository,
                                ObjectProvider<TaskHandler> handlers,
-                               ApplicationEventPublisher eventPublisher) {
+                               ApplicationEventPublisher eventPublisher,
+                               ObjectProvider<ServiceTokenService> serviceTokenService) {
         this.lockService = lockService;
         this.scheduleRepository = scheduleRepository;
         this.logRepository = logRepository;
         this.asyncRepository = asyncRepository;
         this.handlers = handlers;
         this.eventPublisher = eventPublisher;
+        this.serviceTokenService = serviceTokenService;
+    }
+
+    /**
+     * 为本次任务执行签发短期服务令牌并注入 handler params（AT-11）。
+     * handler 通过 {@code params.get(PARAM_SERVICE_TOKEN)} 取得令牌，
+     * 调用业务 HTTP 接口时以 {@code Authorization: Bearer} 携带。
+     */
+    private void injectServiceToken(Map<String, Object> params, Long tenantId) {
+        ServiceTokenService sts = serviceTokenService.getIfAvailable();
+        if (sts == null) {
+            return;
+        }
+        try {
+            params.put(PARAM_SERVICE_TOKEN,
+                    sts.issueServiceToken(tenantId, SERVICE_PRINCIPAL, SERVICE_TOKEN_TTL_SECONDS));
+        } catch (Exception e) {
+            log.warn("[task] issue service token failed: {}", e.getMessage());
+        }
     }
 
     @PostConstruct
@@ -185,6 +212,7 @@ public class TaskSchedulerEngine {
         // 系统触发场景：以服务主体执行，principal 不再为 null（ADR-012）
         ActorContext.Actor original = ActorContext.current();
         ActorContext.setService(tenantId, SERVICE_PRINCIPAL);
+        injectServiceToken(params, tenantId);
         try {
             if (handler != null) {
                 safeExecute(handler, params);
@@ -249,6 +277,7 @@ public class TaskSchedulerEngine {
         // 系统触发场景：以服务主体执行，principal 不再为 null（ADR-012）
         ActorContext.Actor original = ActorContext.current();
         ActorContext.setService(tenantId, SERVICE_PRINCIPAL);
+        injectServiceToken(params, tenantId);
         try {
             runWithRetry(s, handler, params, 0, maxRetries, timeoutMs, retryIntervalMs);
         } finally {
