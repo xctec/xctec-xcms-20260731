@@ -13,7 +13,6 @@ import com.df4j.xctec.xcms.identity.api.dto.UserUpdateRequest;
 import com.df4j.xctec.xcms.identity.api.enums.RoleScope;
 import com.df4j.xctec.xcms.identity.api.enums.UserStatus;
 import com.df4j.xctec.xcms.kernel.common.ApiResponse;
-import com.df4j.xctec.xcms.kernel.common.MaskResource;
 import com.df4j.xctec.xcms.kernel.common.PageResult;
 import com.df4j.xctec.xcms.kernel.common.dto.CodeRequest;
 import com.df4j.xctec.xcms.kernel.common.dto.IdRequest;
@@ -29,7 +28,8 @@ import java.util.List;
 
 /**
  * 用户管理（管理面）。全 POST 风格，URL 为 /admin/user/{action}。
- * get / getByUsername 标注 @MaskResource 走列级脱敏执行链路。
+ * 列级脱敏已下沉 DTO 层（AT-18）：UserDTO 敏感字段以 @MaskField 声明，
+ * 由 MaskFieldResponseAdvice 在响应写出前统一执行，Controller 无需标注。
  */
 @RestController
 @RequestMapping("/admin/user")
@@ -61,14 +61,12 @@ public class UserController {
 
     @Operation(summary = "查询用户详情", description = "按 id 查询用户（走列级脱敏执行链路）。")
     @PostMapping("/get")
-    @MaskResource("user")
     public ApiResponse<UserDTO> getUserById(@RequestBody IdRequest request) {
         return ApiResponse.success(userService.getUserById(request.getId()));
     }
 
     @Operation(summary = "按用户名查询用户", description = "按用户名查询用户（走列级脱敏执行链路）。")
     @PostMapping("/get-by-username")
-    @MaskResource("user")
     public ApiResponse<UserDTO> getUserByUsername(@RequestBody CodeRequest request) {
         return ApiResponse.success(userService.getByUsername(request.getCode()));
     }

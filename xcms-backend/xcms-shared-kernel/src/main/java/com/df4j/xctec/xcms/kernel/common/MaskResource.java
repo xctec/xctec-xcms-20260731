@@ -7,9 +7,12 @@ import java.lang.annotation.Target;
 
 /**
  * 标记该接口返回的数据需要进行列级脱敏。
- * value 指定资源类型（resourceType），用于匹配 ColumnMask 脱敏规则。
- * 由 {@code ColumnMaskResponseBodyAdvice} 自动在响应写出前执行脱敏。
+ *
+ * @deprecated AT-18 起脱敏下沉 DTO 层：请在 DTO 字段上使用
+ * {@code com.df4j.xctec.xcms.datapermission.api.MaskField} 声明敏感列，
+ * 由 MaskFieldResponseAdvice 统一执行（fail-closed）。本注解已无消费者，仅为兼容保留。
  */
+@Deprecated
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface MaskResource {

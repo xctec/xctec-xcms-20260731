@@ -1,5 +1,6 @@
 package com.df4j.xctec.xcms.identity.api.dto;
 
+import com.df4j.xctec.xcms.datapermission.api.MaskField;
 import com.df4j.xctec.xcms.identity.api.enums.UserStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -31,9 +32,11 @@ public class UserDTO {
     private String employeeNo;
 
     @Schema(description = "邮箱")
+    @MaskField(resourceType = "user")
     private String email;
 
     @Schema(description = "手机号")
+    @MaskField(resourceType = "user")
     private String phone;
 
     @Schema(description = "头像 URL")
