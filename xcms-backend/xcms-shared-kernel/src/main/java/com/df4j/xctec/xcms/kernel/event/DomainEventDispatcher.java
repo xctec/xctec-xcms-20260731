@@ -17,6 +17,8 @@ import java.util.Map;
  * <ol>
  *   <li>租户切换：事件携带 {@link DomainEvent#tenantId()} 时，进入监听器前
  *       {@code TenantContext.switchTo}，退出后恢复，消除各监听器手动切换的不一致；</li>
+ *   <li>幂等去重：事件携带 {@link DomainEvent#eventId()} 时，经 {@link EventDedupPort}
+ *       判定，重复事件跳过，防止 at-least-once 投递下的重复副作用；</li>
  *   <li>异常捕获 + 日志：单个监听器失败不阻断其余监听器，记录后聚合抛出（不吞，交重试机制）。</li>
  * </ol>
  *
@@ -28,11 +30,17 @@ public class DomainEventDispatcher {
     private static final Logger log = LoggerFactory.getLogger(DomainEventDispatcher.class);
 
     private final Map<Class<? extends DomainEvent>, List<DomainEventListener<? extends DomainEvent>>> routes = new HashMap<>();
+    private final EventDedupPort dedupPort;
 
     public DomainEventDispatcher(List<DomainEventListener<? extends DomainEvent>> listeners) {
+        this(listeners, null);
+    }
+
+    public DomainEventDispatcher(List<DomainEventListener<? extends DomainEvent>> listeners, EventDedupPort dedupPort) {
         for (DomainEventListener<? extends DomainEvent> listener : listeners) {
             routes.computeIfAbsent(listener.eventType(), k -> new ArrayList<>()).add(listener);
         }
+        this.dedupPort = dedupPort;
     }
 
     /**
@@ -59,7 +67,14 @@ public class DomainEventDispatcher {
         }
         try {
             RuntimeException first = null;
+            String eventId = event.eventId();
             for (DomainEventListener<? extends DomainEvent> listener : listeners) {
+                if (dedupPort != null && eventId != null
+                        && !dedupPort.tryMarkProcessed(listener.getClass().getName(), eventId)) {
+                    log.info("事件 {}({}) 已由 {} 处理过，幂等跳过",
+                            event.topic(), eventId, listener.getClass().getSimpleName());
+                    continue;
+                }
                 try {
                     ((DomainEventListener<DomainEvent>) listener).onEvent(event);
                 } catch (RuntimeException ex) {

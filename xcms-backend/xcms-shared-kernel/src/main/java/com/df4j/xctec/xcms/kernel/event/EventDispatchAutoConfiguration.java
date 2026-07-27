@@ -14,12 +14,19 @@ import java.util.stream.Collectors;
 public class EventDispatchAutoConfiguration {
 
     @Bean
+    @ConditionalOnMissingBean(EventDedupPort.class)
+    public EventDedupPort eventDedupPort() {
+        return new InMemoryEventDedup();
+    }
+
+    @Bean
     @ConditionalOnMissingBean(DomainEventDispatcher.class)
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public DomainEventDispatcher domainEventDispatcher(ObjectProvider<DomainEventListener> listeners) {
+    public DomainEventDispatcher domainEventDispatcher(ObjectProvider<DomainEventListener> listeners,
+                                                       EventDedupPort eventDedupPort) {
         return new DomainEventDispatcher(listeners.orderedStream()
                 .map(l -> (DomainEventListener<? extends DomainEvent>) l)
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList()), eventDedupPort);
     }
 
     @Bean
