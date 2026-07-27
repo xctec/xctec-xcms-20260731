@@ -40,7 +40,9 @@ public class DataRuleServiceImpl implements DataRuleService {
                 .priority(request.getPriority() == null ? 0 : request.getPriority())
                 .status("ACTIVE")
                 .build();
-        return toDTO(dataRuleRepository.save(rule));
+        DataRuleDTO dto = toDTO(dataRuleRepository.save(rule));
+        evictContextCache();
+        return dto;
     }
 
     @Override
@@ -52,7 +54,9 @@ public class DataRuleServiceImpl implements DataRuleService {
         if (request.getRuleConfig() != null) rule.setRuleConfig(request.getRuleConfig());
         if (request.getPriority() != null) rule.setPriority(request.getPriority());
         if (request.getStatus() != null) rule.setStatus(request.getStatus());
-        return toDTO(dataRuleRepository.save(rule));
+        DataRuleDTO dto = toDTO(dataRuleRepository.save(rule));
+        evictContextCache();
+        return dto;
     }
 
     @Override
@@ -62,6 +66,7 @@ public class DataRuleServiceImpl implements DataRuleService {
         findRule(ruleId);
         dataRuleRoleRepository.deleteByRuleId(ruleId);
         dataRuleRepository.deleteById(ruleId);
+        evictContextCache();
     }
 
     @Override
@@ -81,6 +86,7 @@ public class DataRuleServiceImpl implements DataRuleService {
         if (!alreadyBound) {
             dataRuleRoleRepository.save(com.df4j.xctec.xcms.auth.domain.DataRuleRole.builder()
                     .ruleId(ruleId).roleId(roleId).scopeValue(scopeValue).build());
+            evictContextCache();
         }
     }
 
@@ -89,6 +95,7 @@ public class DataRuleServiceImpl implements DataRuleService {
     public void unbindRuleFromRole(Long ruleId, Long roleId) {
         requireTenant();
         dataRuleRoleRepository.deleteByRuleIdAndRoleId(ruleId, roleId);
+        evictContextCache();
     }
 
     @Override
@@ -119,5 +126,10 @@ public class DataRuleServiceImpl implements DataRuleService {
         if (TenantContext.getTenantId() == null) {
             throw new BusinessException(ErrorCodes.TENANT_NOT_FOUND, "未确定租户上下文");
         }
+    }
+
+    /** 规则/绑定变更后失效当前租户的上下文缓存（AT-17），避免 TTL 内旧规则生效 */
+    private void evictContextCache() {
+        dataPermissionService.evictContextCache(TenantContext.getTenantId());
     }
 }

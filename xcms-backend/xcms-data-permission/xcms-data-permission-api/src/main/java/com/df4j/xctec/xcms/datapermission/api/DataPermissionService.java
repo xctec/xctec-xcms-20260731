@@ -25,4 +25,10 @@ public interface DataPermissionService {
 
     /** 列级脱敏（列表） */
     <T> List<T> applyColumnMask(List<T> entities, Long userId, String resourceType);
+
+    /**
+     * 失效指定租户的数据权限上下文缓存（AT-17）：
+     * 管理面（规则 CRUD / 角色绑定变更）在写操作后调用，避免缓存 TTL 内的旧规则生效。
+     */
+    void evictContextCache(Long tenantId);
 }
