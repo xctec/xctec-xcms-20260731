@@ -1,6 +1,6 @@
 package com.df4j.xctec.xcms.app;
 
-import com.df4j.xctec.xcms.kernel.context.TenantContext;
+import com.df4j.xctec.xcms.kernel.context.ActorContext;
 import com.df4j.xctec.xcms.portal.web.TenantInterceptor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,7 @@ class TenantInterceptorTest {
 
     @AfterEach
     void tearDown() {
-        TenantContext.clear();
+        ActorContext.clear();
         SecurityContextHolder.clearContext();
     }
 
@@ -44,7 +44,7 @@ class TenantInterceptorTest {
 
         assertTrue(result);
         assertEquals(200, response.getStatus());
-        assertNull(TenantContext.getTenantId());
+        assertNull(ActorContext.getTenantId());
     }
 
     @Test
@@ -59,16 +59,16 @@ class TenantInterceptorTest {
         boolean result = interceptor.preHandle(request, response, new Object());
 
         assertTrue(result);
-        assertEquals(101L, TenantContext.getTenantId());
-        assertEquals(7L, TenantContext.getCurrentUserId());
+        assertEquals(101L, ActorContext.getTenantId());
+        assertEquals(7L, ActorContext.getCurrentUserId());
     }
 
     @Test
     void afterCompletionClearsContext() {
-        TenantContext.set(101L, 7L);
+        ActorContext.setUser(101L, 7L);
 
         interceptor.afterCompletion(new MockHttpServletRequest(), new MockHttpServletResponse(), new Object(), null);
 
-        assertNull(TenantContext.getTenantId());
+        assertNull(ActorContext.getTenantId());
     }
 }

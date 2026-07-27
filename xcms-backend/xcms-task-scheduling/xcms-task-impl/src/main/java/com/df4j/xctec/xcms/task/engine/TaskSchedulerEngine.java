@@ -1,6 +1,6 @@
 package com.df4j.xctec.xcms.task.engine;
 
-import com.df4j.xctec.xcms.kernel.context.TenantContext;
+import com.df4j.xctec.xcms.kernel.context.ActorContext;
 import com.df4j.xctec.xcms.task.api.TaskHandler;
 import com.df4j.xctec.xcms.task.api.event.TaskFailedEvent;
 import com.df4j.xctec.xcms.task.domain.TaskAsync;
@@ -51,6 +51,8 @@ import java.util.concurrent.TimeoutException;
 @Service
 public class TaskSchedulerEngine {
 
+    /** 调度触发的服务主体标识（ADR-012：系统触发场景 principal 非 null） */
+    private static final String SERVICE_PRINCIPAL = "system@task-scheduler";
     private static final String LEADER_KEY = "scheduler";
     private static final long LEASE_SECONDS = 30;
     private static final long LEADERSHIP_CHECK_MS = 10_000;
@@ -180,7 +182,9 @@ public class TaskSchedulerEngine {
         TaskHandler handler = resolveHandler(t.getTaskType());
         Map<String, Object> params = parseParams(t.getPayload());
         Long tenantId = t.getTenantId();
-        TenantContext.TenantInfo original = tenantId != null ? TenantContext.switchTo(tenantId) : null;
+        // 系统触发场景：以服务主体执行，principal 不再为 null（ADR-012）
+        ActorContext.Actor original = ActorContext.current();
+        ActorContext.setService(tenantId, SERVICE_PRINCIPAL);
         try {
             if (handler != null) {
                 safeExecute(handler, params);
@@ -194,7 +198,7 @@ public class TaskSchedulerEngine {
             t.setStatus("FAILED");
             t.setErrorMsg(truncate(e.getMessage(), 2000));
         } finally {
-            TenantContext.restore(original);
+            ActorContext.restore(original);
         }
         asyncRepository.save(t);
     }
@@ -242,11 +246,13 @@ public class TaskSchedulerEngine {
         long retryIntervalMs = s.getRetryInterval() != null ? s.getRetryInterval()
                 : longOf(params.get("retryIntervalMs"), 60_000L);
         Long tenantId = s.getTenantId();
-        TenantContext.TenantInfo original = tenantId != null ? TenantContext.switchTo(tenantId) : null;
+        // 系统触发场景：以服务主体执行，principal 不再为 null（ADR-012）
+        ActorContext.Actor original = ActorContext.current();
+        ActorContext.setService(tenantId, SERVICE_PRINCIPAL);
         try {
             runWithRetry(s, handler, params, 0, maxRetries, timeoutMs, retryIntervalMs);
         } finally {
-            TenantContext.restore(original);
+            ActorContext.restore(original);
         }
     }
 

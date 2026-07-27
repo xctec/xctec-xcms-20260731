@@ -1,6 +1,6 @@
 package com.df4j.xctec.xcms.portal.web;
 
-import com.df4j.xctec.xcms.kernel.context.TenantContext;
+import com.df4j.xctec.xcms.kernel.context.ActorContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.Authentication;
@@ -30,7 +30,7 @@ public class TenantInterceptor implements HandlerInterceptor {
             Long tenantId = jwt.getClaim("tenantId") instanceof Number n ? n.longValue() : null;
             Long userId = parseLong(jwt.getSubject());
             if (tenantId != null) {
-                TenantContext.set(tenantId, userId);
+                ActorContext.setUser(tenantId, userId);
             }
         }
         return true;
@@ -38,7 +38,7 @@ public class TenantInterceptor implements HandlerInterceptor {
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
-        TenantContext.clear();
+        ActorContext.clear();
     }
 
     private Long parseLong(String value) {
