@@ -3,6 +3,7 @@ package com.df4j.xctec.xcms.org.listener;
 import com.df4j.xctec.xcms.kernel.event.DomainEventListener;
 import com.df4j.xctec.xcms.org.domain.Department;
 import com.df4j.xctec.xcms.org.repository.DepartmentRepository;
+import com.df4j.xctec.xcms.tenant.api.TenantInitStatusService;
 import com.df4j.xctec.xcms.tenant.api.event.TenantCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TenantOrgInitializer implements DomainEventListener<TenantCreatedEvent> {
 
     private final DepartmentRepository departmentRepository;
+    private final TenantInitStatusService tenantInitStatusService;
 
     @Override
     @Transactional
@@ -32,6 +34,18 @@ public class TenantOrgInitializer implements DomainEventListener<TenantCreatedEv
             log.warn("TenantCreatedEvent 缺少 tenantId，跳过组织初始化");
             return;
         }
+        try {
+            doInitialize(event, tenantId);
+            tenantInitStatusService.record(tenantId, TenantInitStatusService.MODULE_ORG, true, null);
+        } catch (Exception ex) {
+            log.error("租户 {} 组织初始化失败: {}", tenantId, ex.getMessage(), ex);
+            // 独立事务记录失败状态，供管理面补偿重试（ADR-015）
+            tenantInitStatusService.record(tenantId, TenantInitStatusService.MODULE_ORG, false, ex.getMessage());
+            throw ex;
+        }
+    }
+
+    private void doInitialize(TenantCreatedEvent event, Long tenantId) {
         if (departmentRepository.findByTenantIdAndParentIdIsNullAndDeletedAtIsNull(tenantId).isEmpty()) {
             Department root = Department.builder()
                     .deptCode("ROOT")
