@@ -3,6 +3,7 @@ package com.df4j.xctec.xcms.kernel.event;
 import com.df4j.xctec.xcms.kernel.context.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.support.TransactionOperations;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,15 +33,29 @@ public class DomainEventDispatcher {
     private final Map<Class<? extends DomainEvent>, List<DomainEventListener<? extends DomainEvent>>> routes = new HashMap<>();
     private final EventDedupPort dedupPort;
 
+    /**
+     * REQUIRES_NEW 事务模板（可为 null）。AFTER_COMMIT 阶段原事务已提交，
+     * 监听器若需写库必须开启新事务；且新事务/新会话须在租户切换<b>之后</b>开启，
+     * 使 Hibernate {@code @TenantId} 捕获事件所属租户而非发布者租户（ADR-015）。
+     */
+    private final TransactionOperations requiresNewTx;
+
     public DomainEventDispatcher(List<DomainEventListener<? extends DomainEvent>> listeners) {
-        this(listeners, null);
+        this(listeners, null, null);
     }
 
     public DomainEventDispatcher(List<DomainEventListener<? extends DomainEvent>> listeners, EventDedupPort dedupPort) {
+        this(listeners, dedupPort, null);
+    }
+
+    public DomainEventDispatcher(List<DomainEventListener<? extends DomainEvent>> listeners,
+                                 EventDedupPort dedupPort,
+                                 TransactionOperations requiresNewTx) {
         for (DomainEventListener<? extends DomainEvent> listener : listeners) {
             routes.computeIfAbsent(listener.eventType(), k -> new ArrayList<>()).add(listener);
         }
         this.dedupPort = dedupPort;
+        this.requiresNewTx = requiresNewTx;
     }
 
     /**
@@ -76,7 +91,7 @@ public class DomainEventDispatcher {
                     continue;
                 }
                 try {
-                    ((DomainEventListener<DomainEvent>) listener).onEvent(event);
+                    invokeListener((DomainEventListener<DomainEvent>) listener, event);
                 } catch (RuntimeException ex) {
                     log.error("监听器 {} 处理事件 {} 失败: {}",
                             listener.getClass().getSimpleName(), event.topic(), ex.getMessage(), ex);
@@ -93,6 +108,18 @@ public class DomainEventDispatcher {
             if (switched) {
                 TenantContext.restore(original);
             }
+        }
+    }
+
+    /**
+     * 调用单个监听器。配置了事务模板时在 REQUIRES_NEW 新事务中执行——
+     * 此刻租户上下文已切换完毕，新会话开启时捕获正确租户。
+     */
+    private void invokeListener(DomainEventListener<DomainEvent> listener, DomainEvent event) {
+        if (requiresNewTx != null) {
+            requiresNewTx.executeWithoutResult(status -> listener.onEvent(event));
+        } else {
+            listener.onEvent(event);
         }
     }
 }

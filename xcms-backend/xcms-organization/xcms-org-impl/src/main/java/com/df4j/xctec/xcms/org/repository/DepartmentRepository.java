@@ -13,6 +13,9 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
 
     List<Department> findByParentIdIsNullAndDeletedAtIsNull();
 
+    /** 显式带 tenantId 的查询：租户初始化等跨租户场景使用，不依赖隐式 @TenantId 过滤 */
+    List<Department> findByTenantIdAndParentIdIsNullAndDeletedAtIsNull(Long tenantId);
+
     Optional<Department> findByIdAndDeletedAtIsNull(Long id);
 
     List<Department> findByDeletedAtIsNullOrderBySortOrderAsc();

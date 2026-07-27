@@ -20,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
  * 监听租户创建事件，初始化默认角色与管理员。
  *
  * <p>经统一分发器调度，租户上下文切换由分发器按事件 tenantId 统一完成，
- * 本监听器内不再手动 {@code switchTo}。</p>
+ * 本监听器内不再手动 {@code switchTo}；REQUIRES_NEW 新事务由分发器开启，
+ * 新会话在租户切换后创建，{@code @TenantId} 捕获新租户。幂等查询显式带
+ * tenantId，不依赖隐式 {@code @TenantId} 过滤（ADR-015）。</p>
  */
 @Slf4j
 @Component
@@ -40,7 +42,7 @@ public class TenantUserInitializer implements DomainEventListener<TenantCreatedE
             log.warn("TenantCreatedEvent 缺少 tenantId，跳过身份初始化");
             return;
         }
-        Role adminRole = roleRepository.findByRoleCode("tenant_admin").orElseGet(() ->
+        Role adminRole = roleRepository.findByTenantIdAndRoleCode(tenantId, "tenant_admin").orElseGet(() ->
                 roleRepository.save(Role.builder()
                         .roleCode("tenant_admin")
                         .roleName("租户管理员")
@@ -48,7 +50,7 @@ public class TenantUserInitializer implements DomainEventListener<TenantCreatedE
                         .description("租户默认管理员角色")
                         .build()));
 
-        roleRepository.findByRoleCode("tenant_user").orElseGet(() ->
+        roleRepository.findByTenantIdAndRoleCode(tenantId, "tenant_user").orElseGet(() ->
                 roleRepository.save(Role.builder()
                         .roleCode("tenant_user")
                         .roleName("普通用户")
@@ -56,7 +58,7 @@ public class TenantUserInitializer implements DomainEventListener<TenantCreatedE
                         .description("租户默认用户角色")
                         .build()));
 
-        if (userRepository.findByUsername("admin").isEmpty()) {
+        if (userRepository.findByTenantIdAndUsername(tenantId, "admin").isEmpty()) {
             User admin = User.builder()
                     .username("admin")
                     .password(passwordEncoder.encode("admin123"))
@@ -64,7 +66,7 @@ public class TenantUserInitializer implements DomainEventListener<TenantCreatedE
                     .status(UserStatus.ACTIVE)
                     .build();
             admin = userRepository.save(admin);
-            if (userRoleRepository.findByUserIdAndRoleId(admin.getId(), adminRole.getId()).isEmpty()) {
+            if (userRoleRepository.findByTenantIdAndUserIdAndRoleId(tenantId, admin.getId(), adminRole.getId()).isEmpty()) {
                 userRoleRepository.save(UserRole.builder()
                         .userId(admin.getId())
                         .roleId(adminRole.getId())

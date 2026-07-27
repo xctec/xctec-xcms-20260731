@@ -13,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
  * 监听租户创建事件，初始化根部门。
  *
  * <p>经统一分发器调度，租户上下文切换由分发器按事件 tenantId 统一完成，
- * 本监听器内不再手动 {@code switchTo}。</p>
+ * 本监听器内不再手动 {@code switchTo}；REQUIRES_NEW 新事务由分发器开启，
+ * 新会话在租户切换后创建，{@code @TenantId} 捕获新租户。幂等查询显式带
+ * tenantId，不依赖隐式 {@code @TenantId} 过滤（ADR-015）。</p>
  */
 @Slf4j
 @Component
@@ -26,7 +28,11 @@ public class TenantOrgInitializer implements DomainEventListener<TenantCreatedEv
     @Transactional
     public void onEvent(TenantCreatedEvent event) {
         Long tenantId = event.getTenantId();
-        if (departmentRepository.findByParentIdIsNullAndDeletedAtIsNull().isEmpty()) {
+        if (tenantId == null) {
+            log.warn("TenantCreatedEvent 缺少 tenantId，跳过组织初始化");
+            return;
+        }
+        if (departmentRepository.findByTenantIdAndParentIdIsNullAndDeletedAtIsNull(tenantId).isEmpty()) {
             Department root = Department.builder()
                     .deptCode("ROOT")
                     .deptName(event.getTenantName() != null ? event.getTenantName() : "组织根")
