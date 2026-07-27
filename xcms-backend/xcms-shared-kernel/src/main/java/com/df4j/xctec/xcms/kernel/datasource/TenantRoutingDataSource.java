@@ -13,7 +13,7 @@ public class TenantRoutingDataSource extends AbstractRoutingDataSource {
     protected Object determineCurrentLookupKey() {
         // 现阶段：所有租户走共享库
         return "shared";
-        // 未来：根据租户路由到独立库
-        // return TenantContext.getDataSourceKey();
+        // 未来：分库路由由租户元数据（tenant_info.datasource_key）驱动，
+        // 不经线程上下文（ActorContext 不承载数据源信息，ADR-012）
     }
 }

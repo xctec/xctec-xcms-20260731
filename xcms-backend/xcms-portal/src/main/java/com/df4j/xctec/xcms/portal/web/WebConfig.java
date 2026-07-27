@@ -5,11 +5,11 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Portal 全局 Web 配置：注册租户上下文拦截器。
+ * Portal 全局 Web 配置：注册租户上下文填充拦截器。
  *
- * <p>拦截器对所有请求生效，但排除 actuator、OpenAPI 文档及免认证的登录/刷新端点。
- * 由于已移除 context-path，排除路径需使用控制器实际暴露的路径（含 {@code /api} 前缀）。
- * CORS 等纯全局基础设施配置保留在 app 模块。</p>
+ * <p>认证/授权已上收 Spring Security（AT-06/07），拦截器仅负责 TenantContext
+ * 填充与清理；排除路径为免认证白名单（与 SecurityConfig PERMIT_ALL 一致），
+ * 这些路径无认证信息、无需填充。CORS 等纯全局基础设施配置保留在 app 模块。</p>
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {

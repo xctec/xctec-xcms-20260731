@@ -76,7 +76,7 @@ public class WorkflowServiceImpl implements WorkflowService {
     public WorkflowDefinitionDTO deploy(DeployCommand command) {
         Long tenantId = TenantContext.getTenantId();
         Long userId = TenantContext.getCurrentUserId();
-        permissionService.requirePermission(userId, "workflow:deploy");
+        // workflow:deploy 权限已由控制器 @PreAuthorize 声明式拦截（AT-08）
         DeploymentBuilder builder = repositoryService.createDeployment()
                 .addString((command.getDefKey() == null ? "process" : command.getDefKey()) + ".bpmn20.xml", command.getBpmnXml())
                 .name(command.getDefName());

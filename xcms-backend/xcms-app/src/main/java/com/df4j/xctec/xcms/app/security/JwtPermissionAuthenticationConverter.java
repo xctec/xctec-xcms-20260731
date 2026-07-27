@@ -1,7 +1,7 @@
 package com.df4j.xctec.xcms.app.security;
 
 import com.df4j.xctec.xcms.auth.api.PermissionService;
-import com.df4j.xctec.xcms.kernel.context.TenantContext;
+import com.df4j.xctec.xcms.kernel.context.ActorContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  * <p>权限实时查询 {@link PermissionService}（带 userPermissions 缓存，权限变更事件失效），
  * 避免将权限写入 JWT 导致的「权限变更需等 token 过期」问题。查询前先按 token 中的
  * tenantId 填充 {@link TenantContext}，保证 {@code @TenantId} 会话过滤正确；
- * 上下文清理仍由 TenantInterceptor afterCompletion 统一负责。</p>
+ * 上下文清理仍由 TenantInterceptor afterCompletion 统一负责（ADR-012：ActorContext）。</p>
  */
 @Slf4j
 public class JwtPermissionAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
@@ -39,7 +39,7 @@ public class JwtPermissionAuthenticationConverter implements Converter<Jwt, Abst
         Long tenantId = jwt.getClaim("tenantId") instanceof Number n ? n.longValue() : null;
         // 先填租户上下文再查权限：权限查询走 JPA，@TenantId 过滤依赖上下文
         if (tenantId != null) {
-            TenantContext.set(tenantId, userId);
+            ActorContext.setUser(tenantId, userId);
         }
         return new JwtAuthenticationToken(jwt, loadAuthorities(userId), jwt.getClaimAsString("username"));
     }
