@@ -16,6 +16,8 @@ const http = axios.create({
   baseURL: '/',
   timeout: 30_000,
   headers: { 'Content-Type': 'application/json' },
+  // AT-12：携带 httpOnly refresh cookie（/api/auth/refresh 依赖）
+  withCredentials: true,
 });
 
 // 请求拦截器：注入令牌 / 租户，并在访问令牌即将过期时主动刷新

@@ -22,9 +22,9 @@ export const handlers = [
   http.post('/api/auth/login', async ({ request }) => {
     const body = (await request.json()) as { username: string; password: string };
     if (body.username === 'admin' && body.password === 'admin123') {
+      // AT-12：refresh token 经 httpOnly cookie 下发，body 不再返回
       return ok({
         token: 'mock-jwt-token-' + Date.now(),
-        refreshToken: 'mock-refresh-token',
         expiresIn: 7200,
         user: mockUser,
         forceChangePassword: false,
@@ -36,27 +36,21 @@ export const handlers = [
   http.post('/api/auth/logout', () => ok(null)),
   http.post('/api/auth/user-info', () => ok({
     token: 'mock-jwt-token',
-    refreshToken: 'mock-refresh-token',
     expiresIn: 7200,
     user: mockUser,
     forceChangePassword: false,
   })),
 
   // ====== Token 刷新 ======
-  http.post('/api/auth/refresh', async ({ request }) => {
-    const body = (await request.json()) as { refreshToken?: string };
-    // 演示：携带有效 refreshToken 即视为刷新成功，返回全新令牌
-    if (body.refreshToken) {
-      return ok({
-        token: 'mock-jwt-token-' + Date.now(),
-        refreshToken: 'mock-refresh-token-' + Date.now(),
-        expiresIn: 7200,
-        user: mockUser,
-        forceChangePassword: false,
-      });
-    }
-    return HttpResponse.json({ errorCode: '1001', errorMsg: 'refreshToken 无效', data: null }, { status: 401 });
-  }),
+  // AT-12：refresh token 在 httpOnly cookie（浏览器自动携带），mock 直接视为有效
+  http.post('/api/auth/refresh', () =>
+    ok({
+      token: 'mock-jwt-token-' + Date.now(),
+      expiresIn: 7200,
+      user: mockUser,
+      forceChangePassword: false,
+    })
+  ),
 
   // ====== Menu ======
   // 管理面菜单（对应后端 /admin/permission/menus）

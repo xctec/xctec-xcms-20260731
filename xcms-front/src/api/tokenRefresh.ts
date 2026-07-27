@@ -9,21 +9,17 @@ import { useAuthStore } from '@/stores/auth';
 
 let refreshPromise: Promise<boolean> | null = null;
 
-/** 执行一次刷新（内部，带并发去重） */
+/** 执行一次刷新（内部，带并发去重）。refresh token 在 httpOnly cookie 中由浏览器携带（AT-12） */
 function doRefresh(): Promise<boolean> {
-  const { refreshToken, setTokens, clearAuth } = useAuthStore.getState();
-  if (!refreshToken) {
-    clearAuth();
-    return Promise.resolve(false);
-  }
+  const { setTokens, clearAuth } = useAuthStore.getState();
   return authApi
-    .refreshToken(refreshToken)
+    .refreshToken()
     .then((res) => {
-      if (!res.token || !res.refreshToken) {
+      if (!res.token) {
         clearAuth();
         return false;
       }
-      setTokens({ token: res.token, refreshToken: res.refreshToken, expiresIn: res.expiresIn });
+      setTokens({ token: res.token, expiresIn: res.expiresIn });
       return true;
     })
     .catch(() => {
