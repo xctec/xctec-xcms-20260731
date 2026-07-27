@@ -1,12 +1,16 @@
 package com.df4j.xctec.xcms.task.api.event;
 
+import com.df4j.xctec.xcms.kernel.event.DomainEvent;
+
+import java.io.Serializable;
+
 /**
  * 定时任务执行失败领域事件。
  * <p>
  * 由任务调度引擎在任务最终失败（重试耗尽）时发布，供上层业务模块（如 message）监听并发送告警，
  * 从而解除 task-scheduling 对 message-api 的直接依赖（底层基础设施不应依赖上层业务模块）。
  */
-public class TaskFailedEvent {
+public class TaskFailedEvent implements DomainEvent, Serializable {
 
     private final Long taskId;
     private final Long tenantId;
@@ -40,5 +44,10 @@ public class TaskFailedEvent {
 
     public String getErrorMessage() {
         return errorMessage;
+    }
+
+    @Override
+    public Long tenantId() {
+        return tenantId;
     }
 }

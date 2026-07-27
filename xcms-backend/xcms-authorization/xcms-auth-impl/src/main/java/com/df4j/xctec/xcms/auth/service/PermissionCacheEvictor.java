@@ -1,11 +1,10 @@
 package com.df4j.xctec.xcms.auth.service;
 
 import com.df4j.xctec.xcms.auth.api.event.PermissionChangedEvent;
+import com.df4j.xctec.xcms.kernel.event.DomainEventListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * 权限变更缓存失效监听器。
@@ -14,15 +13,22 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * 由于 PermissionChangedEvent 中的 userId 实际承载的是 roleId（角色级变更），
  * 无法精确映射到具体用户，故采用「整段失效（allEntries）」策略，
  * 牺牲少量缓存命中率换取一致性正确性。</p>
+ *
+ * <p>经统一分发器调度；AFTER_COMMIT 语义由分发器入口（进程内桥接）统一保证。</p>
  */
 @Slf4j
 @Component
-public class PermissionCacheEvictor {
+public class PermissionCacheEvictor implements DomainEventListener<PermissionChangedEvent> {
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Override
     @CacheEvict(cacheNames = "userPermissions", allEntries = true)
-    public void onPermissionChanged(PermissionChangedEvent event) {
+    public void onEvent(PermissionChangedEvent event) {
         log.debug("权限变更事件已提交，清除 userPermissions 缓存, tenantId={}, changeType={}",
                 event.getTenantId(), event.getChangeType());
+    }
+
+    @Override
+    public Class<PermissionChangedEvent> eventType() {
+        return PermissionChangedEvent.class;
     }
 }

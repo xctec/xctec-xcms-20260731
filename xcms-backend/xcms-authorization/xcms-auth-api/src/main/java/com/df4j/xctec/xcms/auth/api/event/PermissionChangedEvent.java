@@ -10,4 +10,9 @@ public class PermissionChangedEvent implements DomainEvent, Serializable {
     private Long userId;
     private Long tenantId;
     private String changeType;
+
+    @Override
+    public Long tenantId() {
+        return tenantId;
+    }
 }

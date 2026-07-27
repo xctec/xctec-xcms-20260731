@@ -18,4 +18,24 @@ public interface DomainEvent {
     default String topic() {
         return getClass().getSimpleName();
     }
+
+    /**
+     * 事件唯一标识，用于消费端幂等去重（at-least-once 投递下防重复副作用）。
+     * 默认返回 {@code null} 表示不参与去重；需要去重的事件覆盖此方法返回稳定 ID。
+     *
+     * @return 事件唯一 ID，可为 null
+     */
+    default String eventId() {
+        return null;
+    }
+
+    /**
+     * 事件所属租户。分发器据此在调用监听器前统一切换租户上下文，
+     * 监听器内不再手动 {@code switchTo}。默认 {@code null} 表示无租户语义（不切换）。
+     *
+     * @return 租户 ID，可为 null
+     */
+    default Long tenantId() {
+        return null;
+    }
 }

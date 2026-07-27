@@ -38,4 +38,14 @@ public class AuditEvent implements DomainEvent, Serializable {
     public String topic() {
         return "audit." + (bizModule == null ? "unknown" : bizModule);
     }
+
+    @Override
+    public String eventId() {
+        return eventId;
+    }
+
+    @Override
+    public Long tenantId() {
+        return tenantId;
+    }
 }

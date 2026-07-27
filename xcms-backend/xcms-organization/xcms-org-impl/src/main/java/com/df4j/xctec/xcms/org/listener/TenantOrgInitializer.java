@@ -1,47 +1,49 @@
 package com.df4j.xctec.xcms.org.listener;
 
+import com.df4j.xctec.xcms.kernel.event.DomainEventListener;
 import com.df4j.xctec.xcms.org.domain.Department;
 import com.df4j.xctec.xcms.org.repository.DepartmentRepository;
-import com.df4j.xctec.xcms.kernel.context.TenantContext;
 import com.df4j.xctec.xcms.tenant.api.event.TenantCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 监听租户创建事件，初始化根部门
+ * 监听租户创建事件，初始化根部门。
+ *
+ * <p>经统一分发器调度，租户上下文切换由分发器按事件 tenantId 统一完成，
+ * 本监听器内不再手动 {@code switchTo}。</p>
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class TenantOrgInitializer {
+public class TenantOrgInitializer implements DomainEventListener<TenantCreatedEvent> {
 
     private final DepartmentRepository departmentRepository;
 
-    @EventListener
+    @Override
     @Transactional
-    public void onTenantCreated(TenantCreatedEvent event) {
+    public void onEvent(TenantCreatedEvent event) {
         Long tenantId = event.getTenantId();
-        TenantContext.TenantInfo original = TenantContext.switchTo(tenantId);
-        try {
-            if (departmentRepository.findByParentIdIsNullAndDeletedAtIsNull().isEmpty()) {
-                Department root = Department.builder()
-                        .deptCode("ROOT")
-                        .deptName(event.getTenantName() != null ? event.getTenantName() : "组织根")
-                        .parentId(null)
-                        .level(1)
-                        .sortOrder(0)
-                        .status("ACTIVE")
-                        .build();
-                root = departmentRepository.save(root);
-                root.setPath("/" + root.getId());
-                departmentRepository.save(root);
-                log.info("租户 {} 根部门初始化完成", tenantId);
-            }
-        } finally {
-            TenantContext.restore(original);
+        if (departmentRepository.findByParentIdIsNullAndDeletedAtIsNull().isEmpty()) {
+            Department root = Department.builder()
+                    .deptCode("ROOT")
+                    .deptName(event.getTenantName() != null ? event.getTenantName() : "组织根")
+                    .parentId(null)
+                    .level(1)
+                    .sortOrder(0)
+                    .status("ACTIVE")
+                    .build();
+            root = departmentRepository.save(root);
+            root.setPath("/" + root.getId());
+            departmentRepository.save(root);
+            log.info("租户 {} 根部门初始化完成", tenantId);
         }
+    }
+
+    @Override
+    public Class<TenantCreatedEvent> eventType() {
+        return TenantCreatedEvent.class;
     }
 }

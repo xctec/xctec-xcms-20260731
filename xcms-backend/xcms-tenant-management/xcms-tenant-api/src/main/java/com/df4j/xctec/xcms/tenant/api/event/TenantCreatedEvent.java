@@ -16,4 +16,9 @@ public class TenantCreatedEvent implements DomainEvent, Serializable {
     private String tenantName;
     private TenantType tenantType;
     private Long parentId;
+
+    @Override
+    public Long tenantId() {
+        return tenantId;
+    }
 }
