@@ -15,6 +15,9 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
 
     Optional<Role> findByRoleCode(String roleCode);
 
+    /** 显式带 tenantId 的查询：租户初始化等跨租户场景使用，不依赖隐式 @TenantId 过滤 */
+    Optional<Role> findByTenantIdAndRoleCode(Long tenantId, String roleCode);
+
     boolean existsByRoleCode(String roleCode);
 
     List<Role> findByRoleScope(RoleScope roleScope);

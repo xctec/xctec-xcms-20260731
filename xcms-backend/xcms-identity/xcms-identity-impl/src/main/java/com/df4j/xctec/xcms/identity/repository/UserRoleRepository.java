@@ -18,6 +18,9 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
 
     Optional<UserRole> findByUserIdAndRoleId(Long userId, Long roleId);
 
+    /** 显式带 tenantId 的查询：租户初始化等跨租户场景使用，不依赖隐式 @TenantId 过滤 */
+    Optional<UserRole> findByTenantIdAndUserIdAndRoleId(Long tenantId, Long userId, Long roleId);
+
     Optional<UserRole> findByUserIdAndRoleIdAndScopeTypeAndScopeValue(Long userId, Long roleId, String scopeType, String scopeValue);
 
     void deleteByUserId(Long userId);

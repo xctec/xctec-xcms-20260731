@@ -14,6 +14,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByUsername(String username);
 
+    /** 显式带 tenantId 的查询：租户初始化等跨租户场景使用，不依赖隐式 @TenantId 过滤 */
+    Optional<User> findByTenantIdAndUsername(Long tenantId, String username);
+
     boolean existsByUsername(String username);
 
     @Query("""
