@@ -89,3 +89,18 @@ CREATE TABLE tenant_relation (
 );
 CREATE INDEX idx_tenant_relation_project ON tenant_relation (project_tenant_id);
 CREATE INDEX idx_tenant_relation_member ON tenant_relation (member_tenant_id);
+
+-- 租户初始化状态表（平台级，无 tenant 隔离；ADR-015 初始化失败补偿）
+CREATE TABLE tenant_init_status (
+    id              BIGINT          NOT NULL,
+    tenant_id       BIGINT          NOT NULL,
+    module          VARCHAR(32)     NOT NULL,  -- identity / org
+    status          VARCHAR(20)     NOT NULL,  -- SUCCESS / FAILED
+    error_msg       VARCHAR(1000),
+    retry_count     INT             NOT NULL DEFAULT 0,
+    created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pk_tenant_init_status PRIMARY KEY (id),
+    CONSTRAINT uk_tenant_init_status UNIQUE (tenant_id, module)
+);
+CREATE INDEX idx_tenant_init_status_status ON tenant_init_status (status);

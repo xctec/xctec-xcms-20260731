@@ -3,6 +3,7 @@ package com.df4j.xctec.xcms.identity.listener;
 import com.df4j.xctec.xcms.identity.api.enums.RoleScope;
 import com.df4j.xctec.xcms.identity.api.enums.UserStatus;
 import com.df4j.xctec.xcms.kernel.event.DomainEventListener;
+import com.df4j.xctec.xcms.tenant.api.TenantInitStatusService;
 import com.df4j.xctec.xcms.tenant.api.event.TenantCreatedEvent;
 import com.df4j.xctec.xcms.identity.domain.Role;
 import com.df4j.xctec.xcms.identity.domain.User;
@@ -33,6 +34,7 @@ public class TenantUserInitializer implements DomainEventListener<TenantCreatedE
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
+    private final TenantInitStatusService tenantInitStatusService;
 
     @Override
     @Transactional
@@ -42,6 +44,18 @@ public class TenantUserInitializer implements DomainEventListener<TenantCreatedE
             log.warn("TenantCreatedEvent 缺少 tenantId，跳过身份初始化");
             return;
         }
+        try {
+            doInitialize(event, tenantId);
+            tenantInitStatusService.record(tenantId, TenantInitStatusService.MODULE_IDENTITY, true, null);
+        } catch (Exception ex) {
+            log.error("租户 {} 身份初始化失败: {}", tenantId, ex.getMessage(), ex);
+            // 独立事务记录失败状态，供管理面补偿重试（ADR-015）
+            tenantInitStatusService.record(tenantId, TenantInitStatusService.MODULE_IDENTITY, false, ex.getMessage());
+            throw ex;
+        }
+    }
+
+    private void doInitialize(TenantCreatedEvent event, Long tenantId) {
         Role adminRole = roleRepository.findByTenantIdAndRoleCode(tenantId, "tenant_admin").orElseGet(() ->
                 roleRepository.save(Role.builder()
                         .roleCode("tenant_admin")
