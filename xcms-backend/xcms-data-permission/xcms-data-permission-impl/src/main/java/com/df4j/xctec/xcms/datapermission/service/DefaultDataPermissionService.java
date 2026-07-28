@@ -1,44 +1,50 @@
-package com.df4j.xctec.xcms.auth.service;
+package com.df4j.xctec.xcms.datapermission.service;
 
-import com.df4j.xctec.xcms.auth.api.DataPermissionContext;
-import com.df4j.xctec.xcms.auth.api.DataPermissionService;
-import com.df4j.xctec.xcms.auth.domain.ColumnMask;
-import com.df4j.xctec.xcms.auth.domain.DataRule;
-import com.df4j.xctec.xcms.auth.domain.DataRuleRole;
-import com.df4j.xctec.xcms.auth.repository.ColumnMaskRepository;
-import com.df4j.xctec.xcms.auth.repository.DataRuleRepository;
-import com.df4j.xctec.xcms.auth.repository.DataRuleRoleRepository;
-import com.df4j.xctec.xcms.auth.repository.RolePermissionRepository;
-import com.df4j.xctec.xcms.identity.api.RoleService;
-import com.df4j.xctec.xcms.identity.api.UserService;
-import com.df4j.xctec.xcms.identity.api.dto.RoleDTO;
-import com.df4j.xctec.xcms.kernel.context.TenantContext;
+import com.df4j.xctec.xcms.datapermission.api.ColumnMaskRuleProvider;
+import com.df4j.xctec.xcms.datapermission.api.ColumnMaskSpec;
+import com.df4j.xctec.xcms.datapermission.api.DataPermissionContext;
+import com.df4j.xctec.xcms.datapermission.api.DataPermissionRuleProvider;
+import com.df4j.xctec.xcms.datapermission.api.DataPermissionService;
+import com.df4j.xctec.xcms.datapermission.api.DataRuleSpec;
+import com.df4j.xctec.xcms.datapermission.cache.CachePort;
+import com.df4j.xctec.xcms.kernel.context.ActorContext;
 import jakarta.persistence.Entity;
 import jakarta.persistence.criteria.Predicate;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
 
 import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Service
-@RequiredArgsConstructor
+/**
+ * 数据权限默认实现（ADR-013 / AT-16）：自 auth-impl 的 DataPermissionServiceImpl 迁入。
+ *
+ * <p>与原实现的差异：规则来源不再直连 perm_data_rule / perm_column_mask 仓储，
+ * 而是聚合所有 {@link DataPermissionRuleProvider} / {@link ColumnMaskRuleProvider}
+ * SPI 的返回（auth-impl 作为管理面提供者之一）；解析后的上下文经
+ * {@link CachePort} 短 TTL 缓存。</p>
+ */
 @Slf4j
-public class DataPermissionServiceImpl implements DataPermissionService {
+@Service
+public class DefaultDataPermissionService implements DataPermissionService {
 
-    private final UserService userService;
-    private final RoleService roleService;
-    private final RolePermissionRepository rolePermissionRepository;
-    private final DataRuleRoleRepository dataRuleRoleRepository;
-    private final DataRuleRepository dataRuleRepository;
-    private final ColumnMaskRepository columnMaskRepository;
-    private final ObjectMapper objectMapper;
+    private static final String CTX_KEY_PREFIX = "dp:ctx:";
+
+    private final ObjectProvider<DataPermissionRuleProvider> ruleProviders;
+    private final ObjectProvider<ColumnMaskRuleProvider> maskProviders;
+    private final CachePort cachePort;
+
+    public DefaultDataPermissionService(ObjectProvider<DataPermissionRuleProvider> ruleProviders,
+                                        ObjectProvider<ColumnMaskRuleProvider> maskProviders,
+                                        CachePort cachePort) {
+        this.ruleProviders = ruleProviders;
+        this.maskProviders = maskProviders;
+        this.cachePort = cachePort;
+    }
 
     @Override
     public <T> Specification<T> getDataScopeSpec(Long userId, String resourceType) {
@@ -81,20 +87,31 @@ public class DataPermissionServiceImpl implements DataPermissionService {
 
     @Override
     public DataPermissionContext getDataPermissionContext(Long userId, String resourceType) {
-        Long tenantId = TenantContext.getTenantId();
-        List<RoleDTO> roles = roleService.getUserRoles(userId);
+        Long tenantId = ActorContext.getTenantId();
+        String cacheKey = CTX_KEY_PREFIX + tenantId + ":" + userId + ":" + resourceType;
+        DataPermissionContext cached = cachePort.get(cacheKey, DataPermissionContext.class);
+        if (cached != null) {
+            return cached;
+        }
+        List<DataRuleSpec> rules = new ArrayList<>();
+        ruleProviders.forEach(provider -> {
+            List<DataRuleSpec> provided = provider.getRules(resourceType, tenantId, userId);
+            if (provided != null) {
+                rules.addAll(provided);
+            }
+        });
+        DataPermissionContext ctx = buildContext(userId, tenantId, resourceType, rules);
+        cachePort.put(cacheKey, ctx);
+        return ctx;
+    }
+
+    private DataPermissionContext buildContext(Long userId, Long tenantId, String resourceType,
+                                               List<DataRuleSpec> rules) {
         DataPermissionContext.Builder builder = DataPermissionContext.builder()
                 .userId(userId).tenantId(tenantId).resourceType(resourceType);
-        if (roles == null || roles.isEmpty()) {
+        if (rules.isEmpty()) {
             return builder.build();
         }
-        List<Long> roleIds = roles.stream().map(RoleDTO::getId).toList();
-        List<DataRuleRole> drs = dataRuleRoleRepository.findByRoleIdIn(roleIds);
-        if (drs.isEmpty()) {
-            return builder.build();
-        }
-        List<Long> ruleIds = drs.stream().map(DataRuleRole::getRuleId).toList();
-        List<DataRule> rules = dataRuleRepository.findByIdInAndTenantId(ruleIds, tenantId);
         List<String> orgPaths = new ArrayList<>();
         List<Long> businessLineIds = new ArrayList<>();
         List<String> regions = new ArrayList<>();
@@ -102,7 +119,7 @@ public class DataPermissionServiceImpl implements DataPermissionService {
         LocalDateTime timeFrom = null;
         LocalDateTime timeTo = null;
         boolean ownerOnly = false;
-        for (DataRule rule : rules) {
+        for (DataRuleSpec rule : rules) {
             if (!"ACTIVE".equals(rule.getStatus()) || rule.getDimension() == null) {
                 continue;
             }
@@ -141,17 +158,20 @@ public class DataPermissionServiceImpl implements DataPermissionService {
             log.warn("列级脱敏跳过 JPA 实体 {}，请改为在 toDTO 之后对 DTO 执行脱敏", entity.getClass().getName());
             return entity;
         }
-        Long tenantId = TenantContext.getTenantId();
-        List<ColumnMask> masks = columnMaskRepository.findByResourceTypeAndTenantId(resourceType, tenantId);
+        Long tenantId = ActorContext.getTenantId();
+        List<ColumnMaskSpec> masks = new ArrayList<>();
+        maskProviders.forEach(provider -> {
+            List<ColumnMaskSpec> provided = provider.getMasks(resourceType, tenantId);
+            if (provided != null) {
+                masks.addAll(provided);
+            }
+        });
         if (masks.isEmpty()) {
             return entity;
         }
         Class<?> clazz = entity.getClass();
-        for (ColumnMask mask : masks) {
-            if (!"ACTIVE".equals(mask.getStatus())) {
-                continue;
-            }
-            if (isUserAllowed(mask, userId)) {
+        for (ColumnMaskSpec mask : masks) {
+            if (isExempt(mask, userId)) {
                 continue;
             }
             try {
@@ -178,31 +198,8 @@ public class DataPermissionServiceImpl implements DataPermissionService {
         return entities;
     }
 
-    private boolean isUserAllowed(ColumnMask mask, Long userId) {
-        if (userId == null || mask.getRoleIds() == null || mask.getRoleIds().isBlank()) {
-            return false;
-        }
-        return parseRoleIds(mask.getRoleIds()).contains(userId);
-    }
-
-    private List<Long> parseRoleIds(String s) {
-        if (s == null || s.isBlank()) {
-            return List.of();
-        }
-        try {
-            List<Long> parsed = objectMapper.readValue(s, new TypeReference<List<Long>>() {});
-            return parsed == null ? List.of() : parsed;
-        } catch (Exception e) {
-            // 兼容非标准 JSON（如 "1,2,3"）的历史数据
-            List<Long> result = new ArrayList<>();
-            for (String id : s.split(",")) {
-                try {
-                    result.add(Long.valueOf(id.trim()));
-                } catch (NumberFormatException ignored) {
-                }
-            }
-            return result;
-        }
+    private boolean isExempt(ColumnMaskSpec mask, Long userId) {
+        return userId != null && mask.getExemptIds() != null && mask.getExemptIds().contains(userId);
     }
 
     private String maskValue(String value, String maskType, String maskRule) {

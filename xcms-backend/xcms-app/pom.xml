@@ -30,6 +30,10 @@
         </dependency>
         <dependency>
             <groupId>com.df4j.xctec.xcms</groupId>
+            <artifactId>xcms-data-permission-impl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.df4j.xctec.xcms</groupId>
             <artifactId>xcms-workflow-impl</artifactId>
         </dependency>
         <dependency>

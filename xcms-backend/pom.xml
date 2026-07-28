@@ -26,6 +26,7 @@
         <module>xcms-organization</module>
         <module>xcms-identity</module>
         <module>xcms-authorization</module>
+        <module>xcms-data-permission</module>
         <module>xcms-workflow</module>
         <module>xcms-message</module>
         <module>xcms-configuration</module>
@@ -103,6 +104,16 @@
             <dependency>
                 <groupId>com.df4j.xctec.xcms</groupId>
                 <artifactId>xcms-auth-impl</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.df4j.xctec.xcms</groupId>
+                <artifactId>xcms-data-permission-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.df4j.xctec.xcms</groupId>
+                <artifactId>xcms-data-permission-impl</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>

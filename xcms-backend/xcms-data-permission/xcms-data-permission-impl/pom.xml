@@ -5,30 +5,34 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.df4j.xctec.xcms</groupId>
-        <artifactId>xcms-authorization</artifactId>
+        <artifactId>xcms-data-permission</artifactId>
         <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    <artifactId>xcms-auth-api</artifactId>
-    <name>XCMS Authorization API</name>
+    <artifactId>xcms-data-permission-impl</artifactId>
+    <name>XCMS Data Permission Impl</name>
     <dependencies>
-        <dependency>
-            <groupId>com.df4j.xctec.xcms</groupId>
-            <artifactId>xcms-shared-kernel</artifactId>
-        </dependency>
-        <!-- AT-16：DataPermissionContext 迁至 data-permission-api，DataRuleService.testPermission 引用 -->
         <dependency>
             <groupId>com.df4j.xctec.xcms</groupId>
             <artifactId>xcms-data-permission-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>jakarta.persistence</groupId>
-            <artifactId>jakarta.persistence-api</artifactId>
+            <groupId>com.df4j.xctec.xcms</groupId>
+            <artifactId>xcms-shared-kernel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <!-- 单体形态默认缓存实现（AT-16：CachePort + Caffeine） -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

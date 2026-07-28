@@ -1,6 +1,6 @@
 package com.df4j.xctec.xcms.auth.advice;
 
-import com.df4j.xctec.xcms.auth.api.DataPermissionService;
+import com.df4j.xctec.xcms.datapermission.api.DataPermissionService;
 import com.df4j.xctec.xcms.kernel.common.ApiResponse;
 import com.df4j.xctec.xcms.kernel.common.MaskResource;
 import com.df4j.xctec.xcms.kernel.context.TenantContext;

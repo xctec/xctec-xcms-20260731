@@ -16,6 +16,11 @@
             <groupId>com.df4j.xctec.xcms</groupId>
             <artifactId>xcms-auth-api</artifactId>
         </dependency>
+        <!-- AT-16：作为数据权限管理面 Provider，实现 data-permission-api 的 SPI -->
+        <dependency>
+            <groupId>com.df4j.xctec.xcms</groupId>
+            <artifactId>xcms-data-permission-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.df4j.xctec.xcms</groupId>
             <artifactId>xcms-identity-api</artifactId>
