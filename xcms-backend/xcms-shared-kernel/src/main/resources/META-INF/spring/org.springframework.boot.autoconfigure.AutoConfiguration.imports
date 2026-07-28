@@ -1,4 +1,5 @@
 com.df4j.xctec.xcms.kernel.event.outbox.OutboxAutoConfiguration
 com.df4j.xctec.xcms.kernel.event.EventPublisherAutoConfiguration
+com.df4j.xctec.xcms.kernel.pubsub.PubSubAutoConfiguration
 com.df4j.xctec.xcms.kernel.event.EventDispatchAutoConfiguration
 com.df4j.xctec.xcms.kernel.KernelAutoConfiguration
