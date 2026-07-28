@@ -1,39 +1,51 @@
 import { useState } from 'react';
-import { Bell, Check, Trash2, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Bell, Check, Trash2, X, Wifi, WifiOff } from 'lucide-react';
+import { useNotificationStore, type NotificationItem } from '@/stores/notification';
 
-interface NotificationItem {
-  id: number;
-  title: string;
-  content: string;
-  time: string;
-  type: 'todo' | 'notice' | 'alert';
-  read: boolean;
-}
+// AT-23：面板数据来自 SSE 实时通知 store（useNotification 在 Topbar 订阅写入），
+// 历史消息以消息中心页（/portal/message）为准。
 
-const mockNotifications: NotificationItem[] = [
-  { id: 1, title: '采购审批待处理', content: '您有一条采购审批任务待处理', time: '10分钟前', type: 'todo', read: false },
-  { id: 2, title: '系统维护通知', content: '系统将于今晚22:00-23:00维护', time: '1小时前', type: 'notice', read: false },
-  { id: 3, title: '密码即将过期', content: '您的密码将在7天后过期', time: '3小时前', type: 'alert', read: false },
-  { id: 4, title: '新同事入职', content: '欢迎新同事加入团队', time: '5小时前', type: 'notice', read: true },
-  { id: 5, title: '报销审批超时', content: '报销审批已超时24小时', time: '昨天', type: 'alert', read: true },
-];
+type VisualType = 'todo' | 'notice' | 'alert';
 
-const typeConfig = {
+const typeConfig: Record<VisualType, { color: string; bg: string }> = {
   todo: { color: 'var(--c-primary)', bg: 'var(--c-primary-50)' },
   notice: { color: 'var(--c-info)', bg: 'rgba(8,145,178,0.1)' },
   alert: { color: 'var(--c-warning)', bg: 'rgba(217,119,6,0.1)' },
 };
 
+/** 视觉分类：高优先级→alert；待办类编码→todo；其余→notice */
+function visualType(n: NotificationItem): VisualType {
+  if (n.priority === 'HIGH' || n.priority === 'URGENT') return 'alert';
+  if (n.msgType === 'TODO') return 'todo';
+  return 'notice';
+}
+
+/** 相对时间展示 */
+function relativeTime(ts: number): string {
+  const diff = Date.now() - ts;
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 1) return '刚刚';
+  if (minutes < 60) return `${minutes}分钟前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}小时前`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return '昨天';
+  return `${days}天前`;
+}
+
 export function NotificationPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const navigate = useNavigate();
+  const notifications = useNotificationStore((s) => s.notifications);
+  const connectionState = useNotificationStore((s) => s.connectionState);
+  const markRead = useNotificationStore((s) => s.markRead);
+  const markAllRead = useNotificationStore((s) => s.markAllRead);
+  const removeNotif = useNotificationStore((s) => s.remove);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
   const visible = filter === 'all' ? notifications : notifications.filter(n => !n.read);
   const unreadCount = notifications.filter(n => !n.read).length;
-
-  const markRead = (id: number) => setNotifications(ns => ns.map(n => n.id === id ? { ...n, read: true } : n));
-  const markAllRead = () => setNotifications(ns => ns.map(n => ({ ...n, read: true })));
-  const removeNotif = (id: number) => setNotifications(ns => ns.filter(n => n.id !== id));
+  const realtimeOn = connectionState === 'open';
 
   if (!open) return null;
 
@@ -47,6 +59,12 @@ export function NotificationPanel({ open, onClose }: { open: boolean; onClose: (
             <Bell size={16} style={{ color: 'var(--c-primary)' }} />
             <span className="text-sm font-semibold" style={{ color: 'var(--c-text)' }}>通知</span>
             {unreadCount > 0 && <span className="rounded-full px-1.5 text-[10px] font-semibold text-white" style={{ backgroundColor: 'var(--c-danger)' }}>{unreadCount}</span>}
+            {/* 实时连接状态：open=实时；其余（重连/轮询降级）提示离线 */}
+            <span title={realtimeOn ? '实时推送已连接' : '实时推送未连接（自动重连中）'}>
+              {realtimeOn
+                ? <Wifi size={12} style={{ color: 'var(--c-success, #16a34a)' }} />
+                : <WifiOff size={12} style={{ color: 'var(--c-text-muted)' }} />}
+            </span>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
         </div>
@@ -64,9 +82,9 @@ export function NotificationPanel({ open, onClose }: { open: boolean; onClose: (
             <div className="py-12 text-center text-sm text-gray-400">暂无通知</div>
           ) : (
             visible.map(n => {
-              const tc = typeConfig[n.type];
+              const tc = typeConfig[visualType(n)];
               return (
-                <div key={n.id} className="flex gap-3 border-b px-4 py-3 hover:bg-gray-50" style={{ borderColor: 'var(--c-border-light)', backgroundColor: !n.read ? 'var(--c-primary-50)' : undefined, opacity: 0.5 }}>
+                <div key={n.key} className="flex gap-3 border-b px-4 py-3 hover:bg-gray-50" style={{ borderColor: 'var(--c-border-light)', backgroundColor: !n.read ? 'var(--c-primary-50)' : undefined, opacity: n.read ? 0.5 : 1 }}>
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: tc.bg }}>
                     <Bell size={14} style={{ color: tc.color }} />
                   </div>
@@ -76,11 +94,13 @@ export function NotificationPanel({ open, onClose }: { open: boolean; onClose: (
                       <span className={`text-sm ${n.read ? 'font-normal text-gray-500' : 'font-medium text-gray-900'}`} style={{ color: n.read ? 'var(--c-text-muted)' : 'var(--c-text)' }}>{n.title}</span>
                     </div>
                     <p className="mt-0.5 truncate text-xs" style={{ color: 'var(--c-text-muted)' }}>{n.content}</p>
-                    <span className="text-[11px] text-gray-400" style={{ color: 'var(--c-text-muted)' }}>{n.time}</span>
+                    <span className="text-[11px] text-gray-400" style={{ color: 'var(--c-text-muted)' }}>
+                      {relativeTime(n.receivedAt)}{n.senderName ? ` · ${n.senderName}` : ''}
+                    </span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    {!n.read && <button onClick={() => markRead(n.id)} className="text-gray-300 hover:text-primary-500" title="标记已读"><Check size={13} /></button>}
-                    <button onClick={() => removeNotif(n.id)} className="text-gray-300 hover:text-danger-500" title="删除"><Trash2 size={13} /></button>
+                    {!n.read && <button onClick={() => markRead(n.key)} className="text-gray-300 hover:text-primary-500" title="标记已读"><Check size={13} /></button>}
+                    <button onClick={() => removeNotif(n.key)} className="text-gray-300 hover:text-danger-500" title="删除"><Trash2 size={13} /></button>
                   </div>
                 </div>
               );
@@ -90,7 +110,7 @@ export function NotificationPanel({ open, onClose }: { open: boolean; onClose: (
 
         {/* Footer */}
         <div className="border-t px-4 py-2.5 text-center" style={{ borderColor: 'var(--c-border-light)' }}>
-          <button className="text-xs text-primary-500 hover:underline">查看全部消息</button>
+          <button onClick={() => { onClose(); navigate('/portal/message'); }} className="text-xs text-primary-500 hover:underline">查看全部消息</button>
         </div>
       </div>
     </>
