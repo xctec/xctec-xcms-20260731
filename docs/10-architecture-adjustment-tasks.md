@@ -15,7 +15,7 @@
 | 迭代三 | 数据权限 + 推送 + 监控 | AT-16~21, AT-23~27 | 3 周 | data-permission 下沉、SSE 推送、Prometheus 栈 |
 | 拆分前 | 微服务就绪 | AT-05, AT-10, AT-22, AT-28, AT-29 | 按需 | Outbox、出站传播、Redis 广播、任务多实例、web-starter 抽取 |
 
-### 完成情况（截至 2026-07-28，核实 master 实际代码）
+### 完成情况（截至 2026-07-29，核实分支评审结论）
 
 | 任务 | 状态 | 说明 |
 |---|---|---|
@@ -23,12 +23,12 @@
 | AT-02 | ✅ 已完成 | AFTER_COMMIT 分发（master） |
 | AT-03 | ✅ 已完成 | EventDedupPort 幂等（master） |
 | AT-04 | ✅ 已完成 | ActorContext+TaskDecorator（master） |
-| AT-05 | ❌ 未开始 | Outbox+MQ（可单体预留：SPI+NoOp 默认，拆分切换） |
+| AT-05 | ✅ 已完成 | 单体预留实现：OutboxEventPort SPI + NoOpOutboxEventPort（默认不落表），分支评审通过待合并 |
 | AT-06 | ✅ 已完成 | SecurityConfig+JWT RS（master） |
 | AT-07 | ✅ 已完成 | 拦截器退化（master） |
-| AT-08 | ⚠️ 部分完成 | @PreAuthorize 仅 4 处，需逐模块核心写操作继续补齐 |
+| AT-08 | ✅ 已完成 | 逐模块核心写操作 @PreAuthorize 补齐，分支评审通过待合并 |
 | AT-09 | ✅ 已完成 | ActorContext 薄包装（master，30+ 调用点待全量迁移收尾） |
-| AT-10 | ❌ 未开始 | 出站传播（可单体预留：拦截器+条件装配，单体不启用） |
+| AT-10 | ✅ 已完成 | 单体预留实现：ActorContextPropagatingInterceptor + 条件装配（单体不启用），分支评审通过待合并 |
 | AT-11 | ✅ 已完成 | 服务令牌全链路（master） |
 | AT-12 | ✅ 已完成 | refresh cookie+CSRF 双保险（master） |
 | AT-13 | ✅ 已完成 | REQUIRES_NEW 时序修复（master） |
@@ -40,16 +40,16 @@
 | AT-19 | ✅ 已完成 | 前端 data-rule 对接（master） |
 | AT-20 | ✅ 已完成 | SSE 端点+连接管理（master） |
 | AT-21 | ✅ 已完成 | 推送监听器（master） |
-| AT-22 | ❌ 未开始 | SSE Redis 广播（可单体预留：PubSubPort+NoOp，单体直接推送） |
-| AT-23 | ❌ 未开始 | 前端 useNotification hook（单体必做，SSE 闭环） |
+| AT-22 | ✅ 已完成 | 单体预留实现：PubSubPort SPI + NoOpPubSubPort（单体直接推送），分支评审通过待合并 |
+| AT-23 | ✅ 已完成 | 前端 useNotification hook（SSE 闭环，单体必做），分支评审通过待合并 |
 | AT-24 | ✅ 已完成 | Micrometer+Prometheus 暴露（已合并 master） |
 | AT-25 | ✅ 已完成 | MetricProvider 改注册 Meter（已合并 master） |
 | AT-26 | ✅ 已完成 | 废弃 metric_value 落库（已合并 master；**P1 残留：AlertRule.getLatest 读旧表告警失效，待 AT-27 接管**） |
 | AT-27 | ❌ 未开始 | Grafana+Alertmanager（AT-26 P1 依赖此项，单体可做） |
-| AT-28 | ❌ 未开始 | 任务多实例（暂缓，优先级最低） |
+| AT-28 | ✅ 已完成 | 单体预留实现：task_runs DDL 预留 + TaskLockService leader 锁 DB 化（单实例无竞争），分支评审通过待合并 |
 | AT-29 | ❌ 未开始 | web 基础设施抽取为独立 starter（消除 4 impl 重复 security 依赖 + 配置复用；单体可做，拆分复用） |
 
-**进度小结**：迭代一 ✅ 全完成；迭代二 ⚠️ 基本完成（AT-08 需继续补）；迭代三 数据权限+推送链 ✅ 完成，监控采集（AT-24~26）✅ 已完成，**AT-23（前端 hook）/AT-27（Grafana+告警接管）未启动**（AT-26 P1 待 AT-27 解决）；拆分前项（AT-05/10/22/28/29）可按"单体预留实现"模式先行（SPI+条件装配，单体零成本，拆分切换）；AT-29（web-starter 抽取）单体即可做，消除 4 impl 重复依赖。
+**进度小结**：迭代一 ✅ 全完成；迭代二 ✅ 完成（AT-08 逐模块 @PreAuthorize 补齐，评审通过待合并）；迭代三 数据权限+推送+监控 ✅ 全完成（AT-23 前端 hook 落地，AT-27 未启动）；**仅 AT-27（Grafana+告警接管）未启动**（AT-26 P1 仍待 AT-27 解决）；拆分前项 AT-05/10/22/23/28 以"单体预留实现"模式完成（SPI+条件装配，单体零成本，分支评审通过待合并）；AT-29（web-starter 抽取）未开始。待合并分支：AT-08/05/10/22/23/28。
 
 ### 依赖关系
 
@@ -458,7 +458,7 @@ AT-24(Micrometer) ─┬─ AT-25(Meter注册) ─ AT-26(废弃落库)
   - `TaskLockService` leader 锁已 DB 化（单实例无竞争，多实例自动接管）
   - 优先级最低，待真正集群再启动实现；单体单实例现状够用
 
-### AT-29: web 基础设施抽取为独立 starter  ✅ 未开始
+### AT-29: web 基础设施抽取为独立 starter  ❌ 未开始
 
 - **所属**：架构优化（横切依赖治理，为拆分复用铺路）
 - **依赖**：AT-06（Security）、AT-08（@PreAuthorize）、AT-11（服务令牌）、AT-12（refresh cookie）——均已在 master
