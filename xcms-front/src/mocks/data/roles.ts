@@ -24,9 +24,19 @@ export const mockRolePermissions: Record<number, number[]> = {
   3: [1, 5],
 };
 
-/** 角色 -> 数据范围 */
-export const mockRoleDataScope: Record<number, { scopeType: string; scopeValues: string[] }> = {
-  1: { scopeType: 'ALL', scopeValues: [] },
-  2: { scopeType: 'CURRENT_TENANT', scopeValues: [] },
-  3: { scopeType: 'DEPT_AND_CHILD', scopeValues: ['1'] },
-};
+/** 数据规则（AT-19：对齐后端 DataRuleDTO，preset 规则由 Permission 页动态创建） */
+export const mockDataRules: Array<{
+  id?: number;
+  ruleName?: string;
+  ruleType?: string;
+  resourceType?: string;
+  dimension?: string;
+  ruleConfig?: string;
+  status?: string;
+}> = [];
+
+/** 数据规则 -> 角色绑定 */
+export const mockDataRuleBindings: Array<{ ruleId: number; roleId: number }> = [];
+
+let dataRuleIdSeq = 1;
+export const nextDataRuleId = () => dataRuleIdSeq++;
