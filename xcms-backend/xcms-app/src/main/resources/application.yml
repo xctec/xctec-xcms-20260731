@@ -27,7 +27,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        # AT-24：暴露 prometheus 端点，供 Prometheus 定时抓取（Prometheus 抓取 /actuator/prometheus）
+        include: health,info,metrics,prometheus
+  metrics:
+    tags:
+      # 所有指标统一附加应用标识，便于多实例/Grafana 区分
+      application: xcms
   endpoint:
     health:
       show-details: when_authorized
