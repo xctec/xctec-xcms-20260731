@@ -33,11 +33,11 @@ public class JwtTokenProvider {
     }
 
     public String generateAccessToken(Long userId, Long tenantId, String username) {
-        return buildToken(userId, tenantId, username, accessTtlSeconds);
+        return buildToken(userId, tenantId, username, accessTtlSeconds, "access");
     }
 
     public String generateRefreshToken(Long userId, Long tenantId, String username) {
-        return buildToken(userId, tenantId, username, refreshTtlSeconds);
+        return buildToken(userId, tenantId, username, refreshTtlSeconds, "refresh");
     }
 
     /**
@@ -57,13 +57,18 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    private String buildToken(Long userId, Long tenantId, String username, long ttlSeconds) {
+    /**
+     * 构建用户令牌，claim 标记 {@code token_type}（access/refresh），
+     * 便于资源服务器/刷新端点区分令牌用途（评审 P1-2）。
+     */
+    private String buildToken(Long userId, Long tenantId, String username, long ttlSeconds, String tokenType) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + ttlSeconds * 1000);
         return Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("tenantId", tenantId)
                 .claim("username", username)
+                .claim("token_type", tokenType)
                 .issuedAt(now)
                 .expiration(expiration)
                 .signWith(key)
