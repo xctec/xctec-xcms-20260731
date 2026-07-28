@@ -198,6 +198,11 @@ public class DefaultDataPermissionService implements DataPermissionService {
         return entities;
     }
 
+    @Override
+    public void evictContextCache(Long tenantId) {
+        cachePort.evictByPrefix(CTX_KEY_PREFIX + tenantId + ":");
+    }
+
     private boolean isExempt(ColumnMaskSpec mask, Long userId) {
         return userId != null && mask.getExemptIds() != null && mask.getExemptIds().contains(userId);
     }
