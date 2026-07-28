@@ -10,9 +10,12 @@ import com.df4j.xctec.xcms.operation.domain.Metric;
 import com.df4j.xctec.xcms.operation.domain.MetricValue;
 import com.df4j.xctec.xcms.operation.repository.MetricRepository;
 import com.df4j.xctec.xcms.operation.repository.MetricValueRepository;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,12 +29,31 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class MetricServiceImpl implements MetricService {
+public class MetricServiceImpl implements MetricService, ApplicationRunner {
 
     private final MetricRepository metricRepository;
     private final MetricValueRepository metricValueRepository;
     /** 各业务模块注册的指标采集扩展点 */
     private final ObjectProvider<MetricProvider> metricProviders;
+    /** AT-25：Micrometer 指标注册表，供 Prometheus 抓取 */
+    private final MeterRegistry meterRegistry;
+
+    @Override
+    public void run(ApplicationArguments args) {
+        // AT-25：应用启动即完成各 Provider 的 Meter 注册，供 Prometheus 抓取
+        registerProviderMeters();
+    }
+
+    /** 向 Micrometer 注册所有内置 Provider 的 Meter（AT-25） */
+    private void registerProviderMeters() {
+        for (MetricProvider provider : metricProviders) {
+            try {
+                provider.registerMeters(meterRegistry);
+            } catch (Exception e) {
+                log.warn("[ops] metric provider {} register meters failed", provider.getProviderName(), e);
+            }
+        }
+    }
 
     @Override
     @Transactional
