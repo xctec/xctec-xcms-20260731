@@ -11,7 +11,6 @@ type SetAuthData = LoginResult;
 
 interface AuthState {
   token: string | null;
-  refreshToken: string | null;
   /** token 签发时间戳（ms），用于主动刷新判断 */
   tokenIssuedAt: number | null;
   /** token 有效期（秒） */
@@ -29,8 +28,8 @@ interface AuthState {
   /** 业务面菜单树 */
   portalMenus: RouteMenuItem[];
   setAuth: (data: SetAuthData) => void;
-  /** 登录/刷新后更新令牌，重置签发时间 */
-  setTokens: (data: { token: string; refreshToken: string; expiresIn?: number }) => void;
+  /** 登录/刷新后更新访问令牌，重置签发时间（refresh token 在 httpOnly cookie，前端不可见，AT-12） */
+  setTokens: (data: { token: string; expiresIn?: number }) => void;
   /** 设置菜单树并派生权限集合 */
   setMenus: (menus: RouteMenuItem[], portalMenus: RouteMenuItem[]) => void;
   clearAuth: () => void;
@@ -64,7 +63,6 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       token: null,
-      refreshToken: null,
       tokenIssuedAt: null,
       expiresIn: null,
       userId: null,
@@ -79,7 +77,7 @@ export const useAuthStore = create<AuthState>()(
       setAuth: (data) =>
         set({
           token: data.token ?? null,
-          refreshToken: data.refreshToken ?? null,
+          // refresh token 由后端写入 httpOnly cookie（AT-12），前端不再持有
           tokenIssuedAt: Date.now(),
           expiresIn: data.expiresIn ?? null,
           // 解平嵌套的 user 对象到扁平 AuthState
@@ -91,10 +89,9 @@ export const useAuthStore = create<AuthState>()(
           tenantName: data.user?.tenantName ?? null,
           roles: data.user?.roles?.map((r) => r.roleCode ?? '') ?? [],
         }),
-      setTokens: ({ token, refreshToken, expiresIn }) =>
+      setTokens: ({ token, expiresIn }) =>
         set({
           token,
-          refreshToken,
           tokenIssuedAt: Date.now(),
           expiresIn: expiresIn ?? get().expiresIn,
         }),
@@ -107,7 +104,6 @@ export const useAuthStore = create<AuthState>()(
       clearAuth: () =>
         set({
           token: null,
-          refreshToken: null,
           tokenIssuedAt: null,
           expiresIn: null,
           userId: null,
@@ -134,6 +130,13 @@ export const useAuthStore = create<AuthState>()(
       hasAllPermissions: (permissions) =>
         permissions.length === 0 || permissions.every((p) => get().permissions.includes(p)),
     }),
-    { name: 'xcms-auth' }
+    {
+      name: 'xcms-auth',
+      // AT-12：persist 排除函数与敏感字段，refresh token 永不落 localStorage
+      partialize: (state) =>
+        Object.fromEntries(
+          Object.entries(state).filter(([, v]) => typeof v !== 'function')
+        ) as AuthState,
+    }
   )
 );
