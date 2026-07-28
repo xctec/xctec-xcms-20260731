@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { User, Lock, Palette, Shield, Mail, Phone, Building2, Smartphone, Monitor, Tablet, LogOut, KeyRound, Eye, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -26,7 +27,13 @@ const mockDevices = [
 const deviceIcons: Record<string, typeof Monitor> = { macOS: Monitor, iOS: Smartphone, iPadOS: Tablet };
 
 export default function ProfilePage() {
-  const [tab, setTab] = useState<'info' | 'security' | 'preference' | 'permission'>('info');
+  // AT-15：首登强制改密（Login 跳转时携带 state），默认落在安全设置页并给出提示
+  const forceChangePassword = Boolean(
+    (useLocation().state as { forceChangePassword?: boolean } | null)?.forceChangePassword
+  );
+  const [tab, setTab] = useState<'info' | 'security' | 'preference' | 'permission'>(
+    forceChangePassword ? 'security' : 'info'
+  );
 
   const tabBtn = (key: typeof tab, label: string, Icon: typeof User) => (
     <button onClick={() => setTab(key)} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 ${tab === key ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-400'}`}>
@@ -87,6 +94,11 @@ export default function ProfilePage() {
         {/* Security Settings */}
         {tab === 'security' && (
           <div className="p-6 space-y-6">
+            {forceChangePassword && (
+              <div className="rounded-md bg-warning-50 border border-warning-200 px-3 py-2 text-xs text-warning-700">
+                您正在使用初始密码，为保障账户安全，请立即修改密码。
+              </div>
+            )}
             {/* Change Password */}
             <div>
               <h3 className="mb-3 text-sm font-semibold text-gray-800 flex items-center gap-2"><KeyRound size={16} /> 修改密码</h3>
