@@ -13,7 +13,7 @@
 | 迭代一 | 事件底座 + 安全基线 | AT-01~03, AT-06~07, AT-15 | 2 周 | 消费端抽象落地、Spring Security 接管鉴权、密码安全 |
 | 迭代二 | 身份规范 + 租户初始化 | AT-04, AT-08~09, AT-11~14 | 2 周 | ActorContext、方法级权限、服务令牌、初始化时序修复 |
 | 迭代三 | 数据权限 + 推送 + 监控 | AT-16~21, AT-23~27 | 3 周 | data-permission 下沉、SSE 推送、Prometheus 栈 |
-| 拆分前 | 微服务就绪 | AT-05, AT-10, AT-22, AT-28 | 按需 | Outbox、出站传播、Redis 广播、任务多实例 |
+| 拆分前 | 微服务就绪 | AT-05, AT-10, AT-22, AT-28, AT-29 | 按需 | Outbox、出站传播、Redis 广播、任务多实例、web-starter 抽取 |
 
 ### 完成情况（截至 2026-07-28，核实 master 实际代码）
 
@@ -47,8 +47,9 @@
 | AT-26 | ✅ 已完成 | 废弃 metric_value 落库（已合并 master；**P1 残留：AlertRule.getLatest 读旧表告警失效，待 AT-27 接管**） |
 | AT-27 | ❌ 未开始 | Grafana+Alertmanager（AT-26 P1 依赖此项，单体可做） |
 | AT-28 | ❌ 未开始 | 任务多实例（暂缓，优先级最低） |
+| AT-29 | ❌ 未开始 | web 基础设施抽取为独立 starter（消除 4 impl 重复 security 依赖 + 配置复用；单体可做，拆分复用） |
 
-**进度小结**：迭代一 ✅ 全完成；迭代二 ⚠️ 基本完成（AT-08 需继续补）；迭代三 数据权限+推送链 ✅ 完成，监控采集（AT-24~26）✅ 已完成，**AT-23（前端 hook）/AT-27（Grafana+告警接管）未启动**（AT-26 P1 待 AT-27 解决）；拆分前项（AT-05/10/22/28）可按"单体预留实现"模式先行（SPI+条件装配，单体零成本，拆分切换）。
+**进度小结**：迭代一 ✅ 全完成；迭代二 ⚠️ 基本完成（AT-08 需继续补）；迭代三 数据权限+推送链 ✅ 完成，监控采集（AT-24~26）✅ 已完成，**AT-23（前端 hook）/AT-27（Grafana+告警接管）未启动**（AT-26 P1 待 AT-27 解决）；拆分前项（AT-05/10/22/28/29）可按"单体预留实现"模式先行（SPI+条件装配，单体零成本，拆分切换）；AT-29（web-starter 抽取）单体即可做，消除 4 impl 重复依赖。
 
 ### 依赖关系
 
@@ -457,6 +458,24 @@ AT-24(Micrometer) ─┬─ AT-25(Meter注册) ─ AT-26(废弃落库)
   - `TaskLockService` leader 锁已 DB 化（单实例无竞争，多实例自动接管）
   - 优先级最低，待真正集群再启动实现；单体单实例现状够用
 
+### AT-29: web 基础设施抽取为独立 starter  ✅ 未开始
+
+- **所属**：架构优化（横切依赖治理，为拆分复用铺路）
+- **依赖**：AT-06（Security）、AT-08（@PreAuthorize）、AT-11（服务令牌）、AT-12（refresh cookie）——均已在 master
+- **需求细节**：`spring-security-core` 现在 tenant/identity/org/auth-impl 4 个模块重复依赖；`SecurityConfig`/`GlobalExceptionHandler`/`JwtPermissionAuthenticationConverter`/`RestSecurityHandlers` 4 个配置类在 `xcms-app`，拆分后每个微服务要重写。抽取为独立 `xcms-web-starter` 模块，消除重复 + 配置可复用。
+- **关键机制**：
+  1. 新建 `xcms-web-starter` 模块，依赖 `xcms-shared-kernel` + `spring-boot-starter-web` + `spring-boot-starter-security` + `springdoc-openapi-starter-webmvc-ui`
+  2. 4 个配置类从 `xcms-app/security/` 迁入 starter（作 `@AutoConfiguration`，`META-INF/spring/...AutoConfiguration.imports` 注册）
+  3. **放行路径配置化**：`xcms.security.permit-paths`（默认 login/refresh/tenant-lookup/sso/actuator/swagger），各服务 `application.yml` 可覆盖
+  4. **JwtDecoder 密钥配置项**：`xcms.jwt.secret`（各服务同源），starter 默认读
+  5. **kernel pom 加 `spring-security-core`**（compile，提供 `@PreAuthorize` 注解编译期）——impl 依赖 kernel 即得注解，4 impl 删重复依赖
+  6. **`xcms-app` 瘦身**：删 4 配置类，改依赖 `xcms-web-starter`；app 仅保留启动类 + profile 特定配置
+  7. OpenAPI 配置迁 starter，`springdoc.info` 用配置项（title/version 默认取 `${spring.application.name}`）
+- **涉及模块**：新建 `xcms-web-starter`、`xcms-shared-kernel` pom、4 个 impl pom、`xcms-app` 瘦身
+- **验收标准**：4 impl 无重复 `spring-security-core`（传递自 kernel）；app 删 4 配置类；任意服务依赖 `xcms-web-starter` 即获得 web+security+doc 全套能力；单体编译通过；@PreAuthorize/401/403 行为不变。
+- **实现性质**：单体即可做（消除重复依赖 + app 瘦身），拆分时各微服务依赖 starter 即就绪（零配置复用）。非阻塞当前迭代，但建议在拆分前完成。
+- **设计依据**：Spring Boot starter 标准模式。kernel 管领域（实体/上下文/事件），starter 管 web 基础设施（过滤链/异常/OpenAPI），职责分离。kernel 已有 hibernate/jpa/springdoc-common（技术基础设施），但 `SecurityFilterChain` 是 servlet web 运行时，放 kernel 语义别扭，独立 starter 更清晰。
+
 ---
 
 ## 六、开发计划
@@ -466,7 +485,7 @@ AT-24(Micrometer) ─┬─ AT-25(Meter注册) ─ AT-26(废弃落库)
 | **迭代一** | 第 1-2 周 | AT-01,02,03,06,07,15 | 事件消费端抽象落地、Security 接管鉴权、密码安全；单体可跑 |
 | **迭代二** | 第 3-4 周 | AT-04,08,09,11,12,13,14 | ActorContext、方法级权限、服务令牌、refresh cookie、租户初始化时序修复 |
 | **迭代三** | 第 5-7 周 | AT-16,17,18,19,20,21,23,24,25,26,27 | 数据权限下沉、SSE 推送、Prometheus 栈；单体形态完善 |
-| **拆分前** | 按需 | AT-05,10,22,28 | Outbox、出站传播、Redis 广播、任务多实例；微服务就绪 |
+| **拆分前** | 按需 | AT-05,10,22,28,29 | Outbox、出站传播、Redis 广播、任务多实例、web-starter 抽取；微服务就绪 |
 
 ### 任务依赖速查
 
