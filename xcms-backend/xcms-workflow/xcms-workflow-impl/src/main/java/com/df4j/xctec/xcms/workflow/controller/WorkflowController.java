@@ -37,7 +37,7 @@ public class WorkflowController {
      * 动态权限码（如 workflow:start:{defKey}）仍保留服务内命令式校验。
      */
     @Operation(summary = "部署流程定义", description = "需要 workflow:deploy 权限")
-    @PreAuthorize("hasAuthority('workflow:deploy')")
+    @PreAuthorize("hasAuthority('workflow:deploy') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/deploy")
     public ApiResponse<WorkflowDefinitionDTO> deploy(@RequestBody DeployCommand command) {
         return ApiResponse.success(workflowService.deploy(command));

@@ -15,6 +15,7 @@ import com.df4j.xctec.xcms.org.api.dto.DepartmentUsersRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,18 +35,21 @@ public class DepartmentController {
     private final OrganizationService organizationService;
 
     @Operation(summary = "创建部门")
+    @PreAuthorize("hasAuthority('org:dept:create') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/create")
     public ApiResponse<DepartmentDTO> createDepartment(@RequestBody DepartmentCreateRequest request) {
         return ApiResponse.success(organizationService.createDepartment(request));
     }
 
     @Operation(summary = "更新部门")
+    @PreAuthorize("hasAuthority('org:edit') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/update")
     public ApiResponse<DepartmentDTO> updateDepartment(@RequestBody DepartmentUpdateRequest request) {
         return ApiResponse.success(organizationService.updateDepartment(request.getId(), request));
     }
 
     @Operation(summary = "删除部门")
+    @PreAuthorize("hasAuthority('org:edit') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/delete")
     public ApiResponse<Void> deleteDepartment(@RequestBody IdRequest request) {
         organizationService.deleteDepartment(request.getId());
@@ -71,6 +75,7 @@ public class DepartmentController {
     }
 
     @Operation(summary = "移动部门", description = "调整部门归属（父子关系）")
+    @PreAuthorize("hasAuthority('org:edit') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/move")
     public ApiResponse<Void> moveDepartment(@RequestBody MoveRequest request) {
         organizationService.moveDepartment(request.getId(), request.getTargetId());

@@ -9,6 +9,7 @@ import com.df4j.xctec.xcms.org.api.dto.PositionUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,18 +29,21 @@ public class PositionController {
     private final PositionService positionService;
 
     @Operation(summary = "创建岗位")
+    @PreAuthorize("hasAuthority('org:position:create') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/create")
     public ApiResponse<PositionDTO> createPosition(@RequestBody PositionCreateRequest request) {
         return ApiResponse.success(positionService.createPosition(request));
     }
 
     @Operation(summary = "更新岗位")
+    @PreAuthorize("hasAuthority('org:edit') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/update")
     public ApiResponse<PositionDTO> updatePosition(@RequestBody PositionUpdateRequest request) {
         return ApiResponse.success(positionService.updatePosition(request.getId(), request));
     }
 
     @Operation(summary = "删除岗位")
+    @PreAuthorize("hasAuthority('org:edit') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/delete")
     public ApiResponse<Void> deletePosition(@RequestBody IdRequest request) {
         positionService.deletePosition(request.getId());

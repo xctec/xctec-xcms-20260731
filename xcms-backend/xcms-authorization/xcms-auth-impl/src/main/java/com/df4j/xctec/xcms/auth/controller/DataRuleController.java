@@ -14,6 +14,7 @@ import com.df4j.xctec.xcms.kernel.common.dto.IdRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,18 +34,21 @@ public class DataRuleController {
     private final DataRuleService dataRuleService;
 
     @Operation(summary = "创建数据规则", description = "新建一条数据权限规则。")
+    @PreAuthorize("hasAuthority('role:data-scope') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/create")
     public ApiResponse<DataRuleDTO> createRule(@RequestBody DataRuleCreateRequest request) {
         return ApiResponse.success(dataRuleService.createRule(request));
     }
 
     @Operation(summary = "更新数据规则", description = "按 id 更新数据规则。")
+    @PreAuthorize("hasAuthority('role:data-scope') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/update")
     public ApiResponse<DataRuleDTO> updateRule(@RequestBody DataRuleUpdateRequest request) {
         return ApiResponse.success(dataRuleService.updateRule(request.getId(), request));
     }
 
     @Operation(summary = "删除数据规则", description = "删除数据规则。")
+    @PreAuthorize("hasAuthority('role:data-scope') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/delete")
     public ApiResponse<Void> deleteRule(@RequestBody IdRequest request) {
         dataRuleService.deleteRule(request.getId());
@@ -58,6 +62,7 @@ public class DataRuleController {
     }
 
     @Operation(summary = "绑定规则到角色", description = "将数据规则绑定到角色并记录作用范围。")
+    @PreAuthorize("hasAuthority('role:data-scope') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/bind")
     public ApiResponse<Void> bindRuleToRole(@RequestBody DataRuleBindRequest request) {
         dataRuleService.bindRuleToRole(request.getId(), request.getRoleId(), request.getScopeValue());
@@ -65,6 +70,7 @@ public class DataRuleController {
     }
 
     @Operation(summary = "解绑角色规则", description = "解除数据规则与角色的绑定。")
+    @PreAuthorize("hasAuthority('role:data-scope') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/unbind")
     public ApiResponse<Void> unbindRuleFromRole(@RequestBody DataRuleUnbindRequest request) {
         dataRuleService.unbindRuleFromRole(request.getId(), request.getRoleId());

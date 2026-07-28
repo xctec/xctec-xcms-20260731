@@ -9,6 +9,7 @@ import com.df4j.xctec.xcms.kernel.common.dto.IdRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,6 +29,7 @@ public class RolePermissionController {
     private final RolePermissionService rolePermissionService;
 
     @Operation(summary = "分配权限给角色", description = "为指定角色批量绑定权限。")
+    @PreAuthorize("hasAuthority('role:assign') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/assign")
     public ApiResponse<Void> assignPermissionsToRole(@RequestBody RolePermissionAssignRequest request) {
         rolePermissionService.assignPermissionsToRole(request.getRoleId(), request.getPermissions());
@@ -35,6 +37,7 @@ public class RolePermissionController {
     }
 
     @Operation(summary = "移除角色权限", description = "从指定角色批量解绑权限。")
+    @PreAuthorize("hasAuthority('role:assign') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/remove")
     public ApiResponse<Void> removePermissionsFromRole(@RequestBody RolePermissionRemoveRequest request) {
         rolePermissionService.removePermissionsFromRole(request.getRoleId(), request.getPermissionIds());

@@ -10,6 +10,7 @@ import com.df4j.xctec.xcms.org.api.dto.UserGroupDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,12 +30,14 @@ public class UserGroupController {
     private final UserGroupService userGroupService;
 
     @Operation(summary = "创建用户组")
+    @PreAuthorize("hasAuthority('org:group:create') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/create")
     public ApiResponse<UserGroupDTO> createGroup(@RequestBody UserGroupCreateRequest request) {
         return ApiResponse.success(userGroupService.createGroup(request));
     }
 
     @Operation(summary = "删除用户组")
+    @PreAuthorize("hasAuthority('org:edit') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/delete")
     public ApiResponse<Void> deleteGroup(@RequestBody IdRequest request) {
         userGroupService.deleteGroup(request.getId());
@@ -42,6 +45,7 @@ public class UserGroupController {
     }
 
     @Operation(summary = "添加组成员")
+    @PreAuthorize("hasAuthority('org:edit') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/add-members")
     public ApiResponse<Void> addMembers(@RequestBody MembersRequest request) {
         userGroupService.addMembers(request.getId(), request.getMemberIds());
@@ -49,6 +53,7 @@ public class UserGroupController {
     }
 
     @Operation(summary = "移除组成员")
+    @PreAuthorize("hasAuthority('org:edit') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/remove-members")
     public ApiResponse<Void> removeMembers(@RequestBody MembersRequest request) {
         userGroupService.removeMembers(request.getId(), request.getMemberIds());

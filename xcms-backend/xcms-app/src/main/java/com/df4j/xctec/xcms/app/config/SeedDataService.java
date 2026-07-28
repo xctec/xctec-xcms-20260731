@@ -8,6 +8,10 @@ import com.df4j.xctec.xcms.identity.domain.UserRole;
 import com.df4j.xctec.xcms.identity.repository.RoleRepository;
 import com.df4j.xctec.xcms.identity.repository.UserRepository;
 import com.df4j.xctec.xcms.identity.repository.UserRoleRepository;
+import com.df4j.xctec.xcms.auth.domain.Permission;
+import com.df4j.xctec.xcms.auth.domain.RolePermission;
+import com.df4j.xctec.xcms.auth.repository.PermissionRepository;
+import com.df4j.xctec.xcms.auth.repository.RolePermissionRepository;
 import com.df4j.xctec.xcms.tenant.api.enums.TenantStatus;
 import com.df4j.xctec.xcms.tenant.api.enums.TenantType;
 import com.df4j.xctec.xcms.tenant.domain.TenantInfo;
@@ -19,6 +23,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 种子数据服务。
@@ -52,6 +57,10 @@ public class SeedDataService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
+    /** AT-08：操作权限（perm_operation）仓库，平台级，无租户隔离 */
+    private final PermissionRepository permissionRepository;
+    /** AT-08：角色-权限绑定（perm_role_permission）仓库，租户级 */
+    private final RolePermissionRepository rolePermissionRepository;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -129,5 +138,53 @@ public class SeedDataService {
 
         log.info("[Seed] 默认登录账号就绪: tenantId={}, username={}（初始密码见部署文档，不记录于日志）",
                 tenantId, ADMIN_USERNAME);
+
+        // AT-08：补齐声明式鉴权所需的操作权限，并授予管理员角色，避免 @PreAuthorize 恒 403
+        seedOperationPermissions(role);
+    }
+
+    /** AT-08：声明式鉴权（@PreAuthorize）所需的操作权限全集，与前端权限码对齐。 */
+    private static final List<String[]> OPERATION_PERMISSIONS = List.of(
+            new String[]{"tenant:create", "新建租户", "租户管理", "TENANT", "create"},
+            new String[]{"tenant:edit", "编辑租户", "租户管理", "TENANT", "update"},
+            new String[]{"tenant:delete", "删除租户", "租户管理", "TENANT", "delete"},
+            new String[]{"org:dept:create", "新建部门", "组织架构", "DEPARTMENT", "create"},
+            new String[]{"org:position:create", "新建岗位", "组织架构", "POSITION", "create"},
+            new String[]{"org:group:create", "新建用户组", "组织架构", "USER_GROUP", "create"},
+            new String[]{"org:edit", "编辑组织", "组织架构", "ORG", "update"},
+            new String[]{"user:create", "新建用户", "用户管理", "USER", "create"},
+            new String[]{"user:edit", "编辑用户", "用户管理", "USER", "update"},
+            new String[]{"user:delete", "删除用户", "用户管理", "USER", "delete"},
+            new String[]{"user:export", "导出用户", "用户管理", "USER", "read"},
+            new String[]{"user:reset-pwd", "重置密码", "用户管理", "USER", "update"},
+            new String[]{"role:create", "新建角色", "权限管理", "ROLE", "create"},
+            new String[]{"role:edit", "编辑角色", "权限管理", "ROLE", "update"},
+            new String[]{"role:delete", "删除角色", "权限管理", "ROLE", "delete"},
+            new String[]{"role:assign", "分配角色", "权限管理", "ROLE", "update"},
+            new String[]{"role:permission", "分配权限", "权限管理", "ROLE", "update"},
+            new String[]{"role:data-scope", "数据范围", "权限管理", "ROLE", "update"},
+            new String[]{"workflow:deploy", "流程部署", "流程管理", "WORKFLOW", "update"}
+    );
+
+    /**
+     * AT-08：幂等补齐操作权限种子，并授予默认租户管理员角色。
+     * 声明式鉴权依赖 JWT 解析出的权限码，而权限码来源于 {@code perm_operation.perm_code}（经角色-权限绑定）。
+     * 若不补齐，{@code @PreAuthorize} 会对所有人恒返回 403，管理员也将无法执行任何写操作。
+     * 本方法在租户上下文内执行：perm_operation 为平台级（无 @TenantId），角色-权限绑定为租户级。
+     */
+    private void seedOperationPermissions(Role adminRole) {
+        for (String[] def : OPERATION_PERMISSIONS) {
+            String code = def[0], name = def[1], module = def[2], resourceType = def[3], action = def[4];
+            Permission perm = permissionRepository.findByPermCode(code)
+                    .orElseGet(() -> permissionRepository.save(Permission.builder()
+                            .permCode(code).permName(name).module(module)
+                            .resourceType(resourceType).action(action).build()));
+            if (rolePermissionRepository.findByRoleIdAndPermissionId(adminRole.getId(), perm.getId()).isEmpty()) {
+                rolePermissionRepository.save(RolePermission.builder()
+                        .roleId(adminRole.getId()).permissionId(perm.getId())
+                        .permType("OPERATION").build());
+            }
+        }
+        log.info("[Seed] AT-08 操作权限已就绪: role={}, count={}", ADMIN_ROLE_CODE, OPERATION_PERMISSIONS.size());
     }
 }
