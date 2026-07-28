@@ -16,6 +16,11 @@
             <groupId>com.df4j.xctec.xcms</groupId>
             <artifactId>xcms-shared-kernel</artifactId>
         </dependency>
+        <!-- AT-18：DTO 敏感字段以 @MaskField 声明，脱敏在 DTO 层执行 -->
+        <dependency>
+            <groupId>com.df4j.xctec.xcms</groupId>
+            <artifactId>xcms-data-permission-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>

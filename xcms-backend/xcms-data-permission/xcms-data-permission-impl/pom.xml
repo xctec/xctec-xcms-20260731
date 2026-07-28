@@ -29,6 +29,12 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!-- AT-18：HTTP 出口脱敏 Advice（由装配方提供 web 运行时） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <scope>provided</scope>
+        </dependency>
         <!-- 单体形态默认缓存实现（AT-16：CachePort + Caffeine） -->
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
