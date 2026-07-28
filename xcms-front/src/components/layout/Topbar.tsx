@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
+import { useNotification } from '@/hooks/useNotification';
 import { NotificationPanel } from './NotificationPanel';
 import { PreferenceDrawer } from './PreferenceDrawer';
 import clsx from 'clsx';
@@ -22,6 +23,8 @@ export default function Topbar() {
   const [open, setOpen] = useState<DropdownKey>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [prefOpen, setPrefOpen] = useState(false);
+  // AT-23：SSE 实时通知订阅（常驻布局仅此一处调用，模块级引用计数保证单连接）
+  const { unreadCount } = useNotification();
 
   const handleLogout = () => { clearAuth(); navigate('/login'); };
 
@@ -73,7 +76,7 @@ export default function Topbar() {
           <IconBtn icon={themeMode === 'light' ? Moon : Sun} onClick={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')} title={themeMode === 'light' ? t('topbar.dark') : t('topbar.light')} />
 
           {/* Notifications */}
-          <IconBtn icon={Bell} onClick={() => setNotifOpen(!notifOpen)} title={t('topbar.notifications')} badge />
+          <IconBtn icon={Bell} onClick={() => setNotifOpen(!notifOpen)} title={t('topbar.notifications')} badge={unreadCount > 0} />
 
           {/* Preferences */}
           <IconBtn icon={Palette} onClick={() => setPrefOpen(true)} title="偏好设置" />
