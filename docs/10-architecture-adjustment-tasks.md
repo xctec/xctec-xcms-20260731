@@ -15,6 +15,41 @@
 | 迭代三 | 数据权限 + 推送 + 监控 | AT-16~21, AT-23~27 | 3 周 | data-permission 下沉、SSE 推送、Prometheus 栈 |
 | 拆分前 | 微服务就绪 | AT-05, AT-10, AT-22, AT-28 | 按需 | Outbox、出站传播、Redis 广播、任务多实例 |
 
+### 完成情况（截至 2026-07-28，核实 master 实际代码）
+
+| 任务 | 状态 | 说明 |
+|---|---|---|
+| AT-01 | ✅ 已完成 | 事件端口+分发器（master） |
+| AT-02 | ✅ 已完成 | AFTER_COMMIT 分发（master） |
+| AT-03 | ✅ 已完成 | EventDedupPort 幂等（master） |
+| AT-04 | ✅ 已完成 | ActorContext+TaskDecorator（master） |
+| AT-05 | ❌ 未开始 | Outbox+MQ（可单体预留：SPI+NoOp 默认，拆分切换） |
+| AT-06 | ✅ 已完成 | SecurityConfig+JWT RS（master） |
+| AT-07 | ✅ 已完成 | 拦截器退化（master） |
+| AT-08 | ⚠️ 部分完成 | @PreAuthorize 仅 4 处，需逐模块核心写操作继续补齐 |
+| AT-09 | ✅ 已完成 | ActorContext 薄包装（master，30+ 调用点待全量迁移收尾） |
+| AT-10 | ❌ 未开始 | 出站传播（可单体预留：拦截器+条件装配，单体不启用） |
+| AT-11 | ✅ 已完成 | 服务令牌全链路（master） |
+| AT-12 | ✅ 已完成 | refresh cookie+CSRF 双保险（master） |
+| AT-13 | ✅ 已完成 | REQUIRES_NEW 时序修复（master） |
+| AT-14 | ✅ 已完成 | tenant_init_status 补偿（master） |
+| AT-15 | ✅ 已完成 | 随机密码+首登改密（master） |
+| AT-16 | ✅ 已完成 | data-permission 模块下沉（master） |
+| AT-17 | ✅ 已完成 | 行级 SPI+查询基类（master） |
+| AT-18 | ✅ 已完成 | @MaskField 脱敏下沉+fail-closed（master） |
+| AT-19 | ✅ 已完成 | 前端 data-rule 对接（master） |
+| AT-20 | ✅ 已完成 | SSE 端点+连接管理（master） |
+| AT-21 | ✅ 已完成 | 推送监听器（master） |
+| AT-22 | ❌ 未开始 | SSE Redis 广播（可单体预留：PubSubPort+NoOp，单体直接推送） |
+| AT-23 | ❌ 未开始 | 前端 useNotification hook（单体必做，SSE 闭环） |
+| AT-24 | ✅ 已完成 | Micrometer+Prometheus 暴露（已合并 master） |
+| AT-25 | ✅ 已完成 | MetricProvider 改注册 Meter（已合并 master） |
+| AT-26 | ✅ 已完成 | 废弃 metric_value 落库（已合并 master；**P1 残留：AlertRule.getLatest 读旧表告警失效，待 AT-27 接管**） |
+| AT-27 | ❌ 未开始 | Grafana+Alertmanager（AT-26 P1 依赖此项，单体可做） |
+| AT-28 | ❌ 未开始 | 任务多实例（暂缓，优先级最低） |
+
+**进度小结**：迭代一 ✅ 全完成；迭代二 ⚠️ 基本完成（AT-08 需继续补）；迭代三 数据权限+推送链 ✅ 完成，监控采集（AT-24~26）✅ 已完成，**AT-23（前端 hook）/AT-27（Grafana+告警接管）未启动**（AT-26 P1 待 AT-27 解决）；拆分前项（AT-05/10/22/28）可按"单体预留实现"模式先行（SPI+条件装配，单体零成本，拆分切换）。
+
 ### 依赖关系
 
 ```
@@ -302,6 +337,7 @@ AT-24(Micrometer) ─┬─ AT-25(Meter注册) ─ AT-26(废弃落库)
   3. 收到推送更新角标/消息列表（与 TanStack Query invalidate 协同）。
 - **涉及模块**：`xcms-front`（hooks/useNotification.ts、消息中心/待办角标组件）
 - **验收标准**：在线时实时收到通知；断线自动重连/降级轮询。
+- **实现性质**：单体必做（非预留）。与单体/拆分无关，是 SSE 推送闭环（后端 AT-20/21 已就绪），单体就必须落地消费端，否则推送能力空转。
 
 ### AT-24: Micrometer + Prometheus 暴露
 
@@ -346,8 +382,10 @@ AT-24(Micrometer) ─┬─ AT-25(Meter注册) ─ AT-26(废弃落库)
   2. Alertmanager：PromQL + `for: 5m` 持续 + 分组/抑制/静默 + 多通道（邮件/钉钉/Webhook）。
   3. `AlertRule` 表改消费 Alertmanager webhook 归档 `alert_record`，不自算阈值（`durationMin` 生效）。
   4. 前端运营看板嵌 Grafana 或用 Grafana 数据源替代 mock（解决 F6）。
+  5. **解决 AT-26 P1**：`AlertRuleServiceImpl.evaluate` 停用（不再读 `getLatest` 旧表），告警判定交 PromQL；`AlertRule` 表改消费 Alertmanager webhook 归档 `alert_record`，`durationMin` 终于生效。
 - **涉及模块**：运维部署（Grafana/Alertmanager）、`xcms-operation`（AlertRule 改造）、`xcms-front`（看板）
 - **验收标准**：Grafana 看板展示实时指标；告警持续 N 分钟触发；`durationMin` 生效。
+- **实现性质**：单体可做。运维部署与单体/拆分无关（抓 `/actuator/prometheus`）；且**必须尽快做**以解决 AT-26 已合并到 master 的 P1（自建告警 `getLatest` 读旧表失效）。
 
 ---
 
@@ -366,6 +404,11 @@ AT-24(Micrometer) ─┬─ AT-25(Meter注册) ─ AT-26(废弃落库)
   5. 重试 + 死信队列。
 - **涉及模块**：`xcms-shared-kernel`（outbox 表 + 转发器）、`xcms-app`（MQ 配置）
 - **验收标准**：业务回滚事件不发出；崩溃不丢事件；MQ at-least-once。
+- **实现模式（单体预留，可单体可拆分）**：
+  - `OutboxEventPort` SPI + `NoOpOutboxEventPort`（`@ConditionalOnProperty("xcms.event.outbox.enabled", matchIfMissing=true)`）——单体不写表，事件经 `InProcessEventPublisher` AFTER_COMMIT 直接分发，零成本
+  - `JpaOutboxEventPort` + `OutboxRelay`（`@ConditionalOnProperty("xcms.event.outbox.enabled", true)`）——拆分时启用，写表 + 后台转发 MQ
+  - DDL 预留 `db/ddl/`（拆分时建表）；`MqEventPublisher` 骨架预留（MQ 选型未定先留接口）
+  - 业务代码零改动（`DomainEventPublisher` 端口不变，实现切换）
 
 ### AT-10: 出站上下文传播拦截器
 
@@ -378,6 +421,12 @@ AT-24(Micrometer) ─┬─ AT-25(Meter注册) ─ AT-26(废弃落库)
   3. 目标服务入口支持两种解析。
 - **涉及模块**：`xcms-shared-kernel`（出站拦截器）
 - **验收标准**：跨服务调用不断链；系统调用可被目标服务鉴权。
+- **实现模式（单体预留，可单体可拆分）**：
+  - `ActorContextPropagatingInterceptor`（`@ConditionalOnProperty("xcms.inter-service.enabled", matchIfMissing=true 关闭)`）——单体不装配，零成本（无跨服务调用）
+  - 拆分时启用，RestTemplate/Feign/WebClient 加拦截器；用户请求转发原 JWT，系统调用注入 service token + `X-Tenant-Id`/`X-User-Id` 签名头
+  - `ServiceTokenClient` 预留（复用 AT-11 `ServiceTokenService`）
+  - 入口解析：目标服务 filter 预留识别 `token_type=service` + 签名头（与 AT-06 converter 协同）
+  - 业务代码零改动
 
 ### AT-22: SSE 多实例 Redis pub/sub 广播
 
@@ -390,6 +439,11 @@ AT-24(Micrometer) ─┬─ AT-25(Meter注册) ─ AT-26(废弃落库)
   3. `@ConditionalOnProperty`：单体单实例不启用，集群启用。
 - **涉及模块**：`xcms-message`/`xcms-portal`（Redis pub/sub）
 - **验收标准**：多实例下用户收到推送（无论连哪个实例）。
+- **实现模式（单体预留，可单体可拆分）**：
+  - `PubSubPort` SPI（publish/subscribe）+ `NoOpPubSubPort`（`@ConditionalOnProperty("xcms.push.broadcast.enabled", matchIfMissing=true)`）——单体不广播，`NotificationSsePushListener` 直接 `registry.send`（AT-21 现状不变）
+  - `RedisPubSubPort`（`@ConditionalOnProperty("xcms.push.broadcast.enabled", true)`）——集群启用，Listener 发 `PubSubPort.publish(notifications:{tenant}:{user})`，各实例订阅推本地连接
+  - Redis 依赖 `@ConditionalOnProperty`，单体不引入
+  - 业务监听器零改动（广播与否由 registry/PubSubPort 内部决定）
 
 ### AT-28: 异步任务多实例就绪（暂缓）
 
@@ -398,6 +452,10 @@ AT-24(Micrometer) ─┬─ AT-25(Meter注册) ─ AT-26(废弃落库)
 - **需求细节**：运行态落 `task_runs` 表 + leader 接管。**优先级最低，暂缓实施**，待真正拆分/集群再启动。
 - **关键机制**：见 ADR-016。
 - **验收标准**：见 ADR-016。
+- **实现模式（单体预留，暂缓）**：
+  - `task_runs` 表 DDL 预留 `db/ddl/`（运行态落 DB，单体也可写增可观测性）
+  - `TaskLockService` leader 锁已 DB 化（单实例无竞争，多实例自动接管）
+  - 优先级最低，待真正集群再启动实现；单体单实例现状够用
 
 ---
 
