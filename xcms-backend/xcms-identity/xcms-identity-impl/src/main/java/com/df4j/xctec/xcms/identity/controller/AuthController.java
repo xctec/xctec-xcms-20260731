@@ -21,6 +21,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -71,15 +72,24 @@ public class AuthController {
         return ApiResponse.success();
     }
 
-    @Operation(summary = "刷新令牌", description = "使用 httpOnly cookie 中的刷新令牌换取新的访问令牌（兼容期仍支持 body 传参）。公开端点，无需鉴权。")
+    @Operation(summary = "刷新令牌", description = "使用 httpOnly cookie 中的刷新令牌换取新的访问令牌（兼容期仍支持 body 传参）。公开端点，无需鉴权。"
+            + "cookie 方式必须携带 X-Requested-With: XMLHttpRequest 头（CSRF 双保险，评审 P1-4）。")
     @SecurityRequirements
     @PostMapping("/refresh")
     public ApiResponse<LoginResult> refreshToken(
             @CookieValue(value = REFRESH_COOKIE, required = false) String cookieRefreshToken,
+            @RequestHeader(value = "X-Requested-With", required = false) String requestedWith,
             @RequestBody(required = false) RefreshTokenRequest request,
             HttpServletResponse response) {
         // 优先 cookie（AT-12）；body 仅兼容旧客户端，后续版本移除
-        String refreshToken = cookieRefreshToken != null && !cookieRefreshToken.isBlank()
+        boolean fromCookie = cookieRefreshToken != null && !cookieRefreshToken.isBlank();
+        // CSRF 双保险（评审 P1-4）：cookie 会被浏览器自动携带，故要求自定义头
+        // X-Requested-With（跨站表单/顶层导航无法设置自定义头，跨域 fetch 会触发 CORS 预检被拒），
+        // 与 SameSite=Strict 共同防护。body 传参方式不受 CSRF 影响，不校验。
+        if (fromCookie && !"XMLHttpRequest".equals(requestedWith)) {
+            throw new BusinessException("非法的刷新请求：缺少 X-Requested-With 头");
+        }
+        String refreshToken = fromCookie
                 ? cookieRefreshToken
                 : (request != null ? request.getRefreshToken() : null);
         if (refreshToken == null || refreshToken.isBlank()) {
