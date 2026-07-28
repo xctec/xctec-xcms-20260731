@@ -16,6 +16,7 @@ import com.df4j.xctec.xcms.tenant.api.enums.TenantStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,12 +37,14 @@ public class TenantController {
     private final TenantService tenantService;
 
     @Operation(summary = "创建租户", description = "创建新租户（含根组织与初始管理员）。")
+    @PreAuthorize("hasAuthority('tenant:create') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/create")
     public ApiResponse<TenantDTO> createTenant(@RequestBody TenantCreateRequest request) {
         return ApiResponse.success(tenantService.createTenant(request));
     }
 
     @Operation(summary = "更新租户", description = "按 id 更新租户信息。")
+    @PreAuthorize("hasAuthority('tenant:edit') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/update")
     public ApiResponse<TenantDTO> updateTenant(@RequestBody TenantUpdateRequest request) {
         return ApiResponse.success(tenantService.updateTenant(request.getId(), request));
@@ -73,6 +76,7 @@ public class TenantController {
     }
 
     @Operation(summary = "变更租户状态", description = "启用/停用/停用锁定等状态切换。")
+    @PreAuthorize("hasAuthority('tenant:edit') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/change-status")
     public ApiResponse<Void> changeTenantStatus(@RequestBody ChangeStatusRequest request) {
         tenantService.changeTenantStatus(request.getId(), TenantStatus.valueOf(request.getStatus()));
@@ -80,6 +84,7 @@ public class TenantController {
     }
 
     @Operation(summary = "迁移租户", description = "将租户及其子树迁移到新的父租户下。")
+    @PreAuthorize("hasAuthority('tenant:edit') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/migrate")
     public ApiResponse<Void> migrateTenant(@RequestBody TenantMigrateRequest request) {
         tenantService.migrateTenant(request.getId(), request.getNewParentId());

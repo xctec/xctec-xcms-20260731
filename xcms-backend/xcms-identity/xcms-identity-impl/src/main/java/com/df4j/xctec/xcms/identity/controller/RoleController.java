@@ -13,6 +13,7 @@ import com.df4j.xctec.xcms.kernel.common.dto.IdRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,18 +33,21 @@ public class RoleController {
     private final RoleService roleService;
 
     @Operation(summary = "创建角色", description = "创建角色定义。")
+    @PreAuthorize("hasAuthority('role:create') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/create")
     public ApiResponse<RoleDTO> createRole(@RequestBody RoleCreateRequest request) {
         return ApiResponse.success(roleService.createRole(request));
     }
 
     @Operation(summary = "更新角色", description = "按 id 更新角色。")
+    @PreAuthorize("hasAuthority('role:edit') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/update")
     public ApiResponse<RoleDTO> updateRole(@RequestBody RoleUpdateRequest request) {
         return ApiResponse.success(roleService.updateRole(request.getId(), request));
     }
 
     @Operation(summary = "删除角色", description = "删除角色（需先解绑用户）。")
+    @PreAuthorize("hasAuthority('role:delete') or hasAuthority('ROLE_SERVICE')")
     @PostMapping("/delete")
     public ApiResponse<Void> deleteRole(@RequestBody IdRequest request) {
         roleService.deleteRole(request.getId());
