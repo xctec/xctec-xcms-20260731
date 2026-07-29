@@ -90,6 +90,7 @@ public class TenantUserInitializer implements DomainEventListener<TenantCreatedE
                     .username("admin")
                     .password(passwordEncoder.encode(initialPassword))
                     .realName("系统管理员")
+                    .userType("ADMIN")
                     .status(UserStatus.ACTIVE)
                     .build();
             admin = userRepository.save(admin);
@@ -111,9 +112,9 @@ public class TenantUserInitializer implements DomainEventListener<TenantCreatedE
 
     /**
      * 生成 12 位随机密码（AT-15）：SecureRandom，保证至少各含一个大写、小写、数字、符号；
-     * 字符集剔除易混淆字符（I/l/O/0/1）。
+     * 字符集剔除易混淆字符（I/l/O/0/1）。{@code public} 以便平台种子（SeedDataService）复用同一套逻辑。
      */
-    static String generateRandomPassword() {
+    public static String generateRandomPassword() {
         char[] pwd = new char[PASSWORD_LENGTH];
         // 前四位保证四类字符各至少一个
         pwd[0] = UPPER.charAt(RANDOM.nextInt(UPPER.length()));

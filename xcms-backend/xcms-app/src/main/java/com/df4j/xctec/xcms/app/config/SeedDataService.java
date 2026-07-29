@@ -1,23 +1,25 @@
 package com.df4j.xctec.xcms.app.config;
 
+import com.df4j.xctec.xcms.auth.domain.Permission;
+import com.df4j.xctec.xcms.auth.domain.RolePermission;
+import com.df4j.xctec.xcms.auth.repository.PermissionRepository;
+import com.df4j.xctec.xcms.auth.repository.RolePermissionRepository;
 import com.df4j.xctec.xcms.identity.api.enums.RoleScope;
 import com.df4j.xctec.xcms.identity.api.enums.UserStatus;
 import com.df4j.xctec.xcms.identity.domain.Role;
 import com.df4j.xctec.xcms.identity.domain.User;
 import com.df4j.xctec.xcms.identity.domain.UserRole;
+import com.df4j.xctec.xcms.identity.listener.TenantUserInitializer;
 import com.df4j.xctec.xcms.identity.repository.RoleRepository;
 import com.df4j.xctec.xcms.identity.repository.UserRepository;
 import com.df4j.xctec.xcms.identity.repository.UserRoleRepository;
-import com.df4j.xctec.xcms.auth.domain.Permission;
-import com.df4j.xctec.xcms.auth.domain.RolePermission;
-import com.df4j.xctec.xcms.auth.repository.PermissionRepository;
-import com.df4j.xctec.xcms.auth.repository.RolePermissionRepository;
 import com.df4j.xctec.xcms.tenant.api.enums.TenantStatus;
 import com.df4j.xctec.xcms.tenant.api.enums.TenantType;
 import com.df4j.xctec.xcms.tenant.domain.TenantInfo;
 import com.df4j.xctec.xcms.tenant.repository.TenantInfoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,8 +52,14 @@ public class SeedDataService {
     private static final String DEFAULT_TENANT_CODE = "default";
     private static final String DEFAULT_TENANT_NAME = "默认租户";
     private static final String ADMIN_USERNAME = "admin";
-    private static final String ADMIN_PASSWORD = "admin123";
     private static final String ADMIN_ROLE_CODE = "tenant_admin";
+
+    /**
+     * 默认管理员初始密码（设计 §5.2 / AT-15）：留空则随机生成并首登强制改密；
+     * 生产环境应通过环境变量/密钥注入 {@code xcms.seed.admin-password}，避免启动日志暴露明文。
+     */
+    @Value("${xcms.seed.admin-password:}")
+    private String configuredAdminPassword;
 
     private final TenantInfoRepository tenantInfoRepository;
     private final UserRepository userRepository;
@@ -99,16 +107,30 @@ public class SeedDataService {
     public void seedAdmin(Long tenantId) {
         User admin = userRepository.findByUsername(ADMIN_USERNAME).orElse(null);
         if (admin == null) {
+            // 设计 §5.2 / AT-15：初始密码随机生成，与每租户事件路径（TenantUserInitializer）保持同一套逻辑；
+            // 若运维已通过 xcms.seed.admin-password 显式注入（已知晓），则复用该密码且不强制改密。
+            boolean useConfigured = configuredAdminPassword != null && !configuredAdminPassword.isBlank();
+            String rawPassword = useConfigured ? configuredAdminPassword : TenantUserInitializer.generateRandomPassword();
             admin = User.builder()
                     .username(ADMIN_USERNAME)
-                    .password(passwordEncoder.encode(ADMIN_PASSWORD))
+                    .password(passwordEncoder.encode(rawPassword))
                     .realName("系统管理员")
                     .userType("ADMIN")
                     .status(UserStatus.ACTIVE)
                     .build();
-            admin.setPasswordChangedAt(LocalDateTime.now());
+            // 随机初始密码 → passwordChangedAt 置 null，登录返回 forceChangePassword=true，首登强制改密；
+            // 配置注入密码 → 置当前时间，不强制改密。
+            admin.setPasswordChangedAt(useConfigured ? LocalDateTime.now() : null);
             admin = userRepository.save(admin);
-            log.info("[Seed] 已创建管理员账号: tenantId={}, username={}", tenantId, ADMIN_USERNAME);
+            if (useConfigured) {
+                log.info("[Seed] 已创建管理员账号(密码由配置注入，不强制改密): tenantId={}, username={}",
+                        tenantId, ADMIN_USERNAME);
+            } else {
+                // 默认平台租户无安全下发渠道，启动期一次性明文打印以便首次登录；
+                // 生产环境请注入 xcms.seed.admin-password 以避免日志暴露明文。
+                log.warn("[Seed] 默认管理员初始密码(随机生成，请立即记录并于首登后修改): username={}, password={}",
+                        ADMIN_USERNAME, rawPassword);
+            }
         }
 
         Role role = roleRepository.findByRoleCode(ADMIN_ROLE_CODE).orElse(null);
@@ -116,7 +138,8 @@ public class SeedDataService {
             role = Role.builder()
                     .roleCode(ADMIN_ROLE_CODE)
                     .roleName("租户管理员")
-                    .roleType("SYSTEM")
+                    // 设计 §5.3：统一为枚举值 RoleScope.TENANT（与事件路径、createDefaultRolesForTenant 保持一致）
+                    .roleType(RoleScope.TENANT.name())
                     .roleScope(RoleScope.TENANT)
                     .status("ACTIVE")
                     .build();
@@ -136,8 +159,7 @@ public class SeedDataService {
             log.info("[Seed] 已为管理员分配角色: {}", ADMIN_ROLE_CODE);
         }
 
-        log.info("[Seed] 默认登录账号就绪: tenantId={}, username={}（初始密码见部署文档，不记录于日志）",
-                tenantId, ADMIN_USERNAME);
+        log.info("[Seed] 默认登录账号就绪: tenantId={}, username={}", tenantId, ADMIN_USERNAME);
 
         // AT-08：补齐声明式鉴权所需的操作权限，并授予管理员角色，避免 @PreAuthorize 恒 403
         seedOperationPermissions(role);
