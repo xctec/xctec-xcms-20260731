@@ -1,10 +1,13 @@
-package com.df4j.xctec.xcms.app.security;
+package com.df4j.xctec.xcms.web.security;
 
 import com.df4j.xctec.xcms.auth.api.PermissionService;
+import com.df4j.xctec.xcms.web.config.XcmsJwtProperties;
+import com.df4j.xctec.xcms.web.config.XcmsSecurityProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,36 +25,30 @@ import java.nio.charset.StandardCharsets;
 /**
  * 应用安全底座（ADR-016）：SecurityFilterChain + JWT Resource Server。
  *
- * <p>此前认证由 Portal 的 TenantInterceptor（MVC 拦截器）承担，属于框架错位：
- * 拦截器晚于 Servlet Filter、无法覆盖非 MVC 端点、且无声明式鉴权能力。
- * 本配置将「认证 + 声明式授权」上收至 Servlet Filter 层：</p>
+ * <p>原位于 xcms-app（单体聚合模块），现抽离为 web-starter 的自动配置，
+ * 单体与未来的微服务均可复用同一套「认证 + 声明式授权」底座。</p>
+ *
  * <ul>
- *   <li>JWT 校验：HS256 对称密钥，与 identity 模块 JwtTokenProvider 同源
- *       （xcms.identity.jwt.secret），登录签发 ↔ 网关校验语义一致；</li>
- *   <li>权限装载：{@link JwtPermissionAuthenticationConverter} 实时查询权限服务
- *       （带缓存），支撑 @PreAuthorize 方法级鉴权（@EnableMethodSecurity）；</li>
+ *   <li>免认证路径通过 {@code xcms.security.permit-paths} 配置（保留原默认值）；</li>
+ *   <li>JWT 校验密钥通过 {@code xcms.jwt.secret} 配置，与 identity 模块
+ *       {@code xcms.identity.jwt.secret} 同源（默认均取 ${XCMS_JWT_SECRET}）；</li>
+ *   <li>权限装载由 {@code JwtPermissionAuthenticationConverter} 实时查询权限服务，
+ *       支撑 @PreAuthorize（@EnableMethodSecurity）；</li>
  *   <li>401/403 输出与 ApiResponse 错误结构统一。</li>
  * </ul>
- *
- * <p>TenantInterceptor 退化为纯租户上下文填充器（AT-07），不再承担鉴权。</p>
  */
-@Configuration
+@AutoConfiguration
+@ConditionalOnWebApplication
 @EnableWebSecurity
 @EnableMethodSecurity
+@EnableConfigurationProperties({XcmsSecurityProperties.class, XcmsJwtProperties.class})
 public class SecurityConfig {
 
-    /**
-     * 免认证端点白名单，与 Portal WebConfig 的拦截器排除路径保持一致。
-     */
-    private static final String[] PERMIT_ALL = {
-            "/api/auth/login", "/api/auth/refresh",
-            "/api/tenant/lookup",
-            "/api/sso/authorize", "/api/sso/callback",
-            "/actuator/**",
-            "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**",
-            "/error", "/favicon.ico",
-            "/h2-console/**"
-    };
+    private final XcmsSecurityProperties securityProperties;
+
+    public SecurityConfig(XcmsSecurityProperties securityProperties) {
+        this.securityProperties = securityProperties;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
@@ -66,7 +63,7 @@ public class SecurityConfig {
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(PERMIT_ALL).permitAll()
+                        .requestMatchers(securityProperties.getPermitPaths().toArray(new String[0])).permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(
@@ -84,9 +81,9 @@ public class SecurityConfig {
      * 可直接由 Resource Server 校验，无需引入独立认证服务器。
      */
     @Bean
-    public JwtDecoder jwtDecoder(
-            @Value("${xcms.identity.jwt.secret:xcms-jwt-default-secret-key-2026-07-25!}") String secret) {
-        SecretKey key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+    public JwtDecoder jwtDecoder(XcmsJwtProperties jwtProperties) {
+        SecretKey key = new SecretKeySpec(
+                jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         return NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build();
     }
 }

@@ -22,6 +22,7 @@
 
     <modules>
         <module>xcms-shared-kernel</module>
+        <module>xcms-web-starter</module>
         <module>xcms-tenant-management</module>
         <module>xcms-organization</module>
         <module>xcms-identity</module>
@@ -64,6 +65,11 @@
             <dependency>
                 <groupId>com.df4j.xctec.xcms</groupId>
                 <artifactId>xcms-shared-kernel</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.df4j.xctec.xcms</groupId>
+                <artifactId>xcms-web-starter</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>

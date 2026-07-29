@@ -1,4 +1,4 @@
-package com.df4j.xctec.xcms.app.security;
+package com.df4j.xctec.xcms.web.error;
 
 import com.df4j.xctec.xcms.kernel.common.ApiResponse;
 import com.df4j.xctec.xcms.kernel.exception.BusinessException;
@@ -6,6 +6,8 @@ import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
 import com.df4j.xctec.xcms.kernel.exception.NotFoundException;
 import com.df4j.xctec.xcms.kernel.exception.PermissionException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -23,7 +25,8 @@ import java.util.stream.Collectors;
  * Spring 默认错误页（Whitelabel），前端按 {@code errorCode} 解析失败。</p>
  *
  * <p>本处理器将异常统一包装为 {@link ApiResponse} 结构，与
- * {@link RestSecurityHandlers}（401/403）保持一致的输出契约：</p>
+ * {@link com.df4j.xctec.xcms.web.security.RestSecurityHandlers}（401/403）保持一致的输出契约。</p>
+ *
  * <ul>
  *   <li>{@link PermissionException} → 403</li>
  *   <li>{@link NotFoundException} → 404</li>
@@ -38,6 +41,8 @@ import java.util.stream.Collectors;
  * 不在此处重复处理，避免与 Spring Security 冲突。</p>
  */
 @Slf4j
+@AutoConfiguration
+@ConditionalOnWebApplication
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

@@ -56,3 +56,7 @@ xcms:
       secret: ${XCMS_JWT_SECRET:xcms-jwt-default-secret-key-2026-07-25!}
       access-ttl-seconds: 7200
       refresh-ttl-seconds: 604800
+  jwt:
+    # Resource Server 校验密钥，与 identity 签发端同源（默认取 ${XCMS_JWT_SECRET}）；
+    # 由 xcms-web-starter 的 JwtDecoder 读取（AT-29）。
+    secret: ${XCMS_JWT_SECRET:xcms-jwt-default-secret-key-2026-07-25!}

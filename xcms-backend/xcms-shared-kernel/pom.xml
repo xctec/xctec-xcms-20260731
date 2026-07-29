@@ -39,6 +39,13 @@
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-common</artifactId>
         </dependency>
+        <!-- AT-29：提供 @PreAuthorize 等安全注解（编译期）。原由各 impl 模块重复依赖，
+             上收至 kernel 后，所有依赖 kernel 的模块（含 4 个 impl）均自动获得，
+             可删除各自重复的 spring-security-core 依赖。 -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-core</artifactId>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

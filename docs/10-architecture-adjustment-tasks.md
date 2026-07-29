@@ -47,9 +47,9 @@
 | AT-26 | ✅ 已完成 | 废弃 metric_value 落库（已合并 master；**P1 残留：AlertRule.getLatest 读旧表告警失效，待 AT-27 接管**） |
 | AT-27 | ❌ 未开始 | Grafana+Alertmanager（AT-26 P1 依赖此项，单体可做） |
 | AT-28 | ✅ 已完成 | 单体预留实现：task_runs DDL 预留 + TaskLockService leader 锁 DB 化（单实例无竞争），分支评审通过待合并 |
-| AT-29 | ❌ 未开始 | web 基础设施抽取为独立 starter（消除 4 impl 重复 security 依赖 + 配置复用；单体可做，拆分复用） |
+| AT-29 | ✅ 已完成 | web 基础设施抽取为独立 starter：`xcms-web-starter`（SecurityConfig/GlobalExceptionHandler/JwtPermissionAuthenticationConverter/RestSecurityHandlers/OpenAPI 迁入，统一 @AutoConfiguration+@ConditionalOnWebApplication 条件装配；kernel 上收 spring-security-core，4 impl 删重复依赖；xcms.security.permit-paths / xcms.jwt.secret / springdoc.info.title|version 配置化）。注：xcms-app 的 XcmsApplicationContextLoadTest/OpenApiExportTest 在 master 即因 flowable FlowableJobConfiguration 与 app AsyncConfig 的 taskExecutor Bean 命名冲突启动失败，与 AT-29 无关 |
 
-**进度小结**：迭代一 ✅ 全完成；迭代二 ✅ 完成（AT-08 逐模块 @PreAuthorize 补齐，评审通过待合并）；迭代三 数据权限+推送+监控 ✅ 全完成（AT-23 前端 hook 落地，AT-27 未启动）；**仅 AT-27（Grafana+告警接管）未启动**（AT-26 P1 仍待 AT-27 解决）；拆分前项 AT-05/10/22/23/28 以"单体预留实现"模式完成（SPI+条件装配，单体零成本，分支评审通过待合并）；AT-29（web-starter 抽取）未开始。待合并分支：AT-08/05/10/22/23/28。
+**进度小结**：迭代一 ✅ 全完成；迭代二 ✅ 完成（AT-08 逐模块 @PreAuthorize 补齐，评审通过待合并）；迭代三 数据权限+推送+监控 ✅ 全完成（AT-23 前端 hook 落地，AT-27 未启动）；**仅 AT-27（Grafana+告警接管）未启动**（AT-26 P1 仍待 AT-27 解决）；拆分前项 AT-05/10/22/23/28 以"单体预留实现"模式完成（SPI+条件装配，单体零成本，分支评审通过待合并）；AT-29（web-starter 抽取）已完成（feat-AT-29 分支）。待合并分支：AT-08/05/10/22/23/28。
 
 ### 依赖关系
 
