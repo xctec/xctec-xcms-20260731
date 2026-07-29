@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/admin/cross-tenant-resource")
+@RequestMapping("/api/admin/cross-tenant-resource")
 @Tag(name = "跨租户资源 CrossTenantResource", description = "管理面：跨租户共享资源的 CRUD 与查询")
 @RequiredArgsConstructor
 public class CrossTenantResourceController {

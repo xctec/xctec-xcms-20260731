@@ -25,7 +25,7 @@ import java.util.List;
  * 角色管理（管理面）。全 POST 风格，URL 为 /admin/role/{action}。
  */
 @RestController
-@RequestMapping("/admin/role")
+@RequestMapping("/api/admin/role")
 @Tag(name = "角色管理 Role", description = "管理面：角色创建/查询/按授权范围列举")
 @RequiredArgsConstructor
 public class RoleController {

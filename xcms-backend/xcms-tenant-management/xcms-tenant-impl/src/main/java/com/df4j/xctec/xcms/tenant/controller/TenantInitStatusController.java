@@ -18,7 +18,7 @@ import java.util.List;
  * 租户初始化状态管理（管理面）。遵循 ADR-010 全 POST 风格。
  */
 @RestController
-@RequestMapping("/admin/tenant-init")
+@RequestMapping("/api/admin/tenant-init")
 @Tag(name = "租户初始化状态 TenantInit", description = "管理面：初始化失败查询与补偿重试")
 @RequiredArgsConstructor
 public class TenantInitStatusController {

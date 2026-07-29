@@ -21,7 +21,7 @@ import java.util.List;
  * 角色权限（管理面）。全 POST 风格，URL 为 /admin/role-permission/{action}。
  */
 @RestController
-@RequestMapping("/admin/role-permission")
+@RequestMapping("/api/admin/role-permission")
 @Tag(name = "角色权限 RolePermission", description = "管理面：角色与权限的绑定/解绑/查询")
 @RequiredArgsConstructor
 public class RolePermissionController {

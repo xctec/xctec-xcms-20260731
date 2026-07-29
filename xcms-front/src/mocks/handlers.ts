@@ -54,13 +54,13 @@ export const handlers = [
 
   // ====== Menu ======
   // 管理面菜单（对应后端 /admin/permission/menus）
-  http.post('/admin/permission/menus', () => ok(mockAdminMenus)),
+  http.post('/api/admin/permission/menus', () => ok(mockAdminMenus)),
   // 门户菜单（对应后端 /portal/menus）
-  http.post('/portal/menus', () => ok(mockPortalMenus)),
-  http.post('/admin/menu/all', () => ok(mockAdminMenus)),
+  http.post('/api/portal/menus', () => ok(mockPortalMenus)),
+  http.post('/api/admin/menu/all', () => ok(mockAdminMenus)),
 
   // ====== Tenant ======
-  http.post('/admin/tenant/list-children', async ({ request }) => {
+  http.post('/api/admin/tenant/list-children', async ({ request }) => {
     const body = (await request.json()) as {
       page?: number;
       size?: number;
@@ -72,12 +72,12 @@ export const handlers = [
     const list = tenants.slice(start, start + size);
     return ok({ list, total: tenants.length });
   }),
-  http.post('/admin/tenant/tree', () => ok(tenants)),
-  http.post('/admin/tenant/get', async ({ request }) => {
+  http.post('/api/admin/tenant/tree', () => ok(tenants)),
+  http.post('/api/admin/tenant/get', async ({ request }) => {
     const { id } = (await request.json()) as { id: number };
     return ok(tenants.find((t) => t.id === id) || null);
   }),
-  http.post('/admin/tenant/create', async ({ request }) => {
+  http.post('/api/admin/tenant/create', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     const newTenant = {
       id: Date.now(),
@@ -91,7 +91,7 @@ export const handlers = [
     tenants = [newTenant, ...tenants];
     return ok(newTenant);
   }),
-  http.post('/admin/tenant/update', async ({ request }) => {
+  http.post('/api/admin/tenant/update', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     const id = Number(body.id);
     tenants = tenants.map((t) =>
@@ -99,55 +99,55 @@ export const handlers = [
     );
     return ok(tenants.find((t) => t.id === id) || null);
   }),
-  http.post('/admin/tenant/delete', async ({ request }) => {
+  http.post('/api/admin/tenant/delete', async ({ request }) => {
     const { id } = (await request.json()) as { id: number };
     tenants = tenants.filter((t) => t.id !== id);
     return ok(null);
   }),
 
   // ====== 组织架构 ======
-  http.post('/admin/org/dept/tree', () => ok(mockDepartments)),
-  http.post('/admin/org/dept/create', async ({ request }) => {
+  http.post('/api/admin/org/dept/tree', () => ok(mockDepartments)),
+  http.post('/api/admin/org/dept/create', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return ok({ id: Date.now(), children: [], ...body });
   }),
-  http.post('/admin/org/dept/update', async ({ request }) => {
+  http.post('/api/admin/org/dept/update', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return ok({ ...body });
   }),
-  http.post('/admin/org/dept/delete', async ({ request }) => {
+  http.post('/api/admin/org/dept/delete', async ({ request }) => {
     await request.json();
     return ok(null);
   }),
-  http.post('/admin/org/dept/move', async ({ request }) => {
+  http.post('/api/admin/org/dept/move', async ({ request }) => {
     await request.json();
     return ok(null);
   }),
-  http.post('/admin/org/position/list', async ({ request }) => {
+  http.post('/api/admin/org/position/list', async ({ request }) => {
     const body = (await request.json()) as { deptId?: number };
     const positions = body.deptId != null ? mockPositions[body.deptId] ?? [] : [];
     return ok(positions);
   }),
-  http.post('/admin/org/position/create', async ({ request }) => {
+  http.post('/api/admin/org/position/create', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return ok({ id: Date.now(), positionId: Date.now(), ...body });
   }),
-  http.post('/admin/org/position/delete', async ({ request }) => {
+  http.post('/api/admin/org/position/delete', async ({ request }) => {
     await request.json();
     return ok(null);
   }),
-  http.post('/admin/org/group/list', () => ok(mockGroups)),
-  http.post('/admin/org/group/create', async ({ request }) => {
+  http.post('/api/admin/org/group/list', () => ok(mockGroups)),
+  http.post('/api/admin/org/group/create', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return ok({ id: Date.now(), memberCount: 0, ...body });
   }),
-  http.post('/admin/org/group/delete', async ({ request }) => {
+  http.post('/api/admin/org/group/delete', async ({ request }) => {
     await request.json();
     return ok(null);
   }),
 
   // ====== 用户 ======
-  http.post('/admin/user/list', async ({ request }) => {
+  http.post('/api/admin/user/list', async ({ request }) => {
     const body = (await request.json()) as { page?: number; size?: number; keyword?: string };
     const page = Number(body.page ?? 1);
     const size = Number(body.size ?? 10);
@@ -158,31 +158,31 @@ export const handlers = [
     const start = (page - 1) * size;
     return ok({ list: filtered.slice(start, start + size), total: filtered.length });
   }),
-  http.post('/admin/user/get', async ({ request }) => {
+  http.post('/api/admin/user/get', async ({ request }) => {
     const { id } = (await request.json()) as { id: number };
     return ok(mockUsers.find((u) => u.id === id) || null);
   }),
-  http.post('/admin/user/create', async ({ request }) => {
+  http.post('/api/admin/user/create', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     const user = { id: Date.now(), tenantId: 1, status: 'ACTIVE', ...body } as never;
     mockUsers.unshift(user);
     return ok(user);
   }),
-  http.post('/admin/user/update', async ({ request }) => {
+  http.post('/api/admin/user/update', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return ok({ ...body });
   }),
-  http.post('/admin/user/delete', async ({ request }) => {
+  http.post('/api/admin/user/delete', async ({ request }) => {
     await request.json();
     return ok(null);
   }),
-  http.post('/admin/user/reset-password', async ({ request }) => {
+  http.post('/api/admin/user/reset-password', async ({ request }) => {
     await request.json();
     return ok(null);
   }),
 
   // ====== 角色 / 权限 ======
-  http.post('/admin/role/list', async ({ request }) => {
+  http.post('/api/admin/role/list', async ({ request }) => {
     const body = (await request.json()) as { page?: number; size?: number; keyword?: string };
     const page = Number(body.page ?? 1);
     const size = Number(body.size ?? 10);
@@ -193,28 +193,28 @@ export const handlers = [
     const start = (page - 1) * size;
     return ok({ list: filtered.slice(start, start + size), total: filtered.length });
   }),
-  http.post('/admin/role/create', async ({ request }) => {
+  http.post('/api/admin/role/create', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     const role = { id: Date.now(), status: 'ACTIVE', ...body } as never;
     mockRoles.unshift(role);
     return ok(role);
   }),
-  http.post('/admin/role/update', async ({ request }) => {
+  http.post('/api/admin/role/update', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return ok({ ...body });
   }),
-  http.post('/admin/role/delete', async ({ request }) => {
+  http.post('/api/admin/role/delete', async ({ request }) => {
     await request.json();
     return ok(null);
   }),
   // 对齐后端 RolePermissionController：/admin/role-permission/get（IdRequest{id}）
-  http.post('/admin/role-permission/get', async ({ request }) => {
+  http.post('/api/admin/role-permission/get', async ({ request }) => {
     const { id } = (await request.json()) as { id: number };
     const ids = mockRolePermissions[id] ?? [];
     return ok(mockPermissions.filter((p) => ids.includes(p.id!)));
   }),
   // /admin/role-permission/assign（RolePermissionAssignRequest{roleId, permissions: PermissionAssignRequest[]}）
-  http.post('/admin/role-permission/assign', async ({ request }) => {
+  http.post('/api/admin/role-permission/assign', async ({ request }) => {
     const { roleId, permissions } = (await request.json()) as {
       roleId: number;
       permissions: { permId: number; permType?: string }[];
@@ -224,30 +224,30 @@ export const handlers = [
     return ok(null);
   }),
   // 对齐后端 POST /admin/permission/list（列出全部权限，含操作权限 + 菜单/按钮权限）
-  http.post('/admin/permission/list', () => ok(mockPermissions)),
+  http.post('/api/admin/permission/list', () => ok(mockPermissions)),
   // ====== 数据规则（AT-19：对齐后端 DataRuleController /admin/data-rule/*） ======
-  http.post('/admin/data-rule/list', async ({ request }) => {
+  http.post('/api/admin/data-rule/list', async ({ request }) => {
     const { resourceType } = (await request.json()) as { resourceType?: string };
     return ok(mockDataRules.filter((r) => !resourceType || r.resourceType === resourceType));
   }),
-  http.post('/admin/data-rule/create', async ({ request }) => {
+  http.post('/api/admin/data-rule/create', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     const rule = { id: nextDataRuleId(), status: 'ACTIVE', ...body };
     mockDataRules.push(rule as (typeof mockDataRules)[number]);
     return ok(rule);
   }),
-  http.post('/admin/data-rule/delete', async ({ request }) => {
+  http.post('/api/admin/data-rule/delete', async ({ request }) => {
     const { id } = (await request.json()) as { id: number };
     const idx = mockDataRules.findIndex((r) => r.id === id);
     if (idx >= 0) mockDataRules.splice(idx, 1);
     return ok(null);
   }),
-  http.post('/admin/data-rule/bind', async ({ request }) => {
+  http.post('/api/admin/data-rule/bind', async ({ request }) => {
     const { id, roleId } = (await request.json()) as { id: number; roleId: number };
     mockDataRuleBindings.push({ ruleId: id, roleId });
     return ok(null);
   }),
-  http.post('/admin/data-rule/unbind', async ({ request }) => {
+  http.post('/api/admin/data-rule/unbind', async ({ request }) => {
     const { id, roleId } = (await request.json()) as { id: number; roleId: number };
     const idx = mockDataRuleBindings.findIndex((b) => b.ruleId === id && b.roleId === roleId);
     if (idx >= 0) mockDataRuleBindings.splice(idx, 1);

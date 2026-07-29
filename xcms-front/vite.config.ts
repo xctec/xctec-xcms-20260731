@@ -12,9 +12,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // 联调时代理到后端（关闭 Mock 时生效）
+      // 联调时代理到后端（关闭 Mock 时生效）；所有接口统一以 /api 开头
       '/api': { target: 'http://localhost:8080', changeOrigin: true },
-      '/admin': { target: 'http://localhost:8080', changeOrigin: true },
     },
   },
 });

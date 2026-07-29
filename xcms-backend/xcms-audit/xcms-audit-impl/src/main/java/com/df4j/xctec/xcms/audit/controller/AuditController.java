@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 审计查询（管理面）。全 POST 风格。
  */
 @RestController
-@RequestMapping("/admin/audit")
+@RequestMapping("/api/admin/audit")
 @Tag(name = "审计 Audit", description = "管理面：审计日志查询")
 @RequiredArgsConstructor
 public class AuditController {

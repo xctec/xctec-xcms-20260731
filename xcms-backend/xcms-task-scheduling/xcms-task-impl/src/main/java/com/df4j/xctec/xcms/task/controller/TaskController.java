@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/admin/task")
+@RequestMapping("/api/admin/task")
 @Tag(name = "任务调度 Task", description = "管理面：定时任务与异步任务")
 @RequiredArgsConstructor
 public class TaskController {

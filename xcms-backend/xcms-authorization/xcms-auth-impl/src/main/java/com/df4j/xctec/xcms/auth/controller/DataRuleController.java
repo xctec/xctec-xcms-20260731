@@ -26,7 +26,7 @@ import java.util.List;
  * 数据规则（管理面）。全 POST 风格，URL 为 /admin/data-rule/{action}。
  */
 @RestController
-@RequestMapping("/admin/data-rule")
+@RequestMapping("/api/admin/data-rule")
 @Tag(name = "数据规则 DataRule", description = "管理面：数据权限规则 CRUD/绑定角色/测试")
 @RequiredArgsConstructor
 public class DataRuleController {

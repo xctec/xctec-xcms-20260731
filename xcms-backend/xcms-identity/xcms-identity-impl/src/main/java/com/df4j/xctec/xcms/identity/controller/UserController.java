@@ -33,7 +33,7 @@ import java.util.List;
  * 由 MaskFieldResponseAdvice 在响应写出前统一执行，Controller 无需标注。
  */
 @RestController
-@RequestMapping("/admin/user")
+@RequestMapping("/api/admin/user")
 @Tag(name = "用户管理 User", description = "管理面：用户创建/查询/状态变更/改密/角色分配")
 @RequiredArgsConstructor
 public class UserController {

@@ -20,7 +20,7 @@ import java.util.List;
  * 租户功能开关（管理面）。全 POST 风格，URL 为 /admin/tenant-feature/{action}。
  */
 @RestController
-@RequestMapping("/admin/tenant-feature")
+@RequestMapping("/api/admin/tenant-feature")
 @Tag(name = "租户功能开关 Feature", description = "管理面：按租户查询/切换功能开关与配置")
 @RequiredArgsConstructor
 public class TenantFeatureController {

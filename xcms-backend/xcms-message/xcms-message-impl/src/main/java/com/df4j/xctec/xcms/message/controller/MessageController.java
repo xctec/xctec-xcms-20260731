@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 消息（业务面）。全 POST 风格。
  */
 @RestController
-@RequestMapping("/message")
+@RequestMapping("/api/message")
 @Tag(name = "消息 Message", description = "业务面：消息发送/收件箱/已读")
 @RequiredArgsConstructor
 public class MessageController {

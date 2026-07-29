@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 跨租户授权（管理面）。全 POST 风格，URL 为 /admin/cross-tenant-auth/{action}。
  */
 @RestController
-@RequestMapping("/admin/cross-tenant-auth")
+@RequestMapping("/api/admin/cross-tenant-auth")
 @Tag(name = "跨租户授权 CrossTenantAuth", description = "管理面：跨租户可见性授权的申请/审批/吊销/校验")
 @RequiredArgsConstructor
 public class CrossTenantAuthController {

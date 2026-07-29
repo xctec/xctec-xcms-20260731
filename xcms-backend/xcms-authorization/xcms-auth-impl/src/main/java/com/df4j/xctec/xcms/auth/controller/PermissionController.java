@@ -21,7 +21,7 @@ import java.util.List;
  * 权限（管理面）。全 POST 风格，URL 为 /admin/permission/{action}。
  */
 @RestController
-@RequestMapping("/admin/permission")
+@RequestMapping("/api/admin/permission")
 @Tag(name = "权限 Permission", description = "管理面：用户权限查询/鉴权/菜单树")
 @RequiredArgsConstructor
 public class PermissionController {
