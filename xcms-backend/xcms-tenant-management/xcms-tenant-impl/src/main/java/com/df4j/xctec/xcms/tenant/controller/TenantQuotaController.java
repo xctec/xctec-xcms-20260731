@@ -24,7 +24,7 @@ import java.util.List;
  * 租户配额（管理面）。全 POST 风格，URL 为 /admin/tenant-quota/{action}。
  */
 @RestController
-@RequestMapping("/admin/tenant-quota")
+@RequestMapping("/api/admin/tenant-quota")
 @Tag(name = "租户配额 Quota", description = "管理面：租户配额查询/分配/消耗/释放/校验")
 @RequiredArgsConstructor
 public class TenantQuotaController {

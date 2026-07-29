@@ -21,7 +21,7 @@ import java.util.List;
  * 用户组织关系（管理面）。全 POST 风格，URL 为 /admin/user-org/{action}。
  */
 @RestController
-@RequestMapping("/admin/user-org")
+@RequestMapping("/api/admin/user-org")
 @Tag(name = "用户组织关系 UserOrg", description = "管理面：用户-岗位-部门关系维护")
 @RequiredArgsConstructor
 public class UserOrgController {

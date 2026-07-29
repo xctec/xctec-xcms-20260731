@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/admin/config")
+@RequestMapping("/api/admin/config")
 @Tag(name = "配置 Config", description = "管理面：字典/编码规则/配置开关")
 @RequiredArgsConstructor
 public class ConfigController {

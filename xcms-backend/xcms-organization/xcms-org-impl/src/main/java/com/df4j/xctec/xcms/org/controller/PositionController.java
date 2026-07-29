@@ -21,7 +21,7 @@ import java.util.List;
  * 岗位管理（管理面）。全 POST 风格，URL 为 /admin/position/{action}。
  */
 @RestController
-@RequestMapping("/admin/position")
+@RequestMapping("/api/admin/position")
 @Tag(name = "岗位 Position", description = "管理面：岗位创建/更新/按部门列举")
 @RequiredArgsConstructor
 public class PositionController {

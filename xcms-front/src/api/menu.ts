@@ -36,13 +36,13 @@ export const menuApi = {
   getUserMenus: async (face: MenuFace): Promise<RouteMenuItem[]> => {
     if (face === 'admin') {
       const userId = useAuthStore.getState().userId ?? undefined;
-      const dtos = await http.post<unknown, MenuDTO[]>('/admin/permission/menus', {
+      const dtos = await http.post<unknown, MenuDTO[]>('/api/admin/permission/menus', {
         userId,
         scope: 'ADMIN',
       });
       return toRouteMenus(dtos);
     }
-    const dtos = await http.post<unknown, MenuDTO[]>('/portal/menus', {
+    const dtos = await http.post<unknown, MenuDTO[]>('/api/portal/menus', {
       scope: 'BUSINESS',
     });
     return toRouteMenus(dtos);

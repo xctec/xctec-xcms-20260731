@@ -22,7 +22,7 @@ import java.util.List;
  * 脱敏规则的"执行"由 ColumnMaskResponseBodyAdvice 在响应写出前自动完成。
  */
 @RestController
-@RequestMapping("/admin/column-mask")
+@RequestMapping("/api/admin/column-mask")
 @Tag(name = "列级脱敏 ColumnMask", description = "管理面：列级脱敏规则 CRUD（执行由响应拦截器自动完成）")
 @RequiredArgsConstructor
 public class ColumnMaskController {

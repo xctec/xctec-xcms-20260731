@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin/ops")
+@RequestMapping("/api/admin/ops")
 @RequiredArgsConstructor
 public class OperationController {
 

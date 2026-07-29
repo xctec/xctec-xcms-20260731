@@ -22,7 +22,7 @@ import java.util.List;
  * 用户组管理（管理面）。全 POST 风格，URL 为 /admin/user-group/{action}。
  */
 @RestController
-@RequestMapping("/admin/user-group")
+@RequestMapping("/api/admin/user-group")
 @Tag(name = "用户组 UserGroup", description = "管理面：用户组创建/成员管理")
 @RequiredArgsConstructor
 public class UserGroupController {

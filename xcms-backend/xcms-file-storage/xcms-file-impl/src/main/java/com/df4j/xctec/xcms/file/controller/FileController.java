@@ -37,7 +37,7 @@ import java.nio.charset.StandardCharsets;
  * 二进制下载为流式场景，单独提供 GET 端点。
  */
 @RestController
-@RequestMapping("/file")
+@RequestMapping("/api/file")
 @Tag(name = "文件存储 File", description = "文件上传/查询/列表/删除/下载")
 @RequiredArgsConstructor
 public class FileController {

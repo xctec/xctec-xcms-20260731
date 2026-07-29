@@ -26,7 +26,7 @@ import java.util.List;
  * 门户统一入口与导航控制器。当前用户由 {@link TenantContext} 提供。
  */
 @RestController
-@RequestMapping("/portal")
+@RequestMapping("/api/portal")
 @RequiredArgsConstructor
 public class PortalController {
 

@@ -29,7 +29,7 @@ import java.util.List;
  * 参数一律 @RequestBody；URL 为 /admin/tenant/{action}。
  */
 @RestController
-@RequestMapping("/admin/tenant")
+@RequestMapping("/api/admin/tenant")
 @Tag(name = "租户管理 Tenant", description = "管理面：租户创建/更新/树形层级/状态变更/迁移")
 @RequiredArgsConstructor
 public class TenantController {

@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 工作流（业务面）。全 POST 风格。
  */
 @RestController
-@RequestMapping("/workflow")
+@RequestMapping("/api/workflow")
 @Tag(name = "工作流 Workflow", description = "业务面：流程部署/发起/任务办理")
 @RequiredArgsConstructor
 public class WorkflowController {

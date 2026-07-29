@@ -27,7 +27,7 @@ import java.util.List;
  * 部门管理（管理面）。全 POST 风格，URL 为 /admin/department/{action}。
  */
 @RestController
-@RequestMapping("/admin/department")
+@RequestMapping("/api/admin/department")
 @Tag(name = "部门 Department", description = "管理面：部门创建/层级/成员管理")
 @RequiredArgsConstructor
 public class DepartmentController {
