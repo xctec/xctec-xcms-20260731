@@ -1,7 +1,9 @@
 package com.df4j.xctec.xcms.app.config;
 
+import com.df4j.xctec.xcms.auth.domain.Menu;
 import com.df4j.xctec.xcms.auth.domain.Permission;
 import com.df4j.xctec.xcms.auth.domain.RolePermission;
+import com.df4j.xctec.xcms.auth.repository.MenuRepository;
 import com.df4j.xctec.xcms.auth.repository.PermissionRepository;
 import com.df4j.xctec.xcms.auth.repository.RolePermissionRepository;
 import com.df4j.xctec.xcms.identity.api.enums.RoleScope;
@@ -25,7 +27,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 种子数据服务。
@@ -67,6 +71,8 @@ public class SeedDataService {
     private final UserRoleRepository userRoleRepository;
     /** AT-08：操作权限（perm_operation）仓库，平台级，无租户隔离 */
     private final PermissionRepository permissionRepository;
+    /** ADR-015：菜单（perm_menu）仓库，平台级，无租户隔离 */
+    private final MenuRepository menuRepository;
     /** AT-08：角色-权限绑定（perm_role_permission）仓库，租户级 */
     private final RolePermissionRepository rolePermissionRepository;
     private final PasswordEncoder passwordEncoder;
@@ -163,6 +169,9 @@ public class SeedDataService {
 
         // AT-08：补齐声明式鉴权所需的操作权限，并授予管理员角色，避免 @PreAuthorize 恒 403
         seedOperationPermissions(role);
+
+        // ADR-015：补齐默认菜单（perm_menu）并绑定到管理员角色，修复设计 §5.1 菜单缺失
+        seedMenus(role);
     }
 
     /** AT-08：声明式鉴权（@PreAuthorize）所需的操作权限全集，与前端权限码对齐。 */
@@ -189,6 +198,35 @@ public class SeedDataService {
     );
 
     /**
+     * ADR-015 / 设计 §5.1：默认菜单树（平台级 perm_menu）。
+     * 每项：{code, parentCode, name, type, path, icon, permission, scope, sortOrder, visible}
+     * - type: C=目录 / M=菜单 / F=按钮
+     * - scope: ADMIN=后台管理 / BUSINESS=业务前台 / BOTH=通用
+     * - permission: 菜单关联权限码（用于权限管理界面，可为空）
+     * parentCode 必须在子项之前出现，以便解析 parentId。
+     */
+    private static final List<String[]> DEFAULT_MENUS = List.of(
+            // 后台管理 (ADMIN)
+            new String[]{"dashboard", "", "工作台", "M", "/dashboard", "DashboardOutlined", "", "ADMIN", "1", "true"},
+            new String[]{"system", "", "系统管理", "C", "/system", "SettingOutlined", "", "ADMIN", "2", "true"},
+            new String[]{"system:user", "system", "用户管理", "M", "/admin/user", "UserOutlined", "user:view", "ADMIN", "1", "true"},
+            new String[]{"system:role", "system", "角色管理", "M", "/admin/role", "SafetyOutlined", "role:view", "ADMIN", "2", "true"},
+            new String[]{"system:permission", "system", "权限管理", "M", "/admin/permission", "KeyOutlined", "permission:view", "ADMIN", "3", "true"},
+            new String[]{"system:menu", "system", "菜单管理", "M", "/admin/menu", "MenuOutlined", "menu:view", "ADMIN", "4", "true"},
+            new String[]{"system:tenant", "system", "租户管理", "M", "/admin/tenant", "ClusterOutlined", "tenant:view", "ADMIN", "5", "true"},
+            new String[]{"org", "", "组织架构", "C", "/org", "ApartmentOutlined", "", "ADMIN", "3", "true"},
+            new String[]{"org:dept", "org", "部门管理", "M", "/admin/dept", "ApartmentOutlined", "org:dept:view", "ADMIN", "1", "true"},
+            new String[]{"org:position", "org", "岗位管理", "M", "/admin/position", "IdcardOutlined", "org:position:view", "ADMIN", "2", "true"},
+            new String[]{"workflow", "", "流程管理", "C", "/workflow", "FlowOutline", "", "ADMIN", "4", "true"},
+            new String[]{"workflow:process", "workflow", "流程部署", "M", "/admin/process", "DeploymentUnitOutlined", "workflow:deploy", "ADMIN", "1", "true"},
+            // 业务前台 (BUSINESS)
+            new String[]{"portal:dashboard", "", "工作台", "M", "/portal/dashboard", "DashboardOutlined", "", "BUSINESS", "1", "true"},
+            new String[]{"portal:flow", "", "流程中心", "C", "/portal/flow", "FlowOutline", "", "BUSINESS", "2", "true"},
+            new String[]{"portal:todo", "portal:flow", "我的待办", "M", "/portal/todo", "ScheduleOutlined", "workflow:deploy", "BUSINESS", "1", "true"},
+            new String[]{"portal:done", "portal:flow", "已办任务", "M", "/portal/done", "CheckSquareOutlined", "", "BUSINESS", "2", "true"}
+    );
+
+    /**
      * AT-08：幂等补齐操作权限种子，并授予默认租户管理员角色。
      * 声明式鉴权依赖 JWT 解析出的权限码，而权限码来源于 {@code perm_operation.perm_code}（经角色-权限绑定）。
      * 若不补齐，{@code @PreAuthorize} 会对所有人恒返回 403，管理员也将无法执行任何写操作。
@@ -208,5 +246,51 @@ public class SeedDataService {
             }
         }
         log.info("[Seed] AT-08 操作权限已就绪: role={}, count={}", ADMIN_ROLE_CODE, OPERATION_PERMISSIONS.size());
+    }
+
+    /**
+     * ADR-015：幂等补齐默认菜单（perm_menu），并按 MENU 类型绑定到管理员角色，
+     * 满足「authorization: 默认菜单分配 + 角色权限绑定」契约，修复设计 §5.1 菜单缺失。
+     * 菜单为平台级（无 @TenantId），管理员角色可见全部可见菜单（{@code getUserMenus} 中 isAdmin 直通）。
+     *
+     * @param adminRole 默认租户管理员角色
+     */
+    private void seedMenus(Role adminRole) {
+        Map<String, Menu> savedByCode = new LinkedHashMap<>();
+        for (String[] def : DEFAULT_MENUS) {
+            String code = def[0], parentCode = def[1], name = def[2], type = def[3],
+                    path = def[4], icon = def[5], permission = def[6], scope = def[7];
+            int sortOrder = Integer.parseInt(def[8]);
+            boolean visible = Boolean.parseBoolean(def[9]);
+            Menu menu = menuRepository.findByMenuCode(code).orElse(null);
+            if (menu == null) {
+                Long parentId = parentCode.isBlank() ? null : savedByCode.get(parentCode).getId();
+                menu = Menu.builder()
+                        .menuCode(code)
+                        .menuName(name)
+                        .menuType(type)
+                        .parentId(parentId)
+                        .path(path)
+                        .icon(icon)
+                        .permission(permission.isBlank() ? null : permission)
+                        .scope(scope)
+                        .sortOrder(sortOrder)
+                        .visible(visible)
+                        .status("ACTIVE")
+                        .build();
+                menu = menuRepository.save(menu);
+                savedByCode.put(code, menu);
+                log.info("[Seed] 已创建菜单: code={}, name={}", code, name);
+            } else {
+                savedByCode.put(code, menu);
+            }
+            // 绑定菜单到管理员角色（MENU 类型），使权限管理界面可展示并支持非管理员按菜单授权
+            if (rolePermissionRepository.findByRoleIdAndPermissionId(adminRole.getId(), menu.getId()).isEmpty()) {
+                rolePermissionRepository.save(RolePermission.builder()
+                        .roleId(adminRole.getId()).permissionId(menu.getId())
+                        .permType("MENU").build());
+            }
+        }
+        log.info("[Seed] ADR-015 默认菜单已就绪: role={}, count={}", ADMIN_ROLE_CODE, DEFAULT_MENUS.size());
     }
 }
