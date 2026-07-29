@@ -1,8 +1,8 @@
 import type { RoleDTO, PermissionDTO } from '@/types/authorization';
 
 export const mockRoles: RoleDTO[] = [
-  { id: 1, roleCode: 'SYSTEM_ADMIN', roleName: '系统管理员', roleType: 'SYSTEM', description: '超级管理员，拥有全部权限', parentId: 0, status: 'ACTIVE' },
-  { id: 2, roleCode: 'TENANT_ADMIN', roleName: '租户管理员', roleType: 'TENANT', description: '管理租户内资源', parentId: 0, status: 'ACTIVE' },
+  { id: 1, roleCode: 'tenant_admin', roleName: '租户管理员', roleType: 'SYSTEM', description: '超级管理员，拥有全部权限', parentId: 0, status: 'ACTIVE' },
+  { id: 2, roleCode: 'tenant_admin', roleName: '租户管理员', roleType: 'TENANT', description: '管理租户内资源', parentId: 0, status: 'ACTIVE' },
   { id: 3, roleCode: 'NORMAL_USER', roleName: '普通用户', roleType: 'CUSTOM', description: '普通业务用户', parentId: 0, status: 'ENABLED' },
 ];
 

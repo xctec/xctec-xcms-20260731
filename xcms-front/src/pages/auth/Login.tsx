@@ -25,15 +25,18 @@ export default function LoginPage() {
     try {
       const result = await authApi.login({ username, password, tenantId: getLoginTenantId() });
       setAuth(result);
-      try {
-        const [adminMenus, portalMenus] = await Promise.all([
-          menuApi.getUserMenus('admin'),
-          menuApi.getUserMenus('portal'),
-        ]);
-        setMenus(adminMenus, portalMenus);
-      } catch {
-        // 菜单拉取失败不阻断登录，使用空菜单
-      }
+      // 拉取两侧菜单（管理面 + 业务面），任一失败不影响另一侧
+      const [adminRes, portalRes] = await Promise.allSettled([
+        menuApi.getUserMenus('admin'),
+        menuApi.getUserMenus('portal'),
+      ]);
+      const adminMenus = adminRes.status === 'fulfilled' ? adminRes.value : [];
+      const portalMenus = portalRes.status === 'fulfilled' ? portalRes.value : [];
+      setMenus(adminMenus, portalMenus);
+      if (adminRes.status === 'rejected')
+        console.warn('[login] 管理面菜单拉取失败', adminRes.reason);
+      if (portalRes.status === 'rejected')
+        console.warn('[login] 业务面菜单拉取失败', portalRes.reason);
       // AT-15：初始密码随机生成，首登（passwordChangedAt 为空）强制跳改密页
       if (result.forceChangePassword) {
         navigate('/portal/profile', { state: { forceChangePassword: true } });

@@ -12,7 +12,7 @@ export const mockUsers: UserDTO[] = [
     status: 'ACTIVE',
     lastLoginAt: '2026-07-20 10:00:00',
     lastLoginIp: '127.0.0.1',
-    roles: [{ roleCode: 'SYSTEM_ADMIN', roleName: '系统管理员' }],
+    roles: [{ roleCode: 'tenant_admin', roleName: '租户管理员' }],
   },
   {
     id: 2,
@@ -25,7 +25,7 @@ export const mockUsers: UserDTO[] = [
     status: 'ACTIVE',
     lastLoginAt: '2026-07-19 14:30:00',
     lastLoginIp: '127.0.0.1',
-    roles: [{ roleCode: 'TENANT_ADMIN', roleName: '租户管理员' }],
+    roles: [{ roleCode: 'tenant_admin', roleName: '租户管理员' }],
   },
   {
     id: 3,
