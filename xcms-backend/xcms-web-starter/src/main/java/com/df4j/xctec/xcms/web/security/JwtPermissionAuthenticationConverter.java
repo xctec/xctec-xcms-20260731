@@ -1,4 +1,4 @@
-package com.df4j.xctec.xcms.app.security;
+package com.df4j.xctec.xcms.web.security;
 
 import com.df4j.xctec.xcms.auth.api.PermissionService;
 import com.df4j.xctec.xcms.kernel.context.ActorContext;
@@ -21,8 +21,8 @@ import java.util.stream.Collectors;
  *
  * <p>权限实时查询 {@link PermissionService}（带 userPermissions 缓存，权限变更事件失效），
  * 避免将权限写入 JWT 导致的「权限变更需等 token 过期」问题。查询前先按 token 中的
- * tenantId 填充 {@link TenantContext}，保证 {@code @TenantId} 会话过滤正确；
- * 上下文清理仍由 TenantInterceptor afterCompletion 统一负责（ADR-012：ActorContext）。</p>
+ * tenantId 填充 {@link com.df4j.xctec.xcms.kernel.context.ActorContext}，保证
+ * {@code @TenantId} 会话过滤正确；上下文清理仍由 TenantInterceptor 统一负责。</p>
  */
 @Slf4j
 public class JwtPermissionAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {

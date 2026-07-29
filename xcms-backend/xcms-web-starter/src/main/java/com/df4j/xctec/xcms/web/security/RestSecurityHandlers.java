@@ -1,4 +1,4 @@
-package com.df4j.xctec.xcms.app.security;
+package com.df4j.xctec.xcms.web.security;
 
 import com.df4j.xctec.xcms.kernel.common.ApiResponse;
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
