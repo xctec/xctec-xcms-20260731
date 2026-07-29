@@ -1,83 +1,96 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { User, Lock, Phone, Eye, EyeOff } from 'lucide-react';
+import { PageHeader, Form, FormItem, useForm, Input, Button, toast } from '@/components/ui';
+import { authApi } from '@/api/auth';
 
-export default function RegisterPage() {
-  const { t } = useTranslation();
+type RegisterValues = {
+  username: string;
+  password: string;
+  confirmPassword: string;
+  name: string;
+  email: string;
+  phone: string;
+  tenantCode: string;
+};
+
+export default function Register() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ username: '', password: '', confirmPassword: '', phone: '' });
-  const [showPwd, setShowPwd] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const form = useForm<RegisterValues>(
+    { username: '', password: '', confirmPassword: '', name: '', email: '', phone: '', tenantCode: '' },
+    {
+      username: [{ required: '请输入用户名' }],
+      password: [{ required: '请输入密码' }],
+      confirmPassword: [{ required: '请确认密码' }],
+    },
+  );
 
-  const handleChange = (key: string, val: string) => setForm({ ...form, [key]: val });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    if (form.password !== form.confirmPassword) {
-      setError('两次密码不一致');
+  const handleSubmit = async () => {
+    if (!form.validate()) return;
+    const v = form.values;
+    if (v.password !== v.confirmPassword) {
+      toast.error('两次密码不一致');
       return;
     }
-    setLoading(true);
+    setSubmitting(true);
     try {
-      // TODO: 调用注册 API
+      await authApi.register({
+        username: v.username,
+        password: v.password,
+        name: v.name,
+        email: v.email,
+        phone: v.phone,
+        tenantCode: v.tenantCode,
+      });
+      toast.success('注册成功，请登录');
       navigate('/login');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '注册失败');
+    } catch {
+      toast.error('注册失败');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  const inputCls = 'h-10 w-full rounded-md border border-gray-300 pl-10 pr-3 text-sm outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500';
-
   return (
-    <div>
-      <h2 className="mb-1 text-xl font-bold text-gray-900">{t('register.title')}</h2>
-      <p className="mb-6 text-sm text-gray-500">创建您的账号</p>
-
-      {error && <div className="mb-4 rounded-md bg-danger-50 px-3 py-2 text-xs text-danger-500">{error}</div>}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">{t('register.username')}</label>
-          <div className="relative">
-            <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={form.username} onChange={(e) => handleChange('username', e.target.value)} className={inputCls} placeholder="请输入用户名" />
-          </div>
+    <div className="mx-auto max-w-md space-y-4 py-10">
+      <PageHeader title="注册账号" description="创建新用户" />
+      <Form onSubmit={handleSubmit} className="space-y-4">
+        <FormItem label="用户名" required error={form.errors.username}>
+          <Input value={form.values.username} onChange={(e) => form.setField('username', e.target.value)} />
+        </FormItem>
+        <FormItem label="姓名">
+          <Input value={form.values.name} onChange={(e) => form.setField('name', e.target.value)} />
+        </FormItem>
+        <FormItem label="密码" required error={form.errors.password}>
+          <Input type="password" value={form.values.password} onChange={(e) => form.setField('password', e.target.value)} />
+        </FormItem>
+        <FormItem label="确认密码" required error={form.errors.confirmPassword}>
+          <Input
+            type="password"
+            value={form.values.confirmPassword}
+            onChange={(e) => form.setField('confirmPassword', e.target.value)}
+          />
+        </FormItem>
+        <FormItem label="邮箱">
+          <Input value={form.values.email} onChange={(e) => form.setField('email', e.target.value)} />
+        </FormItem>
+        <FormItem label="手机号">
+          <Input value={form.values.phone} onChange={(e) => form.setField('phone', e.target.value)} />
+        </FormItem>
+        <FormItem label="租户编码">
+          <Input
+            value={form.values.tenantCode}
+            onChange={(e) => form.setField('tenantCode', e.target.value)}
+            placeholder="可选，留空使用默认租户"
+          />
+        </FormItem>
+        <Button type="submit" disabled={submitting}>
+          注册
+        </Button>
+        <div className="text-center text-sm">
+          <Link to="/login">已有账号？去登录</Link>
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">{t('register.password')}</label>
-          <div className="relative">
-            <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type={showPwd ? 'text' : 'password'} value={form.password} onChange={(e) => handleChange('password', e.target.value)} className={inputCls} placeholder="请输入密码" />
-            <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">{showPwd ? <EyeOff size={16} /> : <Eye size={16} />}</button>
-          </div>
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">{t('register.confirmPassword')}</label>
-          <div className="relative">
-            <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type={showPwd ? 'text' : 'password'} value={form.confirmPassword} onChange={(e) => handleChange('confirmPassword', e.target.value)} className={inputCls} placeholder="请再次输入密码" />
-          </div>
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">{t('register.phone')}</label>
-          <div className="relative">
-            <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} className={inputCls} placeholder="请输入手机号" />
-          </div>
-        </div>
-        <button type="submit" disabled={loading} className="h-10 w-full rounded-md bg-primary-500 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:opacity-50">
-          {loading ? '注册中...' : t('register.submit')}
-        </button>
-      </form>
-
-      <p className="mt-4 text-center text-xs text-gray-400">
-        <Link to="/login" className="text-primary-500 hover:underline">{t('register.toLogin')}</Link>
-      </p>
+      </Form>
     </div>
   );
 }
