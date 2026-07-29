@@ -3,6 +3,7 @@ package com.df4j.xctec.xcms.app.config;
 import com.df4j.xctec.xcms.kernel.context.ActorContextTaskDecorator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -18,13 +19,14 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 @Configuration
 @EnableAsync
-public class AsyncConfig {
+public class AsyncConfig implements AsyncConfigurer {
 
     /**
      * 默认 @Async 执行器（bean 名 taskExecutor，Spring 自动选用）。
      */
-    @Bean(name = "taskExecutor")
-    public AsyncTaskExecutor taskExecutor() {
+    @Override
+    @Bean(name = "asyncExecutor")
+    public AsyncTaskExecutor getAsyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(4);
         executor.setMaxPoolSize(16);
