@@ -14,12 +14,12 @@
 
 | 路径 | 触发方式 | 作用对象 | 代码入口 | 生效条件 |
 |---|---|---|---|---|
-| **平台级种子（bootstrap）** | `CommandLineRunner` 顺序调用 | **默认租户**（platform 级，code=`default`） | `SeedDataRunner` → `SeedDataService` | 仅 `h2` profile（首次启动） |
+| **平台级种子（bootstrap）** | `CommandLineRunner` 顺序调用 | **默认租户**（platform 级，code=`default`） | `SeedDataRunner` → `SeedDataService` | 全环境首次启动（受 `xcms.seed.bootstrap-enabled` 控制，默认开启） |
 | **每租户初始化（事件驱动）** | `TenantCreatedEvent` 经 `DomainEventDispatcher`（`AFTER_COMMIT` + `REQUIRES_NEW`）分发 | 每一个**新建**业务租户（非默认） | `TenantUserInitializer`、`TenantOrgInitializer` | 任意租户经 `TenantService.createTenant` 创建 |
 
 关键事实：
 
-- **默认租户不走事件路径**。`SeedDataService` 直接落库默认租户及其管理员，**不发布 `TenantCreatedEvent`**，因此事件监听器不会为默认租户运行。
+- **默认租户在种子落库后发布 `TenantCreatedEvent`**（自修复 §5.1 起）。`SeedDataService` 先直接落库默认租户及其管理员，再由 `SeedDataRunner` 发布事件，使 `TenantUserInitializer`/`TenantOrgInitializer` 为默认租户补齐 `tenant_user` 角色与 ROOT 根部门——与正常租户走同一初始化路径，且因 admin 已存在而跳过重复创建。
 - 两条路径**职责不一致**（见第 5 节），是数据缺口与一致性的主要来源。
 - 全程**幂等**：所有写入均以唯一键（`tenantCode` / `permCode` / `roleCode` / `(tenantId,userId,roleId)` 等）查重后写入，重复启动/重发事件不会重复或覆盖。
 
@@ -40,7 +40,7 @@
 | 操作权限项 | `perm_operation` | 见第 4 节 19 条 | `permCode` | 平台级，无租户隔离 |
 | 角色-权限绑定 | `perm_role_permission` | `tenant_id`, `role_id`=tenant_admin, `perm_type="OPERATION"`, `perm_id` | `(tenant_id, role_id, perm_type, perm_id)` | 租户级 |
 
-> 默认租户**仅建 `tenant_admin` 角色**，不建 `tenant_user` 角色、不建根部门（第 5.1 节缺口）。
+> 默认租户建 `tenant_admin` 角色；`tenant_user` 角色与 ROOT 根部门由种子后发布的 `TenantCreatedEvent` 经事件路径补齐（第 5.1 节缺口已修复）。
 
 ---
 
@@ -109,7 +109,7 @@
 | 数据权限规则/脱敏默认（`perm_data_rule`、`perm_column_mask`、`perm_data_rule_role`） | ❌ 未种子 | 数据权限（AT-16/18）无默认规则可用 |
 | 默认岗位（`Position`） | ❌ `TenantOrgInitializer` 只建根部门 | 契约列了「默认岗位」，未落地 |
 | 默认消息模板/系统参数（message/config） | ❌ 无监听 | 契约列了，未实现 |
-| 默认租户的 `tenant_user` 角色 / 根部门 | ⚠️ 默认租户只走种子路径，缺这二项 | 默认租户无普通用户角色、无根部门 |
+| 默认租户的 `tenant_user` 角色 / 根部门 | ✅ 已修复：`SeedDataRunner` 建好默认租户后发布 `TenantCreatedEvent`，事件路径补齐 | 默认租户现拥有普通用户角色与根部门，与正常租户对称 |
 
 ### 5.2 安全一致性（建议修复）
 
@@ -117,7 +117,7 @@
 
 ### 5.3 路径/模型不一致（建议收敛）
 
-- **默认租户缺 `tenant_user` 角色与根部门**：路径分裂导致默认租户数据不全。建议默认租户也经事件路径统一初始化，或种子补齐。
+- **默认租户 `tenant_user` 角色与根部门**：✅ 已通过「种子后发布 `TenantCreatedEvent`」统一走事件路径补齐（见第 5.1 节），默认租户与正常租户初始化对称。
 - **角色 `roleType` 取值不一致**：平台种子用字符串 `"SYSTEM"`，事件路径用 `RoleScope.TENANT` 枚举值 `"TENANT"`。建议统一为枚举值，避免后续按 `roleType` 查询/分支出错。
 - **`userType="ADMIN"` 仅种子写入**：事件路径 admin 不写 `userType`，模型语义不统一。
 
@@ -132,4 +132,4 @@
 
 ---
 
-> 本文档为开发基准。缺口项（第 5.1 节菜单种子、数据权限默认、默认岗位）建议作为后续任务补入 `docs/10-architecture-adjustment-tasks.md`；安全一致性问题（第 5.2 节）建议优先修复。
+> 本文档为开发基准。剩余缺口项（第 5.1 节菜单种子、数据权限默认、默认岗位、消息模板/系统参数）建议作为后续任务补入 `docs/10-architecture-adjustment-tasks.md`；安全一致性问题（第 5.2 节）已修复，第 5.3 节默认租户 `tenant_user`/根部门缺口已修复。

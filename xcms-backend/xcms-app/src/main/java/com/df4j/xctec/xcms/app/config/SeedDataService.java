@@ -15,6 +15,7 @@ import com.df4j.xctec.xcms.identity.listener.TenantUserInitializer;
 import com.df4j.xctec.xcms.identity.repository.RoleRepository;
 import com.df4j.xctec.xcms.identity.repository.UserRepository;
 import com.df4j.xctec.xcms.identity.repository.UserRoleRepository;
+import com.df4j.xctec.xcms.org.repository.DepartmentRepository;
 import com.df4j.xctec.xcms.tenant.api.enums.TenantStatus;
 import com.df4j.xctec.xcms.tenant.api.enums.TenantType;
 import com.df4j.xctec.xcms.tenant.domain.TenantInfo;
@@ -75,6 +76,7 @@ public class SeedDataService {
     private final MenuRepository menuRepository;
     /** AT-08：角色-权限绑定（perm_role_permission）仓库，租户级 */
     private final RolePermissionRepository rolePermissionRepository;
+    private final DepartmentRepository departmentRepository;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -99,6 +101,29 @@ public class SeedDataService {
             log.info("[Seed] 已创建默认租户: id={}, code={}", tenant.getId(), DEFAULT_TENANT_CODE);
         }
         return tenant.getId();
+    }
+
+    /**
+     * 判断默认租户是否仍需经事件路径初始化（设计 §5.1 缺口修复）。
+     *
+     * <p>仅当默认租户已存在、但尚缺 {@code tenant_user} 角色或 ROOT 根部门时返回 true。
+     * 据此决定 {@link SeedDataRunner} 是否发布 {@link
+     * com.df4j.xctec.xcms.tenant.api.event.TenantCreatedEvent}，避免每次启动重复发布事件
+     * 与写入初始化状态；同时可在「租户已建但初始化不全」的半初始化状态下自愈。
+     *
+     * @return 默认租户是否缺 tenant_user 角色 / ROOT 根部门
+     */
+    @Transactional(readOnly = true)
+    public boolean defaultTenantNeedsEventInit() {
+        return tenantInfoRepository.findByTenantCode(DEFAULT_TENANT_CODE)
+                .map(tenant -> {
+                    Long id = tenant.getId();
+                    boolean hasUserRole = roleRepository.findByTenantIdAndRoleCode(id, "tenant_user").isPresent();
+                    boolean hasRootDept = departmentRepository
+                            .findByTenantIdAndParentIdIsNullAndDeletedAtIsNull(id).isEmpty();
+                    return !hasUserRole || !hasRootDept;
+                })
+                .orElse(false);
     }
 
     /**
