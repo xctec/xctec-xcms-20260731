@@ -1,123 +1,105 @@
-import { useState } from 'react';
-import { Upload, FolderOpen, FileText, Image, File, Download, Trash2, MoreHorizontal, type LucideIcon } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Pagination } from '@/components/ui/Pagination';
-import { PageHeader, TableCard } from '@/components/ui/PageHeader';
+import { useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  PageHeader,
+  TableCard,
+  Table,
+  Pagination,
+  Button,
+  toast,
+  type Column,
+} from '@/components/ui';
+import { useConfirm } from '@/common/confirm';
+import { Can } from '@/components/auth/Can';
+import { fileApi } from '@/api/file';
+import type { Schemas } from '@/types/api-helpers';
 
-const mockFiles = [
-  { id: 1, name: '2025年度运营报告.pdf', type: 'pdf', size: '2.4 MB', folder: '运营报表', uploader: '张三', uploadTime: '2025-07-25 10:30' },
-  { id: 2, name: '组织架构图.png', type: 'image', size: '856 KB', folder: '公共资源', uploader: '李四', uploadTime: '2025-07-24 16:00' },
-  { id: 3, name: '流程设计文档.docx', type: 'doc', size: '1.2 MB', folder: '流程中心', uploader: '王五', uploadTime: '2025-07-24 14:20' },
-  { id: 4, name: '用户数据导出.xlsx', type: 'excel', size: '3.8 MB', folder: '数据导出', uploader: '赵六', uploadTime: '2025-07-23 11:00' },
-  { id: 5, name: '系统架构图.png', type: 'image', size: '1.5 MB', folder: '公共资源', uploader: '钱七', uploadTime: '2025-07-22 09:30' },
-  { id: 6, name: '采购合同模板.pdf', type: 'pdf', size: '640 KB', folder: '合同管理', uploader: '孙八', uploadTime: '2025-07-21 15:00' },
-  { id: 7, name: '月度财务报表.xlsx', type: 'excel', size: '2.1 MB', folder: '财务报表', uploader: '周九', uploadTime: '2025-07-20 08:00' },
-  { id: 8, name: '项目计划书.docx', type: 'doc', size: '980 KB', folder: '项目管理', uploader: '吴十', uploadTime: '2025-07-19 14:00' },
-];
+type FileDTO = Schemas['FileDTO'];
 
-const fileIcons: Record<string, { icon: LucideIcon; color: string; bg: string }> = {
-  pdf: { icon: FileText, color: 'text-danger-500', bg: 'bg-danger-50' },
-  image: { icon: Image, color: 'text-info-500', bg: 'bg-info-50' },
-  doc: { icon: FileText, color: 'text-primary-500', bg: 'bg-primary-50' },
-  excel: { icon: FileText, color: 'text-success-500', bg: 'bg-success-50' },
+const fmtSize = (n?: number) => {
+  if (!n) return '-';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
 };
 
-export default function FileManagementPage() {
+export default function FileManagement() {
   const [page, setPage] = useState(1);
-  const [view, setView] = useState<'list' | 'grid'>('list');
+  const [size] = useState(10);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+  const { confirm, Confirm } = useConfirm();
+
+  const { data, isFetching } = useQuery({
+    queryKey: ['file-list', page],
+    queryFn: () => fileApi.list({ page, size }),
+  });
+  const list = (data?.list ?? []) as FileDTO[];
+  const total = data?.total ?? 0;
+
+  const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      await fileApi.upload(f);
+      toast.success('上传成功');
+      queryClient.invalidateQueries({ queryKey: ['file-list'] });
+    } catch {
+      toast.error('上传失败');
+    }
+    e.target.value = '';
+  };
+
+  const handleDelete = (row: FileDTO) =>
+    confirm({
+      title: '确认删除',
+      description: `确定要删除文件「${row.fileName}」吗？`,
+      onOk: async () => {
+        await fileApi.delete(row.id!);
+        toast.success('删除成功');
+        queryClient.invalidateQueries({ queryKey: ['file-list'] });
+      },
+    });
+
+  const columns: Column<FileDTO>[] = [
+    { key: 'id', title: 'ID', width: 64 },
+    { key: 'fileName', title: '文件名' },
+    { key: 'fileType', title: 'MIME' },
+    { key: 'fileSize', title: '大小', render: (r) => fmtSize(r.fileSize) },
+    { key: 'storageType', title: '存储类型' },
+    { key: 'ownerId', title: '上传者ID' },
+    {
+      key: 'actions',
+      title: '操作',
+      render: (r) => (
+        <Can permission="file:delete">
+          <Button size="sm" variant="ghost" className="text-danger-500" onClick={() => handleDelete(r)}>
+            删除
+          </Button>
+        </Can>
+      ),
+    },
+  ];
 
   return (
-    <div>
-      <PageHeader title="文件管理" description="文件上传、下载、文件夹管理" actions={
-        <>
-          <Button variant="secondary" icon={FolderOpen}>新建文件夹</Button>
-          <Button variant="primary" icon={Upload}>上传文件</Button>
-        </>
-      } />
-
-      <div className="grid grid-cols-5 gap-4">
-        {/* Folder Tree */}
-        <TableCard>
-          <div className="border-b border-gray-100 px-4 py-3"><h3 className="text-sm font-semibold text-gray-800">文件夹</h3></div>
-          <div className="p-2">
-            {['全部文件', '公共资源', '运营报表', '流程中心', '数据导出', '合同管理', '财务报表', '项目管理'].map((f, i) => (
-              <button key={f} className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] ${i === 0 ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
-                <FolderOpen size={15} className={i === 0 ? 'text-primary-500' : 'text-gray-400'} />
-                {f}
-              </button>
-            ))}
-          </div>
-        </TableCard>
-
-        {/* File List */}
-        <div className="col-span-4">
-          <TableCard>
-            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-              <div className="flex gap-2">
-                {['全部', '图片', '文档', '表格', 'PDF'].map((f, i) => (
-                  <button key={f} className={`rounded-full px-3 py-1 text-xs font-medium ${i === 0 ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-500'}`}>{f}</button>
-                ))}
-              </div>
-              <div className="flex gap-1">
-                <button onClick={() => setView('list')} className={`flex h-7 w-7 items-center justify-center rounded ${view === 'list' ? 'bg-primary-50 text-primary-500' : 'text-gray-400'}`}><FileText size={14} /></button>
-                <button onClick={() => setView('grid')} className={`flex h-7 w-7 items-center justify-center rounded ${view === 'grid' ? 'bg-primary-50 text-primary-500' : 'text-gray-400'}`}><Image size={14} /></button>
-              </div>
-            </div>
-
-            {view === 'list' ? (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[13px]">
-                    <thead><tr className="border-b border-gray-200 bg-gray-50">
-                      {['文件名', '大小', '文件夹', '上传者', '上传时间', '操作'].map((h, i) => (
-                        <th key={h} className={`px-4 py-2.5 text-xs font-medium text-gray-500 ${i === 5 ? 'text-right' : 'text-left'}`}>{h}</th>
-                      ))}
-                    </tr></thead>
-                    <tbody>
-                      {mockFiles.map(f => {
-                        const fc = fileIcons[f.type] || { icon: File, color: 'text-gray-400', bg: 'bg-gray-100' };
-                        return (
-                          <tr key={f.id} className="border-b border-gray-100 hover:bg-primary-50/50">
-                            <td className="px-4 py-2.5">
-                              <div className="flex items-center gap-2">
-                                <div className={`flex h-7 w-7 items-center justify-center rounded-md ${fc.bg}`}><fc.icon size={14} className={fc.color} /></div>
-                                <span className="font-medium text-gray-900">{f.name}</span>
-                              </div>
-                            </td>
-                            <td className="px-4 text-gray-500">{f.size}</td>
-                            <td className="px-4 text-gray-500">{f.folder}</td>
-                            <td className="px-4 text-gray-500">{f.uploader}</td>
-                            <td className="px-4 text-[11px] text-gray-400">{f.uploadTime}</td>
-                            <td className="px-4 text-right">
-                              <button className="text-gray-400 hover:text-primary-500"><Download size={14} /></button>
-                              <button className="ml-3 text-gray-400 hover:text-danger-500"><Trash2 size={14} /></button>
-                              <button className="ml-2 text-gray-400 hover:text-gray-600"><MoreHorizontal size={14} /></button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                <Pagination page={page} total={8} size={10} onChange={setPage} />
-              </>
-            ) : (
-              <div className="grid grid-cols-4 gap-3 p-4">
-                {mockFiles.map(f => {
-                  const fc = fileIcons[f.type] || { icon: File, color: 'text-gray-400', bg: 'bg-gray-100' };
-                  return (
-                    <div key={f.id} className="flex flex-col items-center rounded-lg border border-gray-200 p-4 hover:border-primary-300 hover:shadow-card cursor-pointer">
-                      <div className={`mb-2 flex h-12 w-12 items-center justify-center rounded-lg ${fc.bg}`}><fc.icon size={24} className={fc.color} /></div>
-                      <span className="truncate text-center text-xs font-medium text-gray-700 w-full" title={f.name}>{f.name}</span>
-                      <span className="mt-1 text-[10px] text-gray-400">{f.size}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </TableCard>
+    <div className="space-y-4">
+      <PageHeader
+        title="文件管理"
+        description="管理系统文件"
+        actions={
+          <Can permission="file:upload">
+            <Button onClick={() => fileRef.current?.click()}>+ 上传文件</Button>
+          </Can>
+        }
+      />
+      <input type="file" ref={fileRef} className="hidden" onChange={onUpload} />
+      <TableCard>
+        <Table rowKey={(r) => r.id ?? 0} columns={columns} data={list} loading={isFetching} emptyText="暂无文件" />
+        <div className="flex justify-end pt-3">
+          <Pagination page={page} size={size} total={total} onChange={setPage} />
         </div>
-      </div>
+      </TableCard>
+      {Confirm}
     </div>
   );
 }

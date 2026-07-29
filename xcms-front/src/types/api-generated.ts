@@ -87,7 +87,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 部署流程定义 */
+        /**
+         * 部署流程定义
+         * @description 需要 workflow:deploy 权限
+         */
         post: operations["deploy"];
         delete?: never;
         options?: never;
@@ -614,7 +617,7 @@ export interface paths {
         put?: never;
         /**
          * 刷新令牌
-         * @description 使用刷新令牌换取新的访问令牌。公开端点，无需鉴权。
+         * @description 使用 httpOnly cookie 中的刷新令牌换取新的访问令牌（兼容期仍支持 body 传参）。公开端点，无需鉴权。cookie 方式必须携带 X-Requested-With: XMLHttpRequest 头（CSRF 双保险，评审 P1-4）。
          */
         post: operations["refreshToken"];
         delete?: never;
@@ -634,7 +637,7 @@ export interface paths {
         put?: never;
         /**
          * 登出
-         * @description 吊销当前会话（服务端会话标记 EXPIRED；无状态 JWT 在过期前仍可被解析，详见 TenantResolver SPI 说明）。
+         * @description 吊销当前会话并清除 refresh cookie（服务端会话标记 EXPIRED；无状态 JWT 在过期前仍可被解析，详见 TenantResolver SPI 说明）。
          */
         post: operations["logout"];
         delete?: never;
@@ -654,7 +657,7 @@ export interface paths {
         put?: never;
         /**
          * 账号密码登录
-         * @description 使用用户名/密码登录，返回访问令牌与刷新令牌。公开端点，无需鉴权。
+         * @description 使用用户名/密码登录，返回访问令牌；刷新令牌经 httpOnly cookie 下发。公开端点，无需鉴权。
          */
         post: operations["login"];
         delete?: never;
@@ -1433,6 +1436,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/tenant-init/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 触发初始化补偿
+         * @description 对指定租户重发 TenantCreatedEvent，由幂等监听器补齐缺失数据。
+         */
+        post: operations["retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/tenant-init/list-failed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 查询初始化失败记录
+         * @description 列出所有初始化失败的（租户, 模块）记录。
+         */
+        post: operations["listFailed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/tenant-feature/toggle": {
         parameters: {
             query?: never;
@@ -2019,6 +2062,26 @@ export interface paths {
          * @description 返回用户在指定菜单范围（scope）下的菜单树。
          */
         post: operations["getUserMenus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/permission/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 列出全部权限
+         * @description 返回系统全部权限（操作权限 + 菜单/按钮权限），供前端分配权限时全量选择。
+         */
+        post: operations["listAllPermissions"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3271,6 +3334,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/notifications/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 订阅通知推送
+         * @description SSE 长连接（EventSource），按当前登录用户（租户+用户）订阅；心跳保活，断线由客户端重连。
+         */
+        get: operations["stream"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4166,7 +4249,7 @@ export interface components {
              * @description 所属租户 ID
              */
             tenantId?: number;
-            /** @description 所属租户名称（登录/用户查询时回填，见后端 UserDTO.tenantName） */
+            /** @description 所属租户名称（登录/用户查询时回填，需后端引入租户服务） */
             tenantName?: string;
             /** @description 登录用户名 */
             username?: string;
@@ -4841,6 +4924,49 @@ export interface components {
             /** Format: int64 */
             id?: number;
             request?: components["schemas"]["QuotaAllocateRequest"];
+        };
+        ApiResponseListTenantInitStatusDTO: {
+            /**
+             * @description 错误码。"0"=成功；其他为业务/系统错误码：4xx 客户端错误（400 参数错误/401 未认证/403 无权限/404 资源不存在/409 资源冲突/422 参数校验失败）；5xx 服务端错误（500 内部错误）；1xxx 业务错误——100x 租户（1001 租户不存在/1002 租户停用/1003 租户锁定/1004 配额超限）、11xx 用户组织（1101 用户不存在/1102 用户已存在/1103 用户禁用/1104 角色不存在/1105 角色已存在/1106 部门不存在/1107 部门已存在/1108 岗位不存在/1109 用户组不存在）；12xx 认证权限（1202 数据权限拒绝/1203 凭证无效/1204 Token无效/1205 Token过期/1206 账号禁用）；4000 通用业务错误；20xx 跨租户（2001 跨租户拒绝/2002 业务可见性拒绝）
+             * @example 0
+             */
+            errorCode?: string;
+            /**
+             * @description 错误信息，成功时为 "success"
+             * @example success
+             */
+            errorMsg?: string;
+            /** @description 响应数据（泛型，可为 null） */
+            data?: components["schemas"]["TenantInitStatusDTO"][];
+        };
+        /** @description 租户初始化状态 */
+        TenantInitStatusDTO: {
+            /**
+             * Format: int64
+             * @description 记录 ID
+             */
+            id?: number;
+            /**
+             * Format: int64
+             * @description 租户 ID
+             */
+            tenantId?: number;
+            /** @description 初始化模块（identity/org 等） */
+            module?: string;
+            /** @description 状态：SUCCESS/FAILED */
+            status?: string;
+            /** @description 失败原因 */
+            errorMsg?: string;
+            /**
+             * Format: int32
+             * @description 重试次数
+             */
+            retryCount?: number;
+            /**
+             * Format: date-time
+             * @description 更新时间
+             */
+            updatedAt?: string;
         };
         TenantFeatureToggleRequest: {
             /** Format: int64 */
@@ -6900,6 +7026,10 @@ export interface components {
              */
             total?: number;
         };
+        SseEmitter: {
+            /** Format: int64 */
+            timeout?: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -7698,11 +7828,15 @@ export interface operations {
     refreshToken: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Requested-With"?: string;
+            };
             path?: never;
-            cookie?: never;
+            cookie?: {
+                refresh_token?: string;
+            };
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["RefreshTokenRequest"];
             };
@@ -8719,6 +8853,50 @@ export interface operations {
             };
         };
     };
+    retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IdRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseVoid"];
+                };
+            };
+        };
+    };
+    listFailed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListTenantInitStatusDTO"];
+                };
+            };
+        };
+    };
     toggleFeature: {
         parameters: {
             query?: never;
@@ -9483,6 +9661,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseListMenuDTO"];
+                };
+            };
+        };
+    };
+    listAllPermissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListPermissionDTO"];
                 };
             };
         };
@@ -11123,6 +11321,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseLoginResult"];
+                };
+            };
+        };
+    };
+    stream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": components["schemas"]["SseEmitter"];
                 };
             };
         };
