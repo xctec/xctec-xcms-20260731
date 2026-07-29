@@ -4,7 +4,7 @@ import com.df4j.xctec.xcms.auth.api.PermissionService;
 import com.df4j.xctec.xcms.web.config.XcmsJwtProperties;
 import com.df4j.xctec.xcms.web.config.XcmsSecurityProperties;
 import com.df4j.xctec.xcms.web.config.XcmsWebProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;

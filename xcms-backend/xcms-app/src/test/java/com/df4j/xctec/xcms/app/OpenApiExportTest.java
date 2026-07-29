@@ -1,7 +1,7 @@
 package com.df4j.xctec.xcms.app;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -49,9 +49,9 @@ class OpenApiExportTest {
         // operation summary + 公开端点豁免
         JsonNode paths = doc.path("paths");
         int total = 0, withSummary = 0, publicEndpoints = 0;
-        for (var it = paths.fields(); it.hasNext(); ) {
+        for (var it = paths.properties().iterator(); it.hasNext(); ) {
             var pe = it.next();
-            for (var mit = pe.getValue().fields(); mit.hasNext(); ) {
+            for (var mit = pe.getValue().properties().iterator(); mit.hasNext(); ) {
                 var me = mit.next();
                 String m = me.getKey();
                 if (!(m.equals("get") || m.equals("post") || m.equals("put") || m.equals("delete") || m.equals("patch"))) {
@@ -93,7 +93,7 @@ class OpenApiExportTest {
 
         // ErrorCodes 错误码文档化：统一响应 errorCode 字段富描述
         boolean errorCodeDoc = false;
-        for (var sit = schemas.fields(); sit.hasNext(); ) {
+        for (var sit = schemas.properties().iterator(); sit.hasNext(); ) {
             var se = sit.next();
             if (se.getKey().startsWith("ApiResponse")) {
                 JsonNode ec = se.getValue().path("properties").path("errorCode").path("description");
@@ -116,11 +116,11 @@ class OpenApiExportTest {
 
         // 请求参数级 @Parameter（路径变量 id）
         boolean idParamDoc = false;
-        for (var pit = paths.fields(); pit.hasNext(); ) {
+        for (var pit = paths.properties().iterator(); pit.hasNext(); ) {
             var pe = pit.next();
             if (pe.getKey().contains("/file/download/")) {
                 JsonNode params = pe.getValue().path("get").path("parameters");
-                for (var paramIt = params.elements(); paramIt.hasNext(); ) {
+                for (var paramIt = params.iterator(); paramIt.hasNext(); ) {
                     JsonNode p = paramIt.next();
                     if ("id".equals(p.path("name").asText()) && !p.path("description").isMissingNode()) {
                         idParamDoc = true;
@@ -203,13 +203,13 @@ class OpenApiExportTest {
     }
 
     private static JsonNode findEnumSchema(JsonNode schemas, java.util.Set<String> values, String descFragment) {
-        for (var it = schemas.fields(); it.hasNext(); ) {
+        for (var it = schemas.properties().iterator(); it.hasNext(); ) {
             var e = it.next();
             JsonNode props = e.getValue().path("properties");
             if (props.isMissingNode()) {
                 continue;
             }
-            for (var pit = props.fields(); pit.hasNext(); ) {
+            for (var pit = props.properties().iterator(); pit.hasNext(); ) {
                 JsonNode resolved = resolveSchema(schemas, pit.next().getValue());
                 JsonNode en = resolved.path("enum");
                 if (en.isArray() && containsAll(en, values)
@@ -260,7 +260,7 @@ class OpenApiExportTest {
 
     private static String response200Ref(JsonNode op) {
         JsonNode content = op.path("responses").path("200").path("content");
-        for (var it = content.fields(); it.hasNext(); ) {
+        for (var it = content.properties().iterator(); it.hasNext(); ) {
             JsonNode sch = it.next().getValue().path("schema");
             String ref = sch.path("$ref").asText("");
             if (!ref.isEmpty()) {
