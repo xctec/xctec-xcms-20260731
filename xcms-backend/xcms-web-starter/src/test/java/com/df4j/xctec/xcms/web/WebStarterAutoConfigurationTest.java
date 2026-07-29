@@ -9,7 +9,7 @@ import com.df4j.xctec.xcms.web.config.XcmsJwtProperties;
 import com.df4j.xctec.xcms.web.error.GlobalExceptionHandler;
 import com.df4j.xctec.xcms.web.openapi.WebStarterOpenApiAutoConfiguration;
 import com.df4j.xctec.xcms.web.security.SecurityConfig;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.MACSigner;

@@ -2,7 +2,7 @@ package com.df4j.xctec.xcms.web.security;
 
 import com.df4j.xctec.xcms.kernel.common.ApiResponse;
 import com.df4j.xctec.xcms.kernel.exception.ErrorCodes;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;

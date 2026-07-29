@@ -4,9 +4,9 @@ import com.df4j.xctec.xcms.kernel.context.ActorContextTaskDecorator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
-import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
@@ -24,7 +24,7 @@ public class AsyncConfig {
      * 默认 @Async 执行器（bean 名 taskExecutor，Spring 自动选用）。
      */
     @Bean(name = "taskExecutor")
-    public Executor taskExecutor() {
+    public AsyncTaskExecutor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(4);
         executor.setMaxPoolSize(16);
