@@ -6,7 +6,8 @@ import AuthLayout from '@/layouts/AuthLayout';
 import { RequireAuth, RequireRole } from './guards';
 
 /** 管理面所需角色（满足其一即可进入） */
-const ADMIN_ROLES = ['SYSTEM_ADMIN', 'TENANT_ADMIN'];
+// 与后端种子角色码保持一致（SeedDataService.ADMIN_ROLE_CODE = "tenant_admin"）
+const ADMIN_ROLES = ['tenant_admin'];
 
 // 懒加载页面组件
 const LoginPage = lazy(() => import('@/pages/auth/Login'));

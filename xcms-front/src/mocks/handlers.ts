@@ -14,7 +14,7 @@ const mockUser = {
   username: 'admin',
   realName: '超级管理员',
   tenantName: '集团总部',
-  roles: [{ roleCode: 'SYSTEM_ADMIN', roleName: '系统管理员' }],
+  roles: [{ roleCode: 'tenant_admin', roleName: '租户管理员' }],
 };
 
 export const handlers = [
@@ -105,43 +105,51 @@ export const handlers = [
     return ok(null);
   }),
 
-  // ====== 组织架构 ======
-  http.post('/api/admin/org/dept/tree', () => ok(mockDepartments)),
-  http.post('/api/admin/org/dept/create', async ({ request }) => {
+  // ====== 组织架构（对齐后端 DepartmentController / PositionController / UserGroupController）======
+  http.post('/api/admin/department/tree', () => ok(mockDepartments)),
+  http.post('/api/admin/department/create', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return ok({ id: Date.now(), children: [], ...body });
   }),
-  http.post('/api/admin/org/dept/update', async ({ request }) => {
+  http.post('/api/admin/department/update', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return ok({ ...body });
   }),
-  http.post('/api/admin/org/dept/delete', async ({ request }) => {
+  http.post('/api/admin/department/delete', async ({ request }) => {
     await request.json();
     return ok(null);
   }),
-  http.post('/api/admin/org/dept/move', async ({ request }) => {
+  http.post('/api/admin/department/move', async ({ request }) => {
     await request.json();
     return ok(null);
   }),
-  http.post('/api/admin/org/position/list', async ({ request }) => {
-    const body = (await request.json()) as { deptId?: number };
-    const positions = body.deptId != null ? mockPositions[body.deptId] ?? [] : [];
+  http.post('/api/admin/position/list-by-dept', async ({ request }) => {
+    const body = (await request.json()) as { id?: number };
+    const positions = body.id != null ? mockPositions[body.id] ?? [] : [];
     return ok(positions);
   }),
-  http.post('/api/admin/org/position/create', async ({ request }) => {
+  http.post('/api/admin/position/create', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return ok({ id: Date.now(), positionId: Date.now(), ...body });
   }),
-  http.post('/api/admin/org/position/delete', async ({ request }) => {
+  http.post('/api/admin/position/delete', async ({ request }) => {
     await request.json();
     return ok(null);
   }),
-  http.post('/api/admin/org/group/list', () => ok(mockGroups)),
-  http.post('/api/admin/org/group/create', async ({ request }) => {
+  http.post('/api/admin/user-group/list', () => ok(mockGroups)),
+  http.post('/api/admin/user-group/create', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return ok({ id: Date.now(), memberCount: 0, ...body });
   }),
-  http.post('/api/admin/org/group/delete', async ({ request }) => {
+  http.post('/api/admin/user-group/delete', async ({ request }) => {
+    await request.json();
+    return ok(null);
+  }),
+  http.post('/api/admin/user-group/add-members', async ({ request }) => {
+    await request.json();
+    return ok(null);
+  }),
+  http.post('/api/admin/user-group/remove-members', async ({ request }) => {
     await request.json();
     return ok(null);
   }),
